@@ -214,11 +214,11 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-fd-border px-6 py-8 text-center text-sm text-fd-muted-foreground">
-        <p className="mb-2">
+      <footer className="border-t border-fd-border px-6 py-10 text-center text-sm text-fd-muted-foreground">
+        <p className="mb-3">
           &copy; {new Date().getFullYear()} OpenClaw Academy. All rights reserved.
         </p>
-        <p>
+        <p className="mb-3">
           Powered by{' '}
           <a
             href={SKOOL_URL}
@@ -228,6 +228,11 @@ export default function HomePage() {
           >
             AI Agents Accelerator
           </a>
+        </p>
+        <p className="mx-auto max-w-xl text-xs leading-relaxed opacity-60">
+          OpenClaw Academy is an independent, community-built resource and is not affiliated with,
+          endorsed by, or officially connected to OpenClaw or its creators. All content is original
+          and written independently for educational purposes.
         </p>
       </footer>
     </main>
