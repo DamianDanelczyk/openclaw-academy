@@ -1,0 +1,96 @@
+---
+title: Glossary
+description: An A-Z reference of key terms, concepts, and jargon used across the OpenClaw platform.
+---
+
+# Glossary
+
+OpenClaw comes with its own vocabulary. Some terms are borrowed from the broader AI world, others are specific to the platform. This glossary defines every term you'll encounter in these docs, in plain language.
+
+---
+
+**Agent** — An AI assistant configured within OpenClaw. Each agent has its own personality, rules, model, and purpose. You can run multiple agents simultaneously, each handling different tasks or channels.
+
+**API Key** — A secret string of characters that authenticates your requests to an AI provider (like Anthropic or OpenAI). Think of it as a password that lets OpenClaw talk to the AI models on your behalf. Keep it private.
+
+**Batch Processing** — Grouping multiple tasks together and processing them as a single unit instead of one at a time. Useful for non-urgent work like generating daily reports or classifying a backlog of emails.
+
+**Budget Alert** — A notification triggered when your API spending reaches a configured threshold (e.g., 80% of your monthly limit). Prevents surprise bills.
+
+**Caching** — Storing the results of previous AI responses so that identical or very similar questions can be answered instantly without making another API call. Saves money and speeds up responses.
+
+**Channel** — A communication platform where your agents interact with users. Examples include Slack, email, WhatsApp, web chat, and Discord. One agent can be connected to multiple channels.
+
+**Complexity Detection** — An OpenClaw feature that analyzes incoming messages and estimates how difficult they are, then routes them to an appropriately powerful (and priced) AI model.
+
+**Config (Configuration)** — The YAML files that define how your OpenClaw instance behaves. Includes agent settings, channel connections, routing rules, budgets, and more. Lives in the `config/` directory.
+
+**Context Window** — The maximum amount of text an AI model can process in a single request. This includes the system prompt, conversation history, retrieved memory, and the user's message. Exceeding it causes an error.
+
+**Conversation History** — The record of previous messages in a conversation. OpenClaw stores this so agents can reference what was said earlier. Configurable — you can limit how many previous messages are included.
+
+**Cron Job** — A scheduled task that runs automatically at specified intervals. Named after the Unix scheduling system. Example: "Every morning at 9 AM, summarize yesterday's support tickets."
+
+**Dashboard** — OpenClaw's web-based control panel, accessible at `localhost:3000` by default. Shows agent status, conversation logs, costs, and system health.
+
+**Delegation Pattern** — A sub-agent arrangement where a primary agent receives a task and assigns pieces of it to specialist sub-agents. The primary agent coordinates and assembles the final response.
+
+**Embedding** — A mathematical representation of text as a list of numbers (a vector). Used by OpenClaw's memory system to find semantically similar content. You don't need to understand the math — just know that embeddings power the search.
+
+**Escalation** — The process of handing a conversation from an AI agent to a human, or from a simpler model to a more capable one. Typically triggered by rules in the SOUL.md (e.g., "if the customer asks for a refund over $100, escalate").
+
+**Frontmatter** — The metadata block at the top of an MDX file, enclosed by `---`. Contains structured data like title and description.
+
+**Gateway** — The entry point to your OpenClaw instance. All incoming messages from all channels flow through the gateway, which routes them to the appropriate agent.
+
+**Haiku** — Anthropic's fastest and cheapest Claude model. Great for simple tasks like classification, routing, and basic Q&A. Not ideal for complex reasoning or long-form content.
+
+**Healthcheck** — An automated test that verifies OpenClaw and its dependencies (API connections, database, channels) are working correctly. Run manually with `openclaw health` or automatically via Docker/monitoring tools.
+
+**Indexing** — The process of converting your knowledge base documents into embeddings and storing them for fast retrieval. Happens when you add documents with `openclaw memory add` or run `openclaw memory reindex`.
+
+**Knowledge Base** — The collection of documents, FAQs, and reference material that your agents can search when answering questions. Stored in the `data/memory/` directory and accessed via memory retrieval.
+
+**Latency** — The time between sending a request and receiving a response. Measured in milliseconds or seconds. Affected by model choice (Haiku is fast, Opus is slower), prompt length, and API provider load.
+
+**Memory** — OpenClaw's system for giving agents access to information beyond the current conversation. Includes the knowledge base (documents you've uploaded) and conversation history. Uses embeddings for semantic search.
+
+**Model** — The AI system that generates responses. OpenClaw supports multiple models from different providers: Claude (Anthropic), GPT (OpenAI), Gemini (Google), and others. Each model has different capabilities, speeds, and costs.
+
+**Model Routing** — The practice of sending different tasks to different AI models based on complexity, cost, or other criteria. Simple questions go to cheap models; complex ones go to expensive models. Configured in `routing.yaml`.
+
+**Opus** — Anthropic's most capable Claude model. Excellent for complex reasoning, nuanced analysis, and tasks requiring deep understanding. Also the most expensive and slowest.
+
+**Pipeline Pattern** — A sub-agent arrangement where data flows through a fixed sequence of agents, each one processing and transforming it before passing it to the next. Like an assembly line.
+
+**Plugin** — An extension that adds functionality to OpenClaw. Plugins can add new channels, tools, integrations, or features without modifying the core platform.
+
+**Process Manager** — Software that keeps OpenClaw running in the background, restarts it if it crashes, and manages logs. Examples: systemd (Linux), launchd (Mac), pm2 (cross-platform).
+
+**Prompt** — The text input sent to an AI model. In OpenClaw, this includes the system prompt (from SOUL.md), any retrieved memory context, conversation history, and the user's current message.
+
+**RAG (Retrieval-Augmented Generation)** — A technique where relevant documents are retrieved from the knowledge base and included in the prompt before generating a response. This lets agents answer questions based on your specific data, not just their training data.
+
+**Rate Limit** — A cap on how many API requests you can make within a time period (usually per minute). Set by your API provider. Exceeding it results in a 429 error. OpenClaw can be configured to respect these limits automatically.
+
+**SOUL.md** — The file that defines an agent's personality, rules, knowledge scope, and behavior. The name stands for "Statement of Underlying Logic." It's the most important file in any agent's configuration.
+
+**Sonnet** — Anthropic's mid-tier Claude model. Balances capability, speed, and cost. The default choice for most tasks. Good at writing, analysis, coding, and general conversation.
+
+**Sub-Agent** — An agent that is called by another agent to handle a specific part of a task. Sub-agents allow you to break complex workflows into smaller, specialized pieces.
+
+**System Prompt** — The instructions given to an AI model that define its behavior, personality, and rules. In OpenClaw, the system prompt comes primarily from the SOUL.md file. It's included at the beginning of every request to the model.
+
+**Temperature** — A setting that controls how creative or random an AI model's responses are. Low temperature (0.0-0.3) produces more consistent, predictable responses. High temperature (0.7-1.0) produces more varied and creative output.
+
+**Token** — The basic unit AI models use to process text. Roughly 4 characters or 3/4 of a word in English. API pricing is based on token count. Both input (what you send) and output (what you receive) tokens are counted.
+
+**Trace ID** — A unique identifier assigned to each request as it flows through OpenClaw. Used for debugging — you can follow a single user message through the gateway, agent, sub-agents, and back to see exactly what happened.
+
+**Vector Database** — A specialized database optimized for storing and searching embeddings. OpenClaw uses one internally for its memory system. You generally don't interact with it directly.
+
+**Voting Pattern** — A sub-agent arrangement where the same task is sent to multiple agents independently, and their responses are aggregated (typically by majority consensus). Used for high-stakes decisions where you want extra confidence.
+
+**Webhook** — A mechanism where one system sends an automatic HTTP request to another when something happens. OpenClaw uses webhooks to receive messages from channels (e.g., Slack sends a webhook when someone messages your bot) and to notify external systems of events.
+
+**YAML** — The file format used for OpenClaw configuration files (stands for "YAML Ain't Markup Language"). Uses indentation to define structure. Simpler than JSON for humans to read and write, but very sensitive to spacing — tabs will break it.

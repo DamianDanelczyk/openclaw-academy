@@ -1,0 +1,251 @@
+---
+title: Social Media Monitoring
+description: Track brand mentions, industry trends, and competitor activity across social platforms with automated alerts and summaries.
+---
+
+# Social Media Monitoring
+
+Social media never sleeps, and neither should your monitoring. Whether someone is praising your product on Twitter, complaining about a bug on Reddit, or your biggest competitor just announced a new feature, you want to know about it. But spending hours scrolling through feeds and search results is not a productive use of your time.
+
+The Social Media Monitoring playbook turns OpenClaw into your always-on social listening tool. It watches the platforms and keywords you care about, filters out the noise, and delivers actionable alerts when something needs your attention. Think of it as a radar system for your brand's online presence.
+
+## What Gets Monitored
+
+You can configure OpenClaw to watch for several types of social activity:
+
+- **Brand mentions** — Any time someone mentions your company, product, or brand name
+- **Keyword tracking** — Industry terms, competitor names, or topics relevant to your business
+- **Sentiment shifts** — Sudden changes in how people talk about you (spikes in complaints, viral positive feedback)
+- **Competitor activity** — New posts, announcements, or campaigns from competitors you are watching
+- **Influencer engagement** — When notable people in your industry discuss topics you care about
+- **Community activity** — Conversations in specific subreddits, Discord servers, or forums
+
+The monitoring covers Twitter/X, LinkedIn, Reddit, Hacker News, and any RSS feeds you configure. Each platform gets checked at different intervals depending on how fast things move there.
+
+## Why Not Just Use a Social Listening Tool
+
+You might already have a tool like Mention, Brandwatch, or Sprout Social. Those are great products, and this playbook actually works well alongside them. The difference is that OpenClaw does not just collect mentions. It reads them, understands context, and tells you what matters and why.
+
+A traditional social listening tool might show you 47 mentions today. OpenClaw tells you that 44 of them are routine, two are support issues that need responses, and one is a viral thread you should jump into while it is still gaining traction. It is the difference between data and insight.
+
+## Deciding What to Track
+
+Start narrow and expand over time. If you try to monitor everything from day one, you will drown in notifications. Here is a good starting sequence:
+
+1. **Week 1**: Your brand name and product name
+2. **Week 2**: Add your top two or three competitors
+3. **Week 3**: Add industry keywords and hashtags
+4. **Week 4**: Add influencer tracking and community monitoring
+
+At each stage, tune the sensitivity. If you are getting too many irrelevant alerts, tighten your filters. If you are missing things, loosen them. OpenClaw learns from your feedback, so telling it "this alert was not useful" helps it filter better over time.
+
+## SOUL.md Additions
+
+```markdown
+## Behaviors
+
+### Social Media Monitoring
+- Monitor configured platforms for brand mentions, keywords, and competitor activity
+- Classify each mention by urgency: Urgent (needs response within 1 hour), Notable (worth seeing today), and Routine (include in daily digest)
+- Urgent triggers: negative sentiment with high engagement, direct support requests, viral content mentioning us, competitor announcements
+- For each alert, include: platform, author, content summary, engagement metrics, sentiment, and suggested response
+- Never respond to social media posts on my behalf — always present options for me to choose from
+- Daily digest at end of business with a summary of all activity, trends, and notable mentions
+- Weekly trend report showing sentiment over time, top topics, and competitor comparison
+- If a mention is gaining traction quickly (engagement doubling within an hour), escalate immediately regardless of scheduled check times
+- Track sentiment trends — alert me if overall sentiment drops below the 30-day average
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: social-listener
+    provider: openclaw-native
+    config:
+      platforms: ["twitter", "linkedin", "reddit", "hackernews"]
+      rate_limit: respectful  # adhere to platform rate limits
+    description: Monitors social platforms for mentions and keywords
+
+  - name: sentiment-analyzer
+    provider: openclaw-native
+    config:
+      model: nuanced  # distinguishes sarcasm, humor, genuine complaints
+    description: Analyzes sentiment and tone of social mentions
+
+  - name: rss-monitor
+    provider: openclaw-native
+    config:
+      feeds: []  # add your industry blog RSS feeds here
+    description: Monitors RSS feeds for relevant articles and mentions
+
+  - name: trend-detector
+    provider: openclaw-native
+    description: Identifies trending topics and velocity changes in mentions
+```
+
+## Cron Configuration
+
+```yaml
+cron:
+  social-scan-twitter:
+    schedule: "*/15 * * * *"  # Every 15 minutes, 24/7
+    timezone: "UTC"
+    action: run-playbook
+    playbook: social-scan
+    config:
+      platform: twitter
+      keywords: ["your-brand", "your-product", "@your-handle"]
+      competitor_handles: ["@competitor1", "@competitor2"]
+      min_engagement: 5  # ignore tweets with fewer than 5 interactions
+    retry:
+      attempts: 1
+      delay: 5m
+
+  social-scan-reddit:
+    schedule: "*/30 * * * *"  # Every 30 minutes
+    timezone: "UTC"
+    action: run-playbook
+    playbook: social-scan
+    config:
+      platform: reddit
+      subreddits: ["your-industry", "your-niche", "startups"]
+      keywords: ["your-brand", "your-product"]
+      min_upvotes: 3
+
+  social-daily-digest:
+    schedule: "0 18 * * 1-5"  # 6 PM weekdays
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: social-daily-summary
+    config:
+      include_sentiment_chart: true
+      include_top_mentions: 10
+
+  social-weekly-report:
+    schedule: "0 9 * * 1"  # Monday at 9 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: social-weekly-report
+    config:
+      compare_to_previous_week: true
+      include_competitor_analysis: true
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  social-urgent:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#social-alerts"
+      format: rich
+      notify: true  # push notifications for urgent mentions
+      description: "Urgent social mentions that need quick responses"
+
+  social-digest:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#social-monitoring"
+      format: rich
+      notify: false
+      description: "Daily and weekly social media summaries"
+
+  social-competitor:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: compact
+      description: "Competitor activity alerts — DM only"
+```
+
+## Example Output
+
+Here is an urgent alert that would hit your #social-alerts channel:
+
+```
+SOCIAL ALERT — URGENT
+
+Platform: Twitter/X
+Author: @frustrated_user (2,400 followers)
+Engagement: 34 likes, 12 retweets, 8 replies (and growing)
+Sentiment: Negative
+Time posted: 22 minutes ago
+
+Content:
+"Just lost 3 hours of work because @YourProduct crashed during
+export. No auto-save, no recovery option. This is unacceptable
+for a paid tool. Considering switching to @Competitor."
+
+Thread context: 4 people have replied agreeing. One mentioned
+having a similar issue last week.
+
+Suggested responses (pick one or customize):
+A) Empathetic + action: "So sorry about this — that's really
+   frustrating. Our team is looking into the export issue right
+   now. Can you DM us your account email? We want to help
+   recover your work."
+
+B) Acknowledge + update: "We hear you, and you're right that
+   auto-save should have caught this. We're pushing a fix this
+   week. Really sorry for the disruption."
+
+C) Direct support: "This shouldn't have happened. Please reach
+   out to support@yourproduct.com with your session details and
+   we'll prioritize getting your work back."
+
+Reply with A, B, or C (or write your own) to draft a response.
+```
+
+And here is a daily digest:
+
+```
+SOCIAL MEDIA DIGEST — Wednesday, April 15
+
+OVERVIEW
+  Total mentions: 38 (up 12% from yesterday)
+  Sentiment: 72% positive, 18% neutral, 10% negative
+  Sentiment trend: Stable (30-day avg: 71% positive)
+
+TOP MENTIONS
+  1. @techreviewer (12K followers) — Positive
+     "Just tried @YourProduct for project management. The AI
+     scheduling feature is honestly magic. Full review coming soon."
+     Engagement: 89 likes, 23 retweets
+
+  2. Reddit r/productivity — Positive (47 upvotes)
+     "Hidden gem: YourProduct's automation builder saved me 5 hours
+     this week. Here's my setup..." (detailed how-to post)
+
+  3. @frustrated_user — Negative (resolved)
+     Export crash complaint from this morning. You responded at
+     10:15 AM. They replied positively: "Thanks for the quick
+     fix — restoring my faith in the product."
+
+COMPETITOR ACTIVITY
+  @Competitor1: Announced a new free tier targeting solo users.
+    Could impact your entry-level signups. 234 likes on the announcement.
+  @Competitor2: No significant activity.
+
+TRENDING TOPICS IN YOUR SPACE
+  "AI automation" mentions up 40% this week across all platforms.
+  Opportunity: Your AI scheduling post from last week is still
+  getting shares. Consider a follow-up piece.
+
+REQUIRES ATTENTION
+  No urgent items. All negative mentions from today have been addressed.
+```
+
+## Tips for Effective Monitoring
+
+- **Set escalation paths**: Not everyone on your team should get urgent alerts. Route support-related mentions to your support team and competitive intelligence to your product team.
+- **Track response time**: OpenClaw can measure how quickly you respond to urgent mentions and report on your average response time. Fast responses to public complaints dramatically improve brand perception.
+- **Seasonal adjustments**: If you know a product launch, conference, or campaign is coming, temporarily increase monitoring frequency and lower the alert threshold so you catch everything during high-activity periods.
+- **Sentiment baselines**: Do not overreact to a single bad day. Look at weekly and monthly trends. If sentiment has been consistently declining, that is a real signal. If it dips for one day, it is probably just one loud complaint.
+- **Competitor playbook**: Create a separate SOUL.md section for competitive monitoring with specific things you want to track, like pricing changes, feature launches, or executive hires.
+
+<CTACard variant="community" />

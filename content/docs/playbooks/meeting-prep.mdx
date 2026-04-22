@@ -1,0 +1,246 @@
+---
+title: Meeting Preparation Assistant
+description: Walk into every meeting fully prepared with automated research, agendas, and context summaries from OpenClaw.
+---
+
+# Meeting Preparation Assistant
+
+We have all been in that situation. A meeting starts in five minutes, you glance at the calendar invite, and you realize you have no idea what it is about. Maybe you forgot to review the documents that were shared. Maybe you cannot remember what was decided in the last meeting with this person. Maybe you do not even know who half the attendees are.
+
+The Meeting Preparation playbook makes sure that never happens again. OpenClaw automatically prepares a briefing document for each meeting on your calendar, delivered to you with enough lead time to actually read it. No more scrambling, no more bluffing your way through the first ten minutes, and no more "sorry, can you remind me where we left off?" moments.
+
+## What Gets Prepared
+
+For each meeting, OpenClaw assembles a prep package that includes:
+
+- **Meeting context** — What the meeting is about, based on the invite description, agenda, and any linked documents
+- **Attendee profiles** — Who is attending, their roles, and your recent interactions with them
+- **Previous meeting summary** — What was discussed and decided last time you met with these people
+- **Open items** — Any action items from previous meetings that are still pending
+- **Relevant updates** — Recent emails, Slack messages, or documents related to the meeting topic
+- **Suggested talking points** — Things you might want to bring up based on the context
+
+The depth of preparation scales with the meeting type. A casual one-on-one might get a two-paragraph summary. A client presentation might get a full page with supporting data.
+
+## How It Knows What Matters
+
+OpenClaw uses a combination of signals to figure out how much prep each meeting needs:
+
+- **Meeting title and description** provide the basic topic
+- **Attendee list** tells OpenClaw who is involved and what their relationship is to you
+- **Calendar patterns** indicate whether this is a recurring meeting or a one-off
+- **Your interaction history** with attendees helps surface relevant context
+- **Linked documents** in the invite get summarized so you do not have to open them separately
+
+You can also teach OpenClaw which meetings are most important to you. Client calls might always get the full treatment, while internal standups might just need a quick reminder of your updates.
+
+## Setting Up
+
+The key configuration decision is timing. How far in advance do you want your prep delivered? Most users find that 30 to 60 minutes before the meeting works best. Too early and you forget what you read. Too late and you do not have time to absorb it.
+
+You will also want to think about which calendar you want OpenClaw to monitor. If you have separate work and personal calendars, you probably only want prep for work meetings.
+
+## SOUL.md Additions
+
+```markdown
+## Behaviors
+
+### Meeting Preparation
+- Prepare a briefing for every meeting on my work calendar
+- Deliver prep documents 45 minutes before each meeting
+- Scale depth based on meeting type:
+  - Client/external meetings: Full prep with attendee research, history, and talking points
+  - Team meetings: Quick summary of agenda and my pending action items
+  - 1:1s: Summary of last meeting, open items, and any relevant updates about the person
+  - Recurring standups: Just my status updates and blockers
+- Always include a "Last time we discussed" section for recurring meetings
+- If the meeting invite has no description or agenda, flag it and suggest I ask the organizer for context
+- Summarize any documents linked in the meeting invite (Google Docs, slides, PDFs)
+- For meetings with external people I have not met before, include a brief profile based on their LinkedIn or company website
+- If I have conflicting meetings, alert me in the prep document
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: calendar-reader
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-only
+    description: Reads upcoming meetings and their details
+
+  - name: contact-resolver
+    provider: google-contacts  # or outlook-contacts, linkedin
+    permissions: read-only
+    description: Identifies attendees and provides context about them
+
+  - name: document-summarizer
+    provider: openclaw-native
+    config:
+      max_summary_length: 300  # words
+    description: Summarizes documents linked in meeting invites
+
+  - name: meeting-history
+    provider: openclaw-native
+    description: Tracks meeting notes and action items from previous meetings
+
+  - name: email-scanner
+    provider: gmail
+    permissions: read-only
+    description: Finds recent email threads relevant to meeting topics
+```
+
+<PremiumContent title="Complete Playbook Configuration">
+
+## Cron Configuration
+
+```yaml
+cron:
+  meeting-prep-scan:
+    schedule: "0 7 * * 1-5"  # 7:00 AM weekdays — scan today's meetings
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: meeting-prep-schedule
+    config:
+      lookahead: 1d  # prepare for today's meetings
+      prep_lead_time: 45m  # deliver prep 45 minutes before each meeting
+      min_meeting_duration: 15m  # skip very short meetings (under 15 min)
+    retry:
+      attempts: 2
+      delay: 5m
+
+  meeting-prep-deliver:
+    schedule: "*/15 8-18 * * 1-5"  # Check every 15 min for prep delivery windows
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: meeting-prep-deliver
+    config:
+      deliver_before: 45m
+      skip_declined: true  # don't prep for meetings you've declined
+
+  meeting-notes-capture:
+    schedule: "*/5 8-18 * * 1-5"  # Every 5 min during business hours
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: meeting-notes-listener
+    config:
+      channel: "#meeting-notes"
+      auto_extract_actions: true  # pull action items from notes
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  meeting-prep-delivery:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: true  # push notification so you see it before the meeting
+      thread: false
+
+  meeting-notes:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#meeting-notes"
+      format: rich
+      description: "Post meeting notes here — OpenClaw tracks action items"
+      thread: true  # each meeting gets its own thread
+
+  meeting-weekly-recap:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      schedule: "friday-evening"
+```
+
+## Example Output
+
+Here is what a meeting prep document looks like in your Slack DMs:
+
+```
+MEETING PREP — Client Call with Acme Corp
+Today at 2:00 PM (in 45 minutes) | Zoom | 60 minutes
+
+ATTENDEES
+  You
+  Sarah Chen (Account Manager, your team)
+  James Wilson (CTO, Acme Corp) — Met 3 times previously
+  Diana Reeves (Product Lead, Acme Corp) — First time meeting
+    Background: 8 years at Acme, previously at Stripe.
+    LinkedIn shows interest in API integrations and developer tools.
+
+LAST TIME (March 28)
+  You discussed the Phase 2 implementation timeline. James expressed
+  concern about the data migration complexity. You agreed to provide
+  a revised estimate by April 10.
+
+  Open action items from that meeting:
+  [ ] You: Send revised migration estimate (due April 10 — OVERDUE)
+  [x] Sarah: Share API documentation with Diana (completed April 2)
+  [ ] James: Confirm their staging environment access (still pending)
+
+RELEVANT UPDATES SINCE LAST MEETING
+  - Email from James (April 12): Asked about SSO support for Phase 2.
+    You replied confirming it is included in the scope.
+  - Sarah noted in Slack (April 14): "Acme is also evaluating a
+    competitor. We should reinforce our timeline advantage."
+  - Acme Corp in the news: Announced a partnership with DataFlow Inc.
+    on April 8. Could be relevant to their integration needs.
+
+LINKED DOCUMENT SUMMARY
+  "Acme Phase 2 SOW Draft" (Google Doc, shared by Sarah)
+    12-page statement of work covering migration, SSO, and custom
+    reporting. Key change from Phase 1: they want weekly status calls
+    instead of biweekly.
+
+SUGGESTED TALKING POINTS
+  1. Address the overdue migration estimate — bring a number to the call
+  2. Welcome Diana and understand her priorities for the product side
+  3. Ask James about the DataFlow partnership — potential integration opportunity
+  4. Confirm the staging environment timeline on their end
+  5. Discuss the weekly vs. biweekly status call preference
+```
+
+And here is a lighter prep for an internal one-on-one:
+
+```
+MEETING PREP — 1:1 with Alex Rivera
+Today at 11:00 AM (in 45 minutes) | In person | 30 minutes
+
+LAST TIME (April 9)
+  Alex mentioned feeling stretched thin across too many projects.
+  You discussed prioritizing the dashboard redesign over the
+  mobile notifications feature. Alex agreed but wanted to revisit
+  in 2 weeks.
+
+  Open items:
+  [ ] Alex: Draft a project priority proposal
+  [x] You: Connect Alex with the UX team lead (done April 10)
+
+RECENT CONTEXT
+  - Alex submitted 3 PRs this week (all merged)
+  - Alex posted in #random about attending a React conference in May
+  - No new Slack DMs between you since your last 1:1
+
+SUGGESTED TOPICS
+  1. Check in on workload — it has been 2 weeks since the prioritization discussion
+  2. Ask about the project priority proposal
+  3. React conference — does he need approval or budget?
+```
+
+## Optimization Ideas
+
+- **Post-meeting notes**: After each meeting, drop your notes into the #meeting-notes channel. OpenClaw will extract action items and tie them to the next meeting's prep automatically.
+- **Prep depth control**: Add meeting-specific rules like "always do full prep for meetings tagged 'client'" or "skip prep for meetings under 15 minutes."
+- **Attendee memory**: Over time, OpenClaw builds a profile of everyone you meet with. It remembers conversation topics, preferences, and your relationship dynamics. This makes prep increasingly personalized.
+- **Calendar hygiene alerts**: OpenClaw can flag days where you have more than 5 hours of meetings, no breaks between calls, or meetings with no agenda — helping you protect your time proactively.
+
+</PremiumContent>
+
+<CTACard variant="community" />

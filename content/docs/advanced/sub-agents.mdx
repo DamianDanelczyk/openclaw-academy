@@ -1,0 +1,200 @@
+---
+title: Sub-Agents
+description: How to break complex tasks into smaller pieces by delegating work to specialized sub-agents within OpenClaw.
+---
+
+# Sub-Agents
+
+Here's something that separates beginners from power users: the realization that one agent doesn't have to do everything. In fact, it probably *shouldn't*.
+
+Sub-agents let you split a big job across multiple specialized agents, each handling the part it's best at. Think of it like running a restaurant. You don't ask the head chef to also take reservations, bus tables, and manage the wine list. You delegate. Sub-agents work the same way.
+
+## Why Use Sub-Agents?
+
+A single agent can handle a lot. But once you start pushing it — asking it to research, analyze, write, fact-check, and format all in one breath — quality drops. The context window fills up. The responses get muddled. Costs go up because you're cramming everything into one massive prompt.
+
+Sub-agents solve this by letting you:
+
+- **Keep each agent focused** on one specific job
+- **Run tasks in parallel** instead of sequentially
+- **Use cheaper models** for simple tasks and reserve expensive ones for what matters
+- **Debug more easily** because each piece is isolated
+
+## The Three Sub-Agent Patterns
+
+OpenClaw supports three main patterns for coordinating sub-agents. Each fits different scenarios.
+
+### 1. Delegation Pattern
+
+This is the most common and easiest to understand. You have a **primary agent** that receives the initial request, decides what needs to happen, and farms out pieces to **specialist agents**.
+
+```yaml
+# config/agents/project-manager.yaml
+name: project-manager
+model: claude-sonnet
+role: primary
+description: Coordinates incoming requests and delegates to specialists
+
+sub_agents:
+  - name: researcher
+    model: claude-haiku
+    task: "Gather relevant information and sources"
+    timeout: 30s
+
+  - name: writer
+    model: claude-sonnet
+    task: "Draft content based on research"
+    timeout: 60s
+
+  - name: editor
+    model: claude-haiku
+    task: "Review for grammar, tone, and accuracy"
+    timeout: 20s
+```
+
+When a user asks the project manager to write a blog post, it sends the topic to the researcher first, passes those findings to the writer, then hands the draft to the editor. The user just sees the final result.
+
+**When to use it:** Content creation workflows, customer support escalation, any task where steps happen sequentially and each step feeds into the next.
+
+### 2. Pipeline Pattern
+
+Pipelines are like assembly lines. Data flows through a fixed sequence of agents, each one transforming it before passing it along. Unlike delegation, there's no central coordinator making decisions — the order is predetermined.
+
+```yaml
+# config/pipelines/email-processor.yaml
+name: email-processor
+type: pipeline
+
+stages:
+  - agent: classifier
+    model: claude-haiku
+    action: "Categorize the email (support, sales, spam, internal)"
+
+  - agent: summarizer
+    model: claude-haiku
+    action: "Extract key points and any action items"
+
+  - agent: responder
+    model: claude-sonnet
+    action: "Draft an appropriate reply based on category and summary"
+
+  - agent: compliance-check
+    model: claude-haiku
+    action: "Verify response meets company communication guidelines"
+```
+
+Each stage gets the output of the previous stage plus the original input. If any stage fails, the pipeline stops and reports where things broke.
+
+**When to use it:** Email processing, data transformation, document workflows — anything with a clear "assembly line" structure where every item goes through the same steps.
+
+### 3. Voting Pattern
+
+This one's clever. You send the same task to multiple agents and then aggregate their responses. It's useful when you need higher confidence in the output or want to compare different perspectives.
+
+```yaml
+# config/agents/fact-checker.yaml
+name: fact-checker
+type: voting
+consensus: majority  # Options: majority, unanimous, weighted
+
+voters:
+  - agent: analyst-1
+    model: claude-sonnet
+    weight: 2
+
+  - agent: analyst-2
+    model: gpt-4o
+    weight: 1
+
+  - agent: analyst-3
+    model: claude-haiku
+    weight: 1
+
+aggregation:
+  method: "Compare responses and return the claim supported by weighted majority"
+```
+
+Three agents independently evaluate the same claim. Their answers are compared, and the majority (weighted by the `weight` value) wins. If analyst-1 (weight 2) and analyst-3 (weight 1) agree, that's 3 out of 4 total weight — majority reached.
+
+**When to use it:** Fact-checking, content moderation decisions, risk assessments, anywhere the stakes are high enough that you want a second (or third) opinion.
+
+## Monitoring Sub-Agents
+
+When you have multiple agents working together, visibility becomes critical. OpenClaw gives you a few tools for this.
+
+The **agent dashboard** shows a live view of all active sub-agents, their current status, and how long each task is taking. You can access it at `http://localhost:3000/dashboard/agents` when running locally.
+
+Each sub-agent call generates a **trace ID** that links back to the parent request. So if a customer complains about a weird response, you can trace it through every agent that touched it and see exactly where things went sideways.
+
+```yaml
+# config/monitoring.yaml
+sub_agents:
+  logging:
+    level: detailed  # Options: minimal, standard, detailed
+    include_prompts: true
+    include_responses: true
+
+  alerts:
+    - condition: "response_time > 30s"
+      action: notify_slack
+    - condition: "error_rate > 5%"
+      action: notify_email
+```
+
+## Cost Implications
+
+Here's the part nobody talks about until the bill arrives. Sub-agents multiply your API costs. Every sub-agent call is a separate API request with its own token usage.
+
+A single user question that triggers three sub-agents means you're paying for *four* API calls (the primary agent plus the three sub-agents). If those sub-agents are using expensive models, it adds up fast.
+
+Some rough math:
+
+| Setup | Tokens per Request | Approx. Cost |
+|---|---|---|
+| Single agent (Sonnet) | ~2,000 | ~$0.006 |
+| Delegation (1 Sonnet + 2 Haiku) | ~4,000 | ~$0.009 |
+| Voting (3 Sonnet) | ~6,000 | ~$0.018 |
+| Pipeline (4 Haiku) | ~5,000 | ~$0.005 |
+
+The pipeline with Haiku can actually be *cheaper* than a single Sonnet call because Haiku is so inexpensive. The voting pattern with three Sonnet calls, though, triples your cost per request. Choose wisely.
+
+**Cost-saving tips for sub-agents:**
+
+- Use Haiku for classification, summarization, and simple extraction tasks
+- Reserve Sonnet or Opus for the final "creative" or "reasoning" step
+- Set aggressive timeouts so runaway agents don't burn through tokens
+- Cache common sub-agent responses when the inputs are repetitive
+- Monitor weekly costs per agent to spot unexpected spikes
+
+## Combining Patterns
+
+You're not limited to one pattern. A delegation agent can use a pipeline for one of its sub-tasks, or a pipeline stage can internally use voting for a critical decision. Nest them as deep as you need, but keep in mind that complexity is the enemy of debuggability.
+
+```yaml
+# A delegation agent where one sub-agent uses a pipeline internally
+name: content-director
+sub_agents:
+  - name: research-pipeline
+    type: pipeline
+    stages:
+      - agent: web-scraper
+      - agent: summarizer
+      - agent: fact-checker
+        type: voting
+        voters:
+          - agent: checker-a
+          - agent: checker-b
+
+  - name: writer
+    model: claude-sonnet
+```
+
+A good rule of thumb: if you can't sketch the flow on the back of a napkin, it's probably too complicated. Simplify until you can.
+
+## Getting Started
+
+If you've never used sub-agents before, start with a simple delegation pattern. Pick a workflow you already have running with a single agent, identify the distinct steps it performs, and break each step into its own sub-agent. Run it for a week, compare the output quality and cost to your original setup, and iterate from there.
+
+Don't try to build a five-stage pipeline with nested voting on day one. You'll spend more time debugging the orchestration than getting actual work done.
+
+<CTACard variant="advanced" />

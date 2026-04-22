@@ -1,0 +1,336 @@
+---
+title: Troubleshooting
+description: Solutions for the most common OpenClaw errors, plus a diagnostic flowchart to help you identify issues quickly.
+---
+
+# Troubleshooting
+
+Things break. That's normal. The key is knowing how to diagnose the problem quickly and fix it without panic. This page covers the top 20 errors you'll encounter with OpenClaw, organized from most common to least common, along with a diagnostic flowchart to help you narrow things down.
+
+## Diagnostic Flowchart
+
+Before diving into specific errors, walk through this decision tree. It'll point you in the right direction most of the time.
+
+```
+START: OpenClaw isn't working as expected
+│
+├─ Is OpenClaw running at all?
+│  ├─ NO → Check: Is the process started? (systemctl status / pm2 status / docker ps)
+│  │       → Check: Are there crash logs? (journalctl -u openclaw / pm2 logs)
+│  │       → See Error #1 or #2
+│  │
+│  └─ YES → Continue below
+│
+├─ Can you access the dashboard at localhost:3000?
+│  ├─ NO → Check: Is port 3000 blocked by firewall?
+│  │       → Check: Is another process using port 3000?
+│  │       → See Error #3
+│  │
+│  └─ YES → Continue below
+│
+├─ Are agents responding to messages?
+│  ├─ NO → Check: Is your API key valid?
+│  │       → Check: Is the model provider experiencing an outage?
+│  │       → Check: Is the agent config file valid YAML?
+│  │       → See Errors #4, #5, or #6
+│  │
+│  └─ YES, but responses are wrong → Continue below
+│
+├─ Are responses slow?
+│  ├─ YES → Check: Which model are you using? (Opus is slower)
+│  │       → Check: Is your prompt very long?
+│  │       → Check: Is the API provider rate-limiting you?
+│  │       → See Error #7
+│  │
+│  └─ NO → Continue below
+│
+├─ Are responses inaccurate or off-topic?
+│  ├─ YES → Check: Is your SOUL.md clear and specific?
+│  │       → Check: Is memory retrieval returning relevant context?
+│  │       → Check: Is the model appropriate for the task complexity?
+│  │       → See Errors #8 or #9
+│  │
+│  └─ NO → Your issue may be specific. Check the error list below.
+```
+
+## Top 20 Errors and Solutions
+
+### Error #1: "ECONNREFUSED — Connection refused on port 3000"
+
+**What it means:** OpenClaw's server isn't running, or something else is using that port.
+
+**Fix:**
+```bash
+# Check if OpenClaw is running
+ps aux | grep openclaw
+
+# Check if something else is on port 3000
+lsof -i :3000
+
+# If port is in use, either stop the other process or change OpenClaw's port
+# In config.yaml:
+# server:
+#   port: 3001
+```
+
+### Error #2: "Cannot find module 'openclaw'"
+
+**What it means:** OpenClaw isn't installed properly, or your Node.js path is misconfigured.
+
+**Fix:**
+```bash
+# Reinstall globally
+npm install -g openclaw
+
+# Check it's in your PATH
+which openclaw
+
+# If using nvm, make sure you're on the right Node version
+nvm use 20
+npm install -g openclaw
+```
+
+### Error #3: "YAML parsing error in config file"
+
+**What it means:** Your configuration file has a syntax error. YAML is notoriously fussy about indentation.
+
+**Fix:**
+- Use a YAML validator: paste your config into [yamlchecker.com](https://yamlchecker.com)
+- Common culprits: tabs instead of spaces, missing colons, incorrect nesting
+- Install a YAML linter in your editor to catch these before they cause problems
+
+```yaml
+# WRONG - tabs and inconsistent indentation
+agents:
+	name: helper        # tab character = broken
+  model: claude-haiku  # 2-space indent = also broken because mixed
+
+# RIGHT - consistent 2-space indentation
+agents:
+  name: helper
+  model: claude-haiku
+```
+
+### Error #4: "Authentication failed — invalid API key"
+
+**What it means:** The API key you provided doesn't work. Either it's expired, incorrectly copied, or set for the wrong provider.
+
+**Fix:**
+- Double-check the key in your environment variables or config file
+- Make sure there are no trailing spaces or newline characters
+- Verify the key matches the provider you're trying to use (an Anthropic key won't work for OpenAI endpoints)
+- Generate a new key if necessary from your provider's dashboard
+
+```bash
+# Check your environment variable
+echo $OPENCLAW_API_KEY | cat -A
+# If you see trailing ^M or spaces, that's your problem
+
+# Set it cleanly
+export OPENCLAW_API_KEY="sk-ant-your-key-here"
+```
+
+### Error #5: "Model not found: claude-opus-4"
+
+**What it means:** You've specified a model name that doesn't exist or isn't available on your plan.
+
+**Fix:**
+- Check the exact model name in your provider's documentation
+- Common mistake: using `claude-opus` instead of `claude-opus-4` or vice versa
+- Run `openclaw models list` to see all available models for your API key
+- Some models require specific API tier access — check if your account has permission
+
+<PremiumContent title="Complete Error Reference">
+
+### Error #6: "Rate limit exceeded — 429 Too Many Requests"
+
+**What it means:** You've hit the API provider's rate limit. You're sending too many requests too quickly.
+
+**Fix:**
+```yaml
+# config/rate-limiting.yaml
+rate_limiting:
+  requests_per_minute: 50  # Stay under your provider's limit
+  retry_on_429: true
+  retry_delay: 2s
+  max_retries: 3
+```
+Also consider: are you accidentally looping? A misconfigured automation can fire hundreds of requests per minute.
+
+### Error #7: "Request timeout after 60s"
+
+**What it means:** The API took too long to respond. This can happen with complex prompts on slower models, or during provider outages.
+
+**Fix:**
+- Increase the timeout: `timeout: 120s` in your agent config
+- Simplify your prompt — shorter input means faster response
+- Switch to a faster model for that specific task
+- Check the provider's status page for ongoing issues
+
+### Error #8: "Memory retrieval returned 0 results"
+
+**What it means:** Your agent tried to search its memory/knowledge base and found nothing relevant.
+
+**Fix:**
+- Verify that your knowledge base has been indexed: `openclaw memory status`
+- Re-index if needed: `openclaw memory reindex`
+- Check that the embedding model is configured correctly
+- The query might be too vague — adjust the similarity threshold downward in your config
+
+### Error #9: "Context window exceeded — input too long"
+
+**What it means:** The combined system prompt, memory, conversation history, and user message exceed the model's maximum context length.
+
+**Fix:**
+- Trim your system prompt — move detailed knowledge to memory retrieval
+- Reduce conversation history length: `max_history_messages: 10`
+- Use a model with a larger context window
+- Implement conversation summarization for long-running chats
+
+```yaml
+# config/context.yaml
+context_management:
+  max_history_messages: 10
+  summarize_after: 20
+  max_memory_results: 5
+```
+
+### Error #10: "Channel connection failed — Slack webhook invalid"
+
+**What it means:** Your Slack integration is misconfigured. The webhook URL is expired or incorrect.
+
+**Fix:**
+- Go to your Slack app settings and regenerate the webhook URL
+- Update the URL in your OpenClaw config
+- Make sure the Slack app has the required permissions (chat:write, channels:read)
+- Test with: `openclaw channel test slack`
+
+### Error #11: "SQLITE_BUSY — database is locked"
+
+**What it means:** Multiple processes are trying to write to the SQLite database simultaneously.
+
+**Fix:**
+- Make sure only one instance of OpenClaw is running
+- If using sub-agents, switch to WAL mode for better concurrent access:
+```yaml
+database:
+  journal_mode: wal
+```
+- For high-concurrency setups, consider switching to PostgreSQL
+
+### Error #12: "Tool execution failed — permission denied"
+
+**What it means:** An agent tried to use a tool (file access, API call, system command) that it doesn't have permission for.
+
+**Fix:**
+- Check the tool's permission configuration in your agent's YAML file
+- Make sure the OpenClaw process user has the necessary OS-level permissions
+- Review your security config to see if the tool is explicitly blocked
+
+### Error #13: "Sub-agent timeout — no response from 'researcher'"
+
+**What it means:** A sub-agent didn't respond within its configured timeout period.
+
+**Fix:**
+- Increase the sub-agent's timeout value
+- Check if the sub-agent's model is available and responding
+- Look for circular dependencies where sub-agents are waiting on each other
+- Simplify the sub-agent's task
+
+### Error #14: "Email parsing failed — unsupported encoding"
+
+**What it means:** An incoming email used a character encoding that OpenClaw couldn't parse.
+
+**Fix:**
+- Add encoding detection to your email channel config:
+```yaml
+email_channel:
+  encoding_detection: auto
+  fallback_encoding: utf-8
+```
+- Check if the email contains unusual attachments that are confusing the parser
+
+### Error #15: "Webhook delivery failed — SSL certificate error"
+
+**What it means:** OpenClaw tried to send a webhook to an HTTPS endpoint, but the SSL certificate is invalid or expired.
+
+**Fix:**
+- Check the target URL's SSL certificate: `openssl s_client -connect yourdomain.com:443`
+- If it's a self-signed cert in development, you can (temporarily) allow insecure connections:
+```yaml
+webhooks:
+  verify_ssl: false  # ONLY for development
+```
+- For production, fix the SSL certificate
+
+### Error #16: "Budget exceeded — agent paused"
+
+**What it means:** You've hit your configured monthly spending limit. OpenClaw paused the agent to protect your wallet.
+
+**Fix:**
+- Check your current spending: `openclaw budget status`
+- Either increase the budget limit or optimize your model routing to reduce costs
+- Review which agents are consuming the most tokens
+- This is a safety feature — it's working as intended
+
+### Error #17: "Cron job failed — invalid schedule expression"
+
+**What it means:** The cron schedule in your config isn't valid.
+
+**Fix:**
+- Cron format: `minute hour day-of-month month day-of-week`
+- Use a cron expression validator like [crontab.guru](https://crontab.guru)
+- Common mistake: using 6 fields instead of 5, or confusing day-of-week numbering
+
+### Error #18: "Docker healthcheck failing — container marked unhealthy"
+
+**What it means:** The Docker health check endpoint isn't responding, so Docker thinks the container is broken.
+
+**Fix:**
+- Check if OpenClaw is actually running inside the container: `docker exec -it openclaw sh`
+- Verify the health check endpoint: `curl http://localhost:3000/health`
+- Increase the health check timeout in docker-compose.yml
+- Check container logs: `docker logs openclaw`
+
+### Error #19: "Memory index corrupted — embeddings mismatch"
+
+**What it means:** The vector database index has become inconsistent, likely due to a crash during indexing.
+
+**Fix:**
+```bash
+# Back up your data first
+cp -r data/memory data/memory-backup
+
+# Rebuild the index
+openclaw memory reindex --force
+
+# Verify
+openclaw memory status
+```
+
+### Error #20: "Plugin version mismatch — expected v2, got v1"
+
+**What it means:** A plugin you're using was built for an older version of OpenClaw.
+
+**Fix:**
+- Update the plugin: `openclaw plugin update plugin-name`
+- Check the plugin's repository for compatibility notes
+- If no update is available, you may need to find an alternative plugin or pin OpenClaw to an older version temporarily
+
+</PremiumContent>
+
+## General Debugging Tips
+
+When all else fails, these steps will help you isolate almost any problem:
+
+1. **Check the logs first.** Most errors are explained clearly in the log output. Run `openclaw logs --tail 50` or check your log files.
+
+2. **Validate your config.** Run `openclaw config validate` before restarting. Catches most YAML and configuration errors.
+
+3. **Test in isolation.** If an agent is misbehaving, test it directly: `openclaw agent test agent-name "your test message"`. This bypasses channels and workflows so you can see if the issue is with the agent itself or the surrounding infrastructure.
+
+4. **Check provider status.** Sometimes the problem isn't you. Check [status.anthropic.com](https://status.anthropic.com), [status.openai.com](https://status.openai.com), or your provider's status page.
+
+5. **Update OpenClaw.** Many bugs are fixed in newer versions. Run `openclaw update` and see if the problem goes away.
+
+<CTACard variant="community" />

@@ -1,0 +1,206 @@
+---
+title: Channels Overview
+description: Understand how OpenClaw connects to messaging platforms, how to pick the right channel, and how conversations persist across them.
+---
+
+# Channels Overview
+
+Think of channels as the doors into your AI assistant. Each channel is a connection to a messaging platform — iMessage, Telegram, Slack, Discord, WhatsApp, Signal, or the built-in WebChat. Your users talk to the same assistant brain no matter which door they walk through. That is the core promise of OpenClaw's channel architecture.
+
+This page will help you understand how channels work under the hood, how to decide which ones to enable, and how OpenClaw keeps conversations seamless even when someone switches platforms mid-conversation.
+
+## What Is a Channel, Exactly?
+
+A channel is a lightweight adapter that sits between a messaging platform and the OpenClaw core engine. It handles three things:
+
+1. **Ingress** — receiving messages from the platform (a Telegram message, a Slack event, an iMessage notification).
+2. **Normalization** — translating that platform-specific message into OpenClaw's universal message format.
+3. **Egress** — taking the assistant's response and formatting it back into something the platform understands (Markdown for Discord, plain text for SMS, rich cards for Slack).
+
+Here is a simplified view of the flow:
+
+```
+User sends message on Telegram
+        │
+        ▼
+┌─────────────────┐
+│ Telegram Channel │  ← Ingress: receives update via webhook
+│    (Adapter)     │  ← Normalization: extracts text, user ID, media
+└────────┬────────┘
+         │  Universal Message Format
+         ▼
+┌─────────────────┐
+│  OpenClaw Core   │  ← Routing, memory lookup, LLM call
+│     Engine       │
+└────────┬────────┘
+         │  Universal Response Format
+         ▼
+┌─────────────────┐
+│ Telegram Channel │  ← Egress: formats response, sends via Bot API
+│    (Adapter)     │
+└─────────────────┘
+```
+
+Every channel follows this exact pattern. The core engine never knows or cares which platform originated the message. That separation is what makes multi-channel setups so clean.
+
+## The Channel Decision Matrix
+
+Not sure which channels to enable? Here is a practical decision matrix to help you choose:
+
+| Channel    | Best For                        | Setup Difficulty | Requires Server? | Media Support | Group Chats |
+|------------|---------------------------------|------------------|-------------------|---------------|-------------|
+| WebChat    | Quick testing, website embed    | Trivial          | No (built-in)     | Images        | No          |
+| Telegram   | Personal use, small teams       | Easy             | Yes (webhook)     | Full          | Yes         |
+| Discord    | Communities, gaming groups      | Easy             | Yes (gateway)     | Full          | Yes         |
+| Slack      | Workplaces, internal tools      | Medium           | Yes (events API)  | Full          | Yes         |
+| iMessage   | Apple ecosystem users           | Medium           | macOS only        | Full          | Yes         |
+| WhatsApp   | Global reach, mobile-first      | Medium           | Yes               | Full          | Yes         |
+| Signal     | Privacy-conscious users         | Hard             | Yes               | Limited       | Yes         |
+
+As a rule of thumb: start with **WebChat** to validate your assistant works, then add **Telegram** or **Discord** as your first "real" channel. Branch out from there based on where your users actually are.
+
+## Enabling Channels in Configuration
+
+Channels are enabled in your `openclaw.config.ts` file. Each channel gets its own section with platform-specific credentials and options:
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    webchat: {
+      enabled: true,
+      port: 18789,
+    },
+    telegram: {
+      enabled: true,
+      token: process.env.TELEGRAM_BOT_TOKEN,
+      webhook: {
+        url: 'https://your-server.com/hooks/telegram',
+      },
+    },
+    discord: {
+      enabled: true,
+      token: process.env.DISCORD_BOT_TOKEN,
+      intents: ['Guilds', 'GuildMessages', 'MessageContent'],
+    },
+    slack: {
+      enabled: false, // flip to true when ready
+      appToken: process.env.SLACK_APP_TOKEN,
+      botToken: process.env.SLACK_BOT_TOKEN,
+    },
+    // ...other channels
+  },
+});
+```
+
+You only need to configure the channels you want. Disabled or omitted channels consume zero resources.
+
+## Cross-Channel Persistence
+
+This is where things get interesting. OpenClaw maintains a **unified identity graph** that maps platform-specific user IDs to a single internal identity. When the same person messages your assistant on Telegram and later on Discord, OpenClaw can recognize them as one user and carry context forward.
+
+How does that work? There are two mechanisms:
+
+### Automatic Linking via Shared Secrets
+
+When a user first interacts with your assistant on any channel, OpenClaw generates a **link code** — a short, one-time passphrase. If that user later messages from a different channel, they can send the link code to merge their identities:
+
+```
+User on Telegram: /link
+Bot: Your link code is: claw-mango-7x. Send this code
+     from any other channel to connect your accounts.
+
+User on Discord: /link claw-mango-7x
+Bot: Linked! I can now see your Telegram conversation
+     history here too.
+```
+
+### Manual Linking via Config
+
+For known users (like your team), you can pre-link identities in the configuration:
+
+```typescript title="openclaw.config.ts"
+export default defineConfig({
+  identity: {
+    links: [
+      {
+        name: 'Alice',
+        telegram: '123456789',
+        discord: '987654321098765432',
+        slack: 'U04ABCD1234',
+      },
+      {
+        name: 'Bob',
+        telegram: '987654321',
+        imessage: '+15551234567',
+      },
+    ],
+  },
+});
+```
+
+Once linked, the assistant's memory, conversation history, and user preferences travel with the person — not the platform.
+
+## How Conversations Are Stored
+
+Every message — inbound and outbound — is stored in OpenClaw's conversation store as a normalized record:
+
+```typescript
+interface StoredMessage {
+  id: string;
+  userId: string;          // Internal (linked) user ID
+  channelId: string;       // e.g., "telegram", "discord"
+  platformUserId: string;  // Platform-specific ID
+  direction: 'inbound' | 'outbound';
+  content: string;
+  media?: MediaAttachment[];
+  timestamp: Date;
+  threadId?: string;       // For threaded platforms like Slack
+  metadata?: Record<string, unknown>;
+}
+```
+
+This means you can query a user's full conversation history across all channels through a single API, which is especially useful for building dashboards or debugging interactions.
+
+## Channel Lifecycle
+
+Every channel goes through a predictable lifecycle when OpenClaw starts up:
+
+1. **Initialize** — Load credentials, validate configuration.
+2. **Connect** — Establish connection to the platform (open a WebSocket, register a webhook, start polling).
+3. **Ready** — Begin accepting and sending messages.
+4. **Reconnect** — If the connection drops, automatically retry with exponential backoff.
+5. **Shutdown** — Gracefully close connections when OpenClaw stops.
+
+You can hook into these lifecycle events for custom logic:
+
+```typescript title="openclaw.config.ts"
+export default defineConfig({
+  channels: {
+    telegram: {
+      enabled: true,
+      token: process.env.TELEGRAM_BOT_TOKEN,
+      hooks: {
+        onReady: () => console.log('Telegram channel is live!'),
+        onError: (err) => alertOpsTeam(err),
+        onReconnect: (attempt) => {
+          console.log(`Reconnecting to Telegram (attempt ${attempt})...`);
+        },
+      },
+    },
+  },
+});
+```
+
+## A Note on Rate Limits
+
+Each platform enforces its own rate limits. OpenClaw handles this transparently — outbound messages are queued and sent at a pace each platform allows. If a channel hits a rate limit, messages are buffered (not dropped) and retried. You generally do not need to think about this, but if you notice delayed responses on a busy channel, rate-limiting is the most likely cause.
+
+## What to Read Next
+
+Each channel has its own dedicated page with step-by-step setup instructions, platform-specific quirks, and best practices. Pick the one you want to set up first and dive in.
+
+If you are unsure where to start, the [WebChat](/docs/core-architecture/channels/webchat) page is the fastest way to see your assistant in action — it requires zero external accounts and runs entirely on your machine.
+
+<CTACard variant="channels" />

@@ -1,0 +1,152 @@
+---
+title: Is OpenClaw Right for You?
+description: A self-assessment guide to help you decide whether OpenClaw fits your needs, your skills, and your goals.
+---
+
+# Is OpenClaw Right for You?
+
+We built OpenClaw to be flexible, but "flexible" doesn't mean "for everyone." Before you invest time in installation and setup, let's figure out whether this platform actually matches what you're trying to do. This page is deliberately honest — we'd rather lose a signup than waste your afternoon.
+
+## The 10-Question Self-Assessment
+
+Grab a pen (or just keep a mental tally). For each question, give yourself a point if you answer "yes."
+
+### 1. Do you need an AI assistant that works across multiple channels?
+
+If you only need a simple chatbot on your website, there are lighter tools that'll get you there faster. OpenClaw shines when you want the *same* assistant available on your site, in Slack, over email, and on WhatsApp — all sharing context.
+
+### 2. Do you have business-specific knowledge your assistant needs to know?
+
+Product catalogs, pricing, policies, FAQs, internal docs — if your assistant needs to draw on *your* information rather than general knowledge, OpenClaw's Knowledge Memory system is built exactly for this.
+
+### 3. Do you want your assistant to remember users between conversations?
+
+"Hi again, Sarah. Last time we talked about upgrading your plan — did you want to pick up where we left off?" If that kind of continuity matters to you, you need User Memory, and OpenClaw has it baked in.
+
+### 4. Are you comfortable editing text files?
+
+You don't need to be a programmer, but you do need to be comfortable opening a text editor and changing a YAML file or writing instructions in Markdown. If the idea of editing a `.yaml` file makes you anxious, OpenClaw might feel intimidating at first — though the community is very helpful.
+
+### 5. Do you want to avoid vendor lock-in?
+
+OpenClaw is open source and model-agnostic. Your config files, SOUL.md, and knowledge base are portable. If you want the freedom to switch AI providers, self-host, or fork the platform, that's a point for OpenClaw.
+
+### 6. Do you need different AI personalities for different use cases?
+
+A friendly sales assistant and a precise technical support bot shouldn't sound the same. If you need multiple Agents with different tones, knowledge sets, and behaviors, OpenClaw makes this straightforward.
+
+### 7. Do you need automated, scheduled AI tasks?
+
+Sending a daily digest, running a weekly report, or checking for stale support tickets — if you need your AI to do things on a schedule (not just respond to messages), OpenClaw's cron system handles this.
+
+### 8. Do you care about data privacy?
+
+OpenClaw runs locally during development. In production, you can self-host. Your conversation data never touches OpenClaw's servers unless you explicitly choose the managed cloud option. If compliance or data residency matters, this is significant.
+
+### 9. Do you want version-controlled AI configuration?
+
+Treating your AI setup like code — with git history, pull request reviews, and environment-specific configs — is a first-class workflow in OpenClaw. If that sounds appealing, you're in the right place.
+
+### 10. Are you building something that needs to grow?
+
+From one Agent and one Channel to dozens of each, OpenClaw scales with your needs. If you're starting small but want headroom, that's exactly the trajectory we designed for.
+
+### Your Score
+
+| Score | Verdict |
+|-------|---------|
+| 8-10 | OpenClaw is a strong fit. You'll feel right at home. |
+| 5-7 | OpenClaw can work well for you, but review the limitations below to make sure nothing is a dealbreaker. |
+| 3-4 | OpenClaw *might* be more than you need. Consider whether a simpler tool would serve you better. |
+| 0-2 | OpenClaw is probably overkill for your use case. No hard feelings — we'd rather you use the right tool. |
+
+## Persona Guides
+
+Different people come to OpenClaw for different reasons. Here's what the experience typically looks like depending on who you are.
+
+### The Freelancer
+
+**Your situation:** You're a one-person operation. You handle client work, sales, admin, and support. You want AI to take some of that load off your plate.
+
+**How you'll use OpenClaw:** Start with a single Agent connected to WebChat on your portfolio site. Give it your service descriptions, pricing, and FAQ. Let it handle initial client inquiries while you're deep in project work. Later, add an email Channel so it can triage your inbox.
+
+**Time to first value:** About 45 minutes. You'll have a working assistant on your site by the end of your first session.
+
+**Watch out for:** The temptation to over-engineer. Start with one Agent, one Channel, and a short SOUL.md. You can always add complexity later.
+
+### The Agency Owner
+
+**Your situation:** You manage multiple clients. Each needs branded AI experiences. You need clean separation between client environments but a single pane of glass for management.
+
+**How you'll use OpenClaw:** Use OpenClaw's workspace feature to create isolated environments per client. Each workspace gets its own Agents, Channels, Knowledge bases, and memory stores. You manage them all from the CLI or dashboard.
+
+**Time to first value:** About 2 hours for your first client setup, 30 minutes for each subsequent one (you'll templatize the config).
+
+**Watch out for:** Memory and API costs can add up across many workspaces. Set budget alerts early using the `limits` config:
+
+```yaml
+# openclaw.config.yaml
+limits:
+  monthly_api_budget: 150.00
+  max_conversations_per_day: 500
+  alert_email: you@agency.com
+```
+
+### The Developer
+
+**Your situation:** You want to integrate AI capabilities into your own product or build custom workflows. You care about APIs, extensibility, and clean abstractions.
+
+**How you'll use OpenClaw:** Clone the repo, explore the plugin system, write custom Tools in TypeScript or Python, and use the REST API to embed Agent interactions into your own UI. You'll probably skip WebChat entirely and build your own frontend.
+
+**Time to first value:** About 20 minutes. You already know your way around a CLI.
+
+**Watch out for:** The SOUL.md file might feel "too simple" at first. Don't underestimate it. The plain-English instruction format is surprisingly powerful, and fighting it with overly technical prompts usually backfires.
+
+### The Small Business Owner
+
+**Your situation:** You run a business with a small team. You're not technical, but you're resourceful. You want AI to help with customer support, lead qualification, or internal knowledge management.
+
+**How you'll use OpenClaw:** Follow the Installation guide, use the WebChat channel, and focus on writing a thorough SOUL.md and uploading your key business documents to the Knowledge base. You'll probably ask a developer friend to help with the initial setup and then manage the content yourself.
+
+**Time to first value:** About 1-2 hours, depending on how much knowledge base content you have ready.
+
+**Watch out for:** You'll need an API key from an AI provider (like OpenAI). This is a pay-as-you-go cost separate from OpenClaw itself. Budget roughly $20-50/month for a small support bot, depending on volume.
+
+## Honest Limitations
+
+Every tool has them. Here are ours.
+
+**OpenClaw is not a no-code platform.** There's no drag-and-drop bot builder. You write config files and Markdown. It's simple, but it's text-based. If you need a visual builder, look at tools like Botpress or Voiceflow.
+
+**Real-time voice is not supported yet.** OpenClaw handles text-based conversations. Voice support (phone calls, voice assistants) is on the roadmap but not available today. If you need voice, you'll need a separate solution.
+
+**You need your own AI API keys.** OpenClaw doesn't include AI model access. You bring your own keys from OpenAI, Anthropic, or another provider. This means you have a separate billing relationship with your model provider.
+
+**Self-hosting requires some infrastructure knowledge.** The local development experience is smooth, but deploying to production means running a Node.js process, setting up a database, and configuring SSL. If "deploy to a server" sounds foreign, you'll want the managed cloud option or a developer's help.
+
+**The ecosystem is young.** OpenClaw launched recently. The plugin library is growing but isn't as extensive as older platforms. The community is active and helpful, but you might hit edge cases that don't have a Stack Overflow answer yet.
+
+**It won't fix bad prompts.** OpenClaw gives you powerful infrastructure, but the quality of your assistant still depends on how well you write your SOUL.md and structure your knowledge base. Garbage in, garbage out — no platform can save you from vague instructions.
+
+## Decision Matrix
+
+Still on the fence? Here's a direct comparison for common scenarios.
+
+| I want to... | OpenClaw | Alternative to consider |
+|---|---|---|
+| Add a simple FAQ bot to my website | Works, but may be overkill | Tidio, Intercom |
+| Build a multi-channel AI assistant | **Strong fit** | — |
+| Integrate AI into my SaaS product | **Strong fit** | LangChain, custom build |
+| Create a voice-based phone agent | Not supported yet | Vapi, Bland.ai |
+| Set up AI for a non-technical team | Possible with initial dev help | ChatGPT Teams, Jasper |
+| Run AI workflows on a schedule | **Strong fit** | n8n + AI nodes |
+| Keep all data on-premise | **Strong fit** | Few alternatives exist |
+| Prototype quickly without code | Not ideal | GPT Builder, Poe |
+| Manage AI assistants for multiple clients | **Strong fit** | — |
+| Use open-source with full control | **Strong fit** | LangChain, Haystack |
+
+## Ready to Proceed?
+
+If you've read this far and you're still nodding along, OpenClaw is probably a good match. Head to the **Installation** guide to get it running on your machine.
+
+If you're unsure, that's okay too. Join the community Discord — drop your use case in the `#is-this-for-me` channel and you'll get honest feedback from people who've been in your shoes.

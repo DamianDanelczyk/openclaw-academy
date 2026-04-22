@@ -1,0 +1,179 @@
+---
+title: Daily Morning Briefing
+description: Automate a personalized morning briefing that summarizes your day ahead, key updates, and action items.
+---
+
+# Daily Morning Briefing
+
+Imagine waking up every morning to a perfectly organized summary of everything you need to know before your day starts. No more scrambling through emails, calendars, and Slack messages while your coffee gets cold. With OpenClaw's Morning Briefing playbook, your AI assistant gathers everything overnight and delivers a clean, prioritized briefing right when you need it.
+
+This is one of the most popular playbooks among OpenClaw users, and for good reason. It takes about ten minutes to set up and saves most people 30 to 45 minutes every single morning.
+
+## What You Get
+
+Your morning briefing pulls together information from multiple sources and presents it in a single, easy-to-read message. Here is what a typical briefing covers:
+
+- **Calendar overview** for the day, including prep notes for meetings
+- **Priority emails** that arrived overnight
+- **Task summary** from your project management tools
+- **Weather and commute** information (if configured)
+- **Key metrics** from dashboards you care about
+- **Reminders** you have set for yourself
+
+The beauty of this playbook is that it adapts to your rhythm. OpenClaw learns which information you actually act on and gradually refines what it includes. After a couple of weeks, your briefing feels like it was written by a personal assistant who has worked with you for years.
+
+## Why This Works
+
+Most of us start our mornings in reactive mode. We open our inbox and immediately get pulled into someone else's priorities. The morning briefing flips that dynamic. By giving you a structured overview before you dive in, you start your day with intention instead of reaction.
+
+Users who run this playbook report that they feel more in control of their schedule and are less likely to miss important deadlines or forget about meetings. It is a small automation with an outsized impact on your daily workflow.
+
+## Getting Started
+
+Before you configure anything, think about which information sources matter most to you in the morning. Not everyone needs weather data or stock prices. Start with the essentials (calendar and email) and add more sources over time.
+
+You will also want to decide where your briefing gets delivered. Most people choose Slack DM or email, but you can also have it posted to a specific channel if you want your team to see it.
+
+## SOUL.md Additions
+
+Add the following to your SOUL.md file to shape how your assistant handles the morning briefing. This goes in the `## Behaviors` section:
+
+```markdown
+## Behaviors
+
+### Morning Briefing
+- Deliver a concise daily briefing every weekday morning
+- Lead with the most time-sensitive items (meetings starting soon, deadlines today)
+- Group information by category: Calendar, Email, Tasks, FYI
+- Use plain language, not corporate jargon
+- Flag anything that looks like a conflict or double-booking
+- Keep the entire briefing under 500 words unless there is an unusually busy day
+- If there are no notable updates in a category, skip it entirely rather than saying "nothing to report"
+- End with a one-sentence motivational note or fun fact on Fridays
+```
+
+## Recommended Skills
+
+Enable these skills in your OpenClaw dashboard to power the morning briefing:
+
+```yaml
+skills:
+  - name: calendar-reader
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-only
+    description: Reads your calendar events for the current day
+
+  - name: email-scanner
+    provider: gmail  # or outlook-mail
+    permissions: read-only
+    description: Scans for priority emails received since last briefing
+
+  - name: task-aggregator
+    provider: todoist  # or asana, linear, notion
+    permissions: read-only
+    description: Pulls tasks due today and overdue items
+
+  - name: weather-lookup
+    provider: openweather
+    config:
+      location: "auto-detect"
+    description: Gets current weather and forecast for your location
+```
+
+You do not need all of these on day one. The calendar-reader and email-scanner are the most valuable starting points. Add the others as you get comfortable with the system.
+
+<PremiumContent title="Complete Playbook Configuration">
+
+## Cron Configuration
+
+Set up the schedule for your morning briefing. This cron job tells OpenClaw when to compile and deliver your briefing:
+
+```yaml
+cron:
+  morning-briefing:
+    schedule: "0 6 * * 1-5"  # 6:00 AM, Monday through Friday
+    timezone: "America/New_York"  # Change to your timezone
+    action: run-playbook
+    playbook: morning-briefing
+    retry:
+      attempts: 2
+      delay: 10m
+    notify_on_failure: true
+```
+
+A few things to note about the schedule. The `1-5` at the end means weekdays only. If you want weekend briefings too, change that to `*`. The retry configuration means that if something goes wrong (maybe one of your connected services is temporarily down), OpenClaw will try again 10 minutes later before giving up.
+
+If you are an early riser, you might want to push that time back to 5:00 AM. If you prefer to ease into your morning, 7:30 AM might be better. The key is picking a time that is at least 30 minutes before you typically start working.
+
+## Channel Setup
+
+Configure where your briefing gets delivered:
+
+```yaml
+channels:
+  morning-briefing-delivery:
+    type: slack-dm  # Options: slack-dm, slack-channel, email, webhook
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich  # rich formatting with sections and emoji indicators
+      thread: false  # deliver as a standalone message, not a thread
+
+  # Optional: also send to a team channel
+  team-briefing:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#daily-standup"
+      format: compact  # shorter format for team visibility
+      thread: true
+```
+
+## Example Output
+
+Here is what a typical morning briefing looks like when it lands in your Slack DMs:
+
+```
+Good morning! Here is your briefing for Tuesday, April 14.
+
+CALENDAR (4 events)
+  09:00 - Sprint Planning with Engineering (Conference Room B)
+          Note: Review the backlog before this one — 3 new items added yesterday
+  11:30 - 1:1 with Sarah (Zoom)
+  14:00 - Client call with Acme Corp (Zoom)
+          Note: They replied to your proposal last night — see emails below
+  16:00 - Design review (Conference Room A)
+
+PRIORITY EMAILS (2 flagged)
+  From: Sarah Chen — "Re: Q2 Budget Proposal"
+    Received 11:42 PM — She approved the budget with one minor change
+  From: James at Acme Corp — "Re: Partnership Proposal"
+    Received 8:15 PM — Positive response, wants to discuss pricing on today's call
+
+TASKS DUE TODAY (3 items)
+  [ ] Finalize Q2 roadmap presentation (high priority)
+  [ ] Submit expense report for March travel
+  [ ] Review and approve pull request #247
+
+WEATHER
+  Partly cloudy, 68°F. No rain expected. Good day to walk to lunch.
+
+Have a productive Tuesday!
+```
+
+Notice how the briefing highlights connections between your events and emails. It noticed that the Acme Corp email is relevant to your afternoon call and flagged it. This kind of contextual linking is what makes OpenClaw briefings more useful than a simple calendar notification.
+
+## Customization Tips
+
+Once your briefing is running, here are some ways to make it even better:
+
+- **Add a "This Week" section on Mondays** by updating your SOUL.md with: "On Mondays, include a brief preview of the rest of the week's major events."
+- **Include metrics** if you run a business. Connect your analytics skill and add a line like: "Include yesterday's key metrics: revenue, signups, and support ticket count."
+- **Adjust verbosity** based on day. Some users prefer shorter briefings on days with fewer meetings and more detailed ones on busy days.
+- **Set up a "briefing feedback" command** so you can tell OpenClaw things like "stop including weather" or "always show my Asana tasks first" and it will update your preferences automatically.
+
+The morning briefing is a living document. The more you interact with it and provide feedback, the more tailored it becomes to your actual needs.
+
+</PremiumContent>
+
+<CTACard variant="community" />

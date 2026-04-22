@@ -1,0 +1,308 @@
+---
+title: Discord Channel
+description: Set up a Discord bot for OpenClaw with gateway intents, slash commands, and message handling for servers and DMs.
+---
+
+# Discord Channel
+
+Discord is where communities hang out — gaming groups, open-source projects, study groups, creator fandoms. If your audience is already in a Discord server, bringing your OpenClaw assistant there means meeting them where they are. No extra app to install, no new interface to learn. They just type a message or run a slash command and the assistant responds.
+
+This guide covers everything from creating the bot to fine-tuning how it behaves in different server channels.
+
+## Step 1: Create a Discord Application
+
+Go to the [Discord Developer Portal](https://discord.com/developers/applications) and click **New Application**. Give it a name — this is the application name, not the bot's display name (you can set that separately).
+
+Once created, go to the **Bot** tab and click **Add Bot**. Now configure a few things:
+
+1. **Username** — This is the name people see in chat. Choose something recognizable like "OpenClaw" or your assistant's name.
+2. **Icon** — Upload a profile picture for the bot.
+3. **Public Bot** — Turn this off if you only want the bot in your own servers. Turn it on if you want others to invite it.
+4. **Token** — Click **Reset Token** to generate a bot token. Copy it immediately — you will not be able to see it again.
+
+```bash title=".env"
+DISCORD_BOT_TOKEN=YOUR_DISCORD_BOT_TOKEN_HERE
+DISCORD_CLIENT_ID=123456789012345678
+```
+
+## Step 2: Configure Gateway Intents
+
+Discord requires you to declare which types of events your bot needs access to. These are called **Gateway Intents**, and some of them require explicit approval.
+
+In the Developer Portal, go to **Bot > Privileged Gateway Intents** and enable:
+
+- **Message Content Intent** — Required for the bot to read message text (not just metadata). Without this, your bot can see that a message was sent but cannot read what it says.
+- **Server Members Intent** — Optional, but useful if your assistant needs to look up user info.
+- **Presence Intent** — Usually not needed for an AI assistant. Leave it off.
+
+> **Note:** The Message Content Intent is considered privileged. For bots in fewer than 100 servers, it is auto-approved. For larger bots (75+ servers), you need to apply for verification through Discord.
+
+## Step 3: Invite the Bot to Your Server
+
+Build an invite URL with the proper permissions. The easiest way is to go to **OAuth2 > URL Generator** in the Developer Portal:
+
+1. Under **Scopes**, select `bot` and `applications.commands`.
+2. Under **Bot Permissions**, select:
+   - Send Messages
+   - Send Messages in Threads
+   - Embed Links
+   - Attach Files
+   - Read Message History
+   - Use Slash Commands
+   - Add Reactions
+
+The portal generates a URL. Open it in your browser, select your server, and authorize.
+
+You can also construct the URL manually:
+
+```
+https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=277025770560&scope=bot%20applications.commands
+```
+
+## Step 4: Configure OpenClaw
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    discord: {
+      enabled: true,
+      token: process.env.DISCORD_BOT_TOKEN,
+      clientId: process.env.DISCORD_CLIENT_ID,
+
+      // Gateway intents the bot needs
+      intents: [
+        'Guilds',
+        'GuildMessages',
+        'DirectMessages',
+        'MessageContent',
+        'GuildMessageReactions',
+      ],
+
+      // How the bot appears
+      presence: {
+        status: 'online',          // 'online' | 'idle' | 'dnd' | 'invisible'
+        activity: {
+          type: 'Listening',       // 'Playing' | 'Listening' | 'Watching' | 'Competing'
+          name: 'your questions',
+        },
+      },
+    },
+  },
+});
+```
+
+Start OpenClaw and you should see:
+
+```
+[discord] Logging in...
+[discord] Bot ready as OpenClaw#1234
+[discord] Connected to 1 guild(s)
+[discord] Registering slash commands...
+[discord] Channel ready
+```
+
+## Slash Commands
+
+Discord's slash command system provides a polished UX — users type `/` and see a menu of available commands with descriptions and parameter hints. OpenClaw registers these automatically:
+
+```typescript
+discord: {
+  slashCommands: {
+    ask: {
+      description: 'Ask the AI assistant a question',
+      options: [
+        {
+          name: 'question',
+          description: 'Your question',
+          type: 'String',
+          required: true,
+        },
+      ],
+    },
+    reset: {
+      description: 'Clear your conversation history',
+    },
+    help: {
+      description: 'Show what the assistant can do',
+    },
+    persona: {
+      description: 'Switch the assistant personality',
+      options: [
+        {
+          name: 'name',
+          description: 'Persona name',
+          type: 'String',
+          required: true,
+          choices: [
+            { name: 'Default', value: 'default' },
+            { name: 'Technical', value: 'technical' },
+            { name: 'Creative', value: 'creative' },
+          ],
+        },
+      ],
+    },
+  },
+},
+```
+
+Slash commands are registered globally by default (available in all servers the bot is in). For faster development, you can register them per-guild instead:
+
+```typescript
+discord: {
+  slashCommands: {
+    registrationType: 'guild',  // 'global' | 'guild'
+    guildId: '123456789012345678', // Your test server
+    // ... commands
+  },
+},
+```
+
+Guild-scoped commands update instantly. Global commands can take up to an hour to propagate.
+
+## Message Handling
+
+Beyond slash commands, the bot can respond to regular messages. You control when and how:
+
+```typescript
+discord: {
+  messages: {
+    // When to respond in server channels
+    serverTrigger: 'mention',   // 'mention' | 'prefix' | 'all' | 'none'
+    prefix: '!ask',             // Used when serverTrigger is 'prefix'
+
+    // When to respond in DMs
+    dmTrigger: 'all',           // Almost always 'all' for DMs
+
+    // Typing indicator
+    showTyping: true,           // Show "OpenClaw is typing..." while generating
+
+    // Response behavior
+    replyStyle: 'reply',        // 'reply' (threaded reply) | 'send' (new message)
+    splitLongMessages: true,    // Split messages exceeding Discord's 2000-char limit
+  },
+},
+```
+
+The `mention` trigger means the bot only responds when someone pings it with `@OpenClaw`. This is the safest default for server channels — no one wants a bot replying to every message in #general.
+
+### How Message Splitting Works
+
+Discord has a strict 2,000-character limit per message. When the assistant generates a longer response (common with code examples or detailed explanations), OpenClaw splits it intelligently:
+
+- It tries to split at paragraph boundaries first.
+- If a paragraph is too long, it splits at sentence boundaries.
+- Code blocks are never split mid-block — they get their own message if needed.
+- Each chunk is sent with a short delay to maintain reading order.
+
+## Server Channel Configuration
+
+Just like with Slack, you can configure the bot differently for different Discord channels:
+
+```typescript
+discord: {
+  channelRules: {
+    default: {
+      respondTo: 'mention',
+    },
+    overrides: {
+      '1111111111111111111': {  // #ask-the-bot channel ID
+        respondTo: 'all',
+        systemPromptAppend: 'This is a help channel. Be thorough and friendly.',
+      },
+      '2222222222222222222': {  // #code-review channel ID
+        respondTo: 'mention',
+        systemPromptAppend: 'Focus on code quality, security, and best practices.',
+      },
+      '3333333333333333333': {  // #memes channel ID
+        enabled: false,          // Bot ignores this channel entirely
+      },
+    },
+  },
+},
+```
+
+To get a channel's ID, enable Developer Mode in Discord settings (under Advanced), then right-click any channel and select **Copy Channel ID**.
+
+## Embeds and Rich Responses
+
+Discord supports **embeds** — richly formatted cards with colors, fields, thumbnails, and footers. OpenClaw can automatically format certain responses as embeds:
+
+```typescript
+discord: {
+  formatting: {
+    useEmbeds: true,
+    embedColor: '#5865F2',    // Discord blurple, or your brand color
+    embedFooter: 'Powered by OpenClaw',
+    codeBlockSyntaxHighlight: true,
+  },
+},
+```
+
+When `useEmbeds` is enabled, longer responses are wrapped in a clean embed with a colored sidebar. Short conversational replies stay as plain text to feel natural.
+
+## Reaction-Based Feedback
+
+Similar to the Slack channel, you can use Discord reactions as a feedback mechanism:
+
+```typescript
+discord: {
+  reactions: {
+    processingEmoji: '🔍',     // React while processing
+    removeOnComplete: true,    // Remove the processing reaction when done
+    feedbackEmojis: {
+      '👍': 'positive',
+      '👎': 'negative',
+    },
+  },
+},
+```
+
+## Permissions and Security
+
+Discord has a layered permissions system. Here are the recommended practices:
+
+1. **Use the principle of least privilege.** Only request the bot permissions you actually need.
+2. **Restrict by role.** You can configure OpenClaw to only respond to users with specific Discord roles:
+
+```typescript
+discord: {
+  access: {
+    allowedRoles: ['AI Users', 'Premium'],   // Role names
+    blockedUsers: ['999999999999999999'],     // User IDs to ignore
+    dmAccess: 'everyone',                     // 'everyone' | 'server-members' | 'none'
+  },
+},
+```
+
+3. **Channel permissions.** Even if the bot has broad permissions at the server level, individual channel permissions override them. If the bot cannot see a channel, it cannot read or post there.
+
+## Handling Voice Channels (Experimental)
+
+OpenClaw has experimental support for Discord voice channels. When enabled, the bot can join a voice channel, listen to speech (via speech-to-text), and respond with synthesized audio:
+
+```typescript
+discord: {
+  voice: {
+    enabled: false,           // Experimental — set true to try it
+    sttProvider: 'whisper',   // Speech-to-text engine
+    ttsProvider: 'elevenlabs', // Text-to-speech engine
+    autoLeaveTimeout: 300000, // Leave after 5 minutes of silence
+  },
+},
+```
+
+This feature requires additional dependencies and is not recommended for production use yet, but it is a fun way to demo your assistant.
+
+## Troubleshooting
+
+| Problem | Likely Cause | Fix |
+|---------|-------------|-----|
+| Bot shows offline | Invalid token or intents misconfigured | Regenerate token, check intents in Developer Portal |
+| Bot does not respond to messages | Message Content Intent not enabled | Enable it in Developer Portal > Bot > Privileged Intents |
+| Slash commands not showing | Commands registered globally (takes up to 1 hour) | Switch to guild registration for faster updates |
+| "Missing Permissions" errors | Bot role is below the channels it is trying to access | Move the bot's role higher in Server Settings > Roles |
+| Duplicate responses | Bot is running in multiple instances | Ensure only one instance connects per bot token |
+
+Discord's combination of text, voice, slash commands, and rich embeds makes it one of the most versatile channels for OpenClaw. Whether you are building a community helper, a study buddy, or an internal team assistant, Discord has the features to support it.

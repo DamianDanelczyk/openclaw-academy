@@ -1,0 +1,179 @@
+---
+title: Client Deliverables
+description: Templates for handoff documentation, client training, SLAs, and monthly reporting to deliver a professional agency experience.
+---
+
+# Client Deliverables
+
+Delivering a working AI agent is only half the job. The other half -- the half that separates scrappy freelancers from professional agencies -- is everything that wraps around it. Documentation. Training. Reporting. Service guarantees.
+
+These deliverables aren't busywork. They're what makes a client feel confident about their investment, reduces the number of "quick question" emails cluttering your inbox, and creates the foundation for a long-term retainer relationship. Let's walk through each one.
+
+## Handoff Documentation
+
+When you finish building an AI agent, your client needs a single document they can refer to whenever they have a question about how it works. Think of it as a user manual, but written for someone who has never configured software in their life.
+
+### What to Include
+
+**Agent Overview**
+Start with a plain-English summary. What does this agent do? Where does it live? What channels does it operate on? Write this the way you'd explain it to the client's least technical team member.
+
+Example: "The OpenClaw Support Agent is an AI assistant embedded on your website and connected to your Facebook page. It answers customer questions about your products, return policy, and store hours. When a customer asks something it can't handle, it collects their contact info and alerts your team via email."
+
+**Channel Map**
+List every place the agent is active and how to access it.
+
+| Channel | Status | Access |
+|---------|--------|--------|
+| Website chat widget | Live | yoursite.com (bottom-right corner) |
+| Facebook Messenger | Live | facebook.com/yourbusiness |
+| Email intake | Live | support@yourbusiness.com |
+| SMS | Not configured | Available for future phase |
+
+**Knowledge Base Summary**
+Describe what information the agent has been trained on. List the categories and the number of entries in each. This helps the client understand what the agent knows and, critically, what it doesn't know.
+
+- Product information: 45 entries covering all current SKUs
+- Return and exchange policy: 8 entries
+- Shipping and delivery: 12 entries
+- Store hours and location: 3 entries
+- Promotions and discounts: 6 entries (note: must be updated when promotions change)
+
+**Escalation Rules**
+Clearly document when and how the agent hands off to a human.
+
+- Customer explicitly asks for a human: Agent transfers to live chat queue
+- Customer expresses frustration (detected via sentiment): Agent offers human transfer
+- Question outside knowledge base: Agent says "I want to make sure you get the right answer" and collects contact info
+- Order-specific issues (refunds, cancellations, complaints): Agent collects details and creates a support ticket
+
+**How to Update Content**
+Step-by-step instructions for how the client can request or make changes to the agent's knowledge base. If they have access to the OpenClaw dashboard, include screenshots. If changes go through you, describe the process and expected turnaround time.
+
+**Troubleshooting**
+A short FAQ covering the most common issues:
+- "The chat widget isn't appearing on our website" -- Check that the embed code is still in your site's footer. Contact us if you need help.
+- "The agent gave a wrong answer" -- Take a screenshot and send it to us. We'll update the knowledge base within 24 hours.
+- "We want the agent to handle a new topic" -- Send us the information and we'll add it in the next optimization cycle.
+
+## Client Training Guide
+
+Documentation is essential, but a live training session is what really builds client confidence. Plan for 30-60 minutes depending on the package tier.
+
+### Training Session Outline
+
+**1. Introduction (5 minutes)**
+Recap what was built and why. Revisit the goals from the discovery call. Set expectations for the session.
+
+**2. Live Demo (10 minutes)**
+Walk through 5-6 real conversations with the agent. Show the happy paths (agent answers correctly), edge cases (agent escalates properly), and the handoff experience from the human side.
+
+**3. Dashboard Walkthrough (10 minutes)**
+Show the client how to access the OpenClaw dashboard (if applicable). Cover the basics: how to view conversations, check the agent's performance metrics, and see what topics are trending.
+
+**4. Update Process (10 minutes)**
+Walk through how content changes work. If the client manages updates directly, do a live example together. If updates go through you, explain the request process and timeline.
+
+**5. Escalation Handling (10 minutes)**
+Show the client's team exactly what happens when the agent escalates. What notification do they get? Where do they pick up the conversation? How do they see the conversation history?
+
+**6. Q&A (10 minutes)**
+Leave ample time for questions. The team members who will actually interact with the agent daily often have the most practical and revealing questions.
+
+Record the training session and share the recording with the client. This is invaluable for onboarding new team members later.
+
+<PremiumContent title="Full Business Strategy">
+
+## SLA Templates
+
+Service Level Agreements set clear expectations about your responsiveness and the agent's performance. For Starter and Professional tiers, a lightweight SLA is fine. For Enterprise clients, it should be more detailed.
+
+### Standard SLA (Starter & Professional)
+
+**Agent Uptime**
+We guarantee 99% uptime for your AI agent during each calendar month. Uptime is measured as the percentage of time the agent is operational and responding to inquiries. Scheduled maintenance windows (communicated at least 48 hours in advance) are excluded from uptime calculations.
+
+**Response to Issues**
+| Priority | Description | Response Time |
+|----------|-------------|---------------|
+| Critical | Agent is completely non-functional | 4 business hours |
+| High | Agent is giving incorrect answers to common questions | 12 business hours |
+| Medium | Feature request or non-urgent improvement | 48 business hours |
+| Low | General question or future planning | 5 business days |
+
+**Knowledge Base Updates**
+Content updates submitted by the client will be implemented within 2 business days for Professional tier, or within the next monthly optimization cycle for Starter tier.
+
+**What's Not Covered**
+- Downtime caused by third-party platforms (e.g., Facebook Messenger outages)
+- Issues resulting from unauthorized modifications to the embed code or integrations
+- Requests that fall outside the current scope agreement
+
+### Enterprise SLA (Additional Terms)
+
+**Dedicated Support Channel**
+Enterprise clients receive access to a dedicated Slack channel or phone line for direct communication with their account manager.
+
+**Monthly Performance Guarantee**
+We guarantee that the AI agent will successfully resolve at least [X]% of conversations within scope without requiring human escalation. If this threshold is not met for two consecutive months, the client may request a remediation plan at no additional cost.
+
+**Incident Reporting**
+For any Critical or High priority issue, we will provide a written incident report within 3 business days of resolution, including root cause analysis and steps taken to prevent recurrence.
+
+**Quarterly Business Review**
+Enterprise clients receive a quarterly in-depth review covering agent performance, ROI analysis, industry benchmarks, and strategic recommendations for the next quarter.
+
+## Monthly Reporting Format
+
+Consistent, clear reporting is what turns a "vendor" into a "partner" in your client's eyes. Here's the format that works.
+
+### Report Structure
+
+**Report Header**
+- Client name and reporting period
+- Prepared by and date
+- Package tier
+
+**Executive Summary (2-3 sentences)**
+A plain-English summary of how the agent performed this month. Lead with the headline number.
+
+Example: "Your AI agent handled 847 conversations in March, resolving 78% without human involvement. Average response time was 8 seconds. Customer satisfaction for agent-handled conversations was 4.2 out of 5."
+
+**Key Metrics**
+
+| Metric | This Month | Last Month | Change |
+|--------|-----------|------------|--------|
+| Total conversations | 847 | 712 | +19% |
+| Resolution rate (no human needed) | 78% | 74% | +4% |
+| Average response time | 8 sec | 9 sec | -11% |
+| Human escalations | 186 | 185 | +1 |
+| Customer satisfaction score | 4.2/5 | 4.0/5 | +5% |
+| Top unresolved topic | Shipping delays | Return process | -- |
+
+**Conversation Breakdown**
+Pie chart or table showing the distribution of conversation topics. This helps the client see what their customers actually care about -- insight that's valuable far beyond the AI agent itself.
+
+**Notable Improvements**
+What did you optimize this month? List the specific changes you made and their impact.
+
+- Updated shipping FAQ to reflect new carrier policies -- resolved 23 conversations that previously required escalation
+- Added handling for promotional code questions -- new topic generating 45 conversations this month
+- Refined escalation trigger for frustrated customers -- reduced unnecessary escalations by 12%
+
+**Recommendations**
+What should be done next month? This section positions you as a strategic advisor, not just a service provider.
+
+- "We're seeing a spike in questions about gift cards. Adding a gift card FAQ section could resolve an estimated 30-40 additional conversations per month."
+- "Customer questions about [new product line] are increasing. I recommend a knowledge base update before the launch."
+- "Consider expanding the agent to SMS -- 15% of your website visitors are on mobile and might prefer text-based support."
+
+**Appendix**
+Include a handful of representative conversation transcripts -- both great ones and ones that needed improvement. This builds transparency and trust.
+
+### Automating Your Reports
+
+Don't spend two hours every month creating reports from scratch. Build a template in Google Docs or Notion, connect it to your OpenClaw analytics data, and streamline the process. The first report takes time. By the third month, it should take you 20-30 minutes per client.
+
+For clients on the Starter tier, a simplified version with just the Key Metrics table and a few bullet points of recommendations is perfectly sufficient. Save the detailed reporting for Professional and Enterprise clients where the relationship and revenue justify the effort.
+
+</PremiumContent>

@@ -1,0 +1,213 @@
+---
+title: Content Creation Pipeline
+description: Build an automated content pipeline that handles ideation, drafting, scheduling, and publishing with OpenClaw.
+---
+
+# Content Creation Pipeline
+
+Creating content consistently is one of the hardest parts of running a business or building a personal brand. It is not that you lack ideas. It is that the process from idea to published piece involves so many steps that things stall out somewhere in the middle. You have a brilliant thought in the shower, jot it down, and then it sits in a notes app for six months.
+
+The Content Pipeline playbook turns OpenClaw into your editorial assistant. It helps you capture ideas, develop them into outlines, draft content, and keep everything moving toward publication. Think of it as having a junior content manager who never forgets, never takes a day off, and never lets a draft sit untouched for more than a few days.
+
+## The Pipeline Stages
+
+This playbook organizes your content workflow into five stages:
+
+1. **Capture** — Collect ideas from anywhere (messages, voice notes, bookmarks, random thoughts)
+2. **Develop** — Turn raw ideas into structured outlines with key points and angles
+3. **Draft** — Generate first drafts based on your approved outlines
+4. **Review** — Flag drafts that are ready for your review and editing
+5. **Schedule** — Queue finished pieces for publication on the right platforms
+
+OpenClaw moves content through these stages automatically, nudging you when your input is needed and handling the mechanical parts on its own. You stay in creative control while the logistics run themselves.
+
+## Who This Is For
+
+This playbook works great for solopreneurs, small marketing teams, consultants, and anyone who publishes content regularly. Whether you are writing blog posts, LinkedIn updates, newsletter editions, or Twitter threads, the pipeline adapts to your content types and publishing cadence.
+
+You do not need to be a professional writer. In fact, many users find that the pipeline helps them become more consistent writers because it removes the friction that normally stops them from publishing.
+
+## Setting Up Your Content Voice
+
+The most important step in this playbook is teaching OpenClaw how you write. Your SOUL.md configuration is where you define your tone, style, and preferences. Spend some time on this section. The better you describe your voice, the less editing you will need to do on drafts.
+
+A good approach is to point OpenClaw at three to five pieces you have already published that represent your best work. It will analyze your writing patterns and use them as a reference.
+
+## SOUL.md Additions
+
+```markdown
+## Behaviors
+
+### Content Pipeline
+- Maintain a running content backlog organized by stage: Capture, Develop, Draft, Review, Schedule
+- When I share an idea (prefixed with "content idea:" or sent to the ideas channel), add it to the Capture stage
+- Every Monday, present the top 5 ideas from Capture and suggest which to develop this week
+- When developing an outline, include: working title, target audience, 3-5 key points, estimated word count, and suggested platform
+- Draft content in my voice — conversational, clear, avoid buzzwords, use concrete examples
+- Reference style samples from my published work (linked in my profile)
+- First drafts should be 80% ready — good enough structure and flow that I only need to add personal anecdotes and polish
+- Never publish anything without my explicit approval
+- Track publishing cadence and warn me if I am falling behind my target of 2 posts per week
+- Suggest content ideas based on trending topics in my industry, repurposing opportunities from past content, and gaps in my existing library
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: content-manager
+    provider: openclaw-native
+    description: Manages content stages, tracks progress, and handles pipeline logic
+
+  - name: writing-assistant
+    provider: openclaw-native
+    config:
+      style_reference: "profile-writing-samples"
+      max_draft_length: 2000
+    description: Generates outlines and drafts based on your writing style
+
+  - name: social-publisher
+    provider: buffer  # or hootsuite, later
+    permissions: read-write
+    description: Schedules and publishes content to connected social platforms
+
+  - name: blog-publisher
+    provider: wordpress  # or ghost, webflow, notion
+    permissions: read-write
+    description: Publishes blog posts and articles
+
+  - name: trend-scanner
+    provider: openclaw-native
+    config:
+      industries: ["your-industry"]
+      sources: ["twitter", "reddit", "industry-blogs"]
+    description: Identifies trending topics and content opportunities
+```
+
+<PremiumContent title="Complete Playbook Configuration">
+
+## Cron Configuration
+
+The content pipeline uses several scheduled jobs to keep things moving:
+
+```yaml
+cron:
+  content-weekly-planning:
+    schedule: "0 9 * * 1"  # Monday at 9:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: content-weekly-planning
+    config:
+      suggest_count: 5  # suggest 5 ideas to develop this week
+      include_repurpose: true  # suggest repurposing old content
+    retry:
+      attempts: 2
+      delay: 15m
+
+  content-draft-nudge:
+    schedule: "0 10 * * 3,5"  # Wednesday and Friday at 10:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: content-draft-check
+    config:
+      notify_stale: true  # flag drafts that have been sitting for 3+ days
+      auto_develop: false  # do not auto-draft without approval
+
+  content-publish-check:
+    schedule: "0 8 * * *"  # Daily at 8:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: content-publish-queue
+    config:
+      preview_before_publish: true  # always show preview before publishing
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  content-ideas:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#content-ideas"
+      description: "Drop content ideas here anytime — OpenClaw picks them up"
+      format: rich
+      capture_all: true  # treat every message in this channel as a content idea
+
+  content-pipeline-updates:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: false  # no push notifications, just DM updates
+
+  content-review:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#content-review"
+      format: rich
+      thread: true  # each piece of content gets its own thread
+```
+
+## Example Output
+
+Here is what your Monday planning message looks like:
+
+```
+CONTENT PIPELINE — Weekly Planning (Monday, April 13)
+
+PIPELINE STATUS
+  Capture: 12 ideas waiting
+  Develop: 2 outlines in progress
+  Draft: 1 draft ready for review
+  Review: 0
+  Scheduled: 3 posts queued (Tue, Thu, Sat)
+
+TOP 5 IDEAS TO DEVELOP THIS WEEK
+
+1. "Why Most Onboarding Flows Fail in the First 48 Hours"
+   Angle: Common mistakes + what the data says about early churn
+   Platform: Blog post (1200 words) + LinkedIn summary
+   Why now: You mentioned churn metrics in last week's team meeting
+
+2. "The 3-Email Welcome Sequence That Actually Works"
+   Angle: Tactical breakdown with real examples
+   Platform: Newsletter + Twitter thread
+   Why now: Pairs well with the onboarding piece above
+
+3. "I Replaced 4 SaaS Tools With One Automation"
+   Angle: Personal story about simplifying your stack
+   Platform: LinkedIn post (600 words)
+   Why now: Your "tool fatigue" idea from 2 weeks ago — good timing with Q2 budget reviews
+
+4. "Reading List: 5 Books That Changed How I Think About Growth"
+   Angle: Quick reviews with one key takeaway each
+   Platform: Newsletter
+   Why now: Light content for variety — you have been running heavy tactical posts lately
+
+5. "Lessons From Losing Our Biggest Client"
+   Angle: Honest reflection, what you learned, what you changed
+   Platform: Blog post (1500 words) + LinkedIn
+   Why now: You captured this idea last month — it has been marinating long enough
+
+Reply with the numbers you want to develop, or suggest changes.
+
+DRAFT READY FOR REVIEW
+  "How to Audit Your Sales Funnel in 30 Minutes"
+  Word count: 1,340 | Platform: Blog
+  Waiting in #content-review — 2 days old
+```
+
+## Advanced Tips
+
+- **Repurposing engine**: Once a blog post is published, OpenClaw can automatically create a LinkedIn summary, a Twitter thread, and a newsletter blurb from the same content. Add `repurpose_on_publish: true` to your content-publish-check cron config.
+- **Content calendar view**: Ask OpenClaw "show me this month's content calendar" to get a visual overview of what is scheduled, what is in progress, and where the gaps are.
+- **Collaboration mode**: If you work with an editor or a writing partner, add them to the `#content-review` channel. OpenClaw will track their feedback and incorporate it into revisions.
+- **Analytics feedback loop**: Connect your analytics skill so OpenClaw can tell you which topics and formats perform best, and use that data to inform future content suggestions.
+
+</PremiumContent>
+
+<CTACard variant="community" />

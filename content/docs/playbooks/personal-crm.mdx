@@ -1,0 +1,250 @@
+---
+title: Personal CRM System
+description: Build and maintain meaningful professional relationships with an AI-powered personal CRM that never lets important connections go cold.
+---
+
+# Personal CRM System
+
+Your network is one of your most valuable professional assets, but maintaining it is hard. You meet someone interesting at a conference, exchange cards, maybe connect on LinkedIn, and then life takes over. Three months later, you cannot remember what you talked about or why you wanted to stay in touch. That connection, which could have turned into a partnership, a referral, or a friendship, fades into nothing.
+
+The Personal CRM playbook turns OpenClaw into your relationship manager. It remembers every interaction, tracks when you last reached out, and nudges you when a relationship is going cold. It is not about turning people into leads or contacts into transactions. It is about being the kind of person who actually follows through on "let's stay in touch."
+
+## How It Works
+
+Your personal CRM operates on a few simple principles:
+
+- **Everyone you meet gets logged** — When you tell OpenClaw about a new contact, it creates a profile with whatever context you provide
+- **Interactions are tracked** — Emails, meetings, messages, coffees, and any touchpoints you report are logged against each contact
+- **Relationships have rhythms** — You set how frequently you want to stay in touch with different people (weekly, monthly, quarterly)
+- **Reminders are proactive** — OpenClaw nudges you before a relationship goes cold, not after
+- **Context is preserved** — When it is time to reach out, OpenClaw reminds you what you talked about last, what they care about, and any commitments you made
+
+Think of it as having perfect memory for every professional relationship in your life.
+
+## Why a Personal CRM
+
+Enterprise CRMs like Salesforce and HubSpot are built for sales teams managing thousands of accounts. They are overkill for personal relationship management and their interface assumes you are tracking deals, not friendships.
+
+A personal CRM is different. It is lightweight, conversational, and focused on the things that actually matter in a relationship: shared interests, mutual help, genuine connection. You interact with it by telling it things in natural language, not by filling out forms.
+
+## Getting Started
+
+The easiest way to start is by importing your most important contacts. You do not need to dump your entire address book in. Start with 20 to 30 people you genuinely want to stay in touch with. For each person, add:
+
+- Their name and how you know them
+- What you talked about most recently
+- How often you want to reach out
+- Any notable details (interests, family, projects they are working on)
+
+You can add people over time as you meet them. After a conference, a dinner, or an interesting LinkedIn conversation, just tell OpenClaw about the new contact and it handles the rest.
+
+## SOUL.md Additions
+
+```markdown
+## Behaviors
+
+### Personal CRM
+- Maintain a contact database with profiles for everyone I add
+- For each contact, track: name, relationship context, last interaction, interaction frequency target, notes, and tags
+- Proactively remind me to reach out to contacts who are approaching their "due" date
+- When reminding me to reach out, include: who they are, what we discussed last, any commitments I made, and a suggested conversation starter
+- Group contacts by tags: Inner Circle, Professional, Industry, Potential Collaborator, Friend, Mentor
+- Allow me to log interactions by saying things like "had coffee with Sarah today, we talked about her new startup"
+- Weekly relationship digest: who I should reach out to this week, sorted by priority
+- If someone has a birthday, work anniversary, or notable life event that I have recorded, remind me a day before
+- Never reach out to anyone on my behalf — just remind me and suggest talking points
+- Monthly stats: how many people I stayed in touch with, who I have been neglecting, and any relationships that need attention
+- When I meet someone new, suggest an appropriate follow-up cadence based on the relationship type
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: contact-manager
+    provider: openclaw-native
+    description: Stores and manages contact profiles and interaction history
+
+  - name: calendar-reader
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-only
+    description: Detects meetings with contacts and logs them as interactions
+
+  - name: email-scanner
+    provider: gmail
+    permissions: read-only
+    description: Detects email exchanges with contacts and logs them
+
+  - name: linkedin-connector
+    provider: openclaw-native
+    config:
+      mode: passive  # only reads, never posts or messages
+    description: Monitors LinkedIn for contact updates and life events
+
+  - name: reminder-engine
+    provider: openclaw-native
+    description: Schedules and delivers relationship reminders
+```
+
+## Cron Configuration
+
+```yaml
+cron:
+  crm-daily-reminders:
+    schedule: "0 8 * * 1-5"  # Weekdays at 8:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: crm-daily-check
+    config:
+      remind_approaching: true  # contacts due within 3 days
+      remind_overdue: true  # contacts past their cadence
+      include_events: true  # birthdays, anniversaries
+    retry:
+      attempts: 1
+      delay: 10m
+
+  crm-weekly-digest:
+    schedule: "0 9 * * 1"  # Monday at 9:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: crm-weekly-digest
+    config:
+      top_priority: 10  # show top 10 contacts to reach out to
+      include_recent: true  # also show recent interactions for context
+
+  crm-monthly-review:
+    schedule: "0 10 1 * *"  # 1st of each month at 10:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: crm-monthly-stats
+    config:
+      include_neglected: true  # contacts with no interaction in 60+ days
+      include_network_growth: true
+
+  crm-interaction-sync:
+    schedule: "0 20 * * *"  # 8 PM daily
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: crm-auto-log
+    config:
+      scan_calendar: true  # auto-log meetings as interactions
+      scan_email: true  # auto-log email exchanges
+      require_confirmation: false  # log silently, don't ask for each one
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  crm-reminders:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: false  # no push notifications — check at your own pace
+      description: "Daily relationship reminders and suggestions"
+
+  crm-digest:
+    type: email
+    config:
+      recipient: "you@email.com"
+      subject_prefix: "[CRM]"
+      format: html
+      description: "Weekly and monthly relationship summaries"
+
+  crm-events:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: compact
+      notify: true  # push for birthdays and special events
+```
+
+## Example Output
+
+Here is your Monday weekly digest:
+
+```
+RELATIONSHIP DIGEST — Week of April 13
+
+REACH OUT THIS WEEK (sorted by priority)
+
+1. Sarah Chen — Last contact: 28 days ago (target: monthly)
+   Context: You had lunch on March 16. She was excited about
+   launching her new product in April. She mentioned wanting
+   your feedback on pricing.
+   Suggested opener: "Hey Sarah! How did the product launch go?
+   I've been thinking about our pricing conversation — happy
+   to dig into that if you're still interested."
+
+2. David Park — Last contact: 35 days ago (target: monthly) OVERDUE
+   Context: Quick email exchange on March 9 about a potential
+   speaking opportunity at his company's conference. You said
+   you'd send your speaker bio.
+   Suggested opener: "David, apologies for the delay on my speaker
+   bio — attaching it now. Is the conference still on track for
+   June? Would love to catch up either way."
+   Note: You committed to sending your bio. This is overdue.
+
+3. Maria Gonzalez — Last contact: 12 days ago (target: biweekly)
+   Context: She shared a great article on ops automation on LinkedIn.
+   You commented on it.
+   Suggested opener: Share a relevant article back, or ask how
+   her team's automation project is going.
+
+4. James Wilson (Acme Corp) — Last contact: 6 days ago (target: weekly)
+   Context: Client call on April 9. Phase 2 implementation is
+   on track. He mentioned his daughter's soccer tournament this weekend.
+   Suggested opener: "Hey James, how'd the soccer tournament go?"
+
+5. Priya Sharma — Birthday on April 17 (Thursday)
+   Suggested: Send a birthday message. She prefers LinkedIn messages
+   over email for personal notes.
+
+... (5 more contacts this week)
+
+RECENT INTERACTIONS (auto-logged)
+  April 10: Meeting with Alex Rivera (1:1, 30 min)
+  April 11: Email exchange with Lisa Park (3 messages)
+  April 11: LinkedIn comment on Maria Gonzalez's post
+  April 12: Coffee with Tom Bradley (you logged this manually)
+
+NETWORK STATS
+  Total contacts: 127
+  Interactions this month: 18
+  Contacts on track: 89 (70%)
+  Approaching due: 23 (18%)
+  Overdue: 15 (12%)
+```
+
+Here is a birthday reminder:
+
+```
+RELATIONSHIP REMINDER — Birthday Tomorrow
+
+Priya Sharma turns [age not recorded] tomorrow (April 17).
+
+How you know her: Met at SaaS Connect 2025. She runs product
+at NovaTech. You've had 4 interactions since meeting.
+
+Last interaction: March 22 — She asked for your take on a hiring
+decision. You suggested she interview candidates with ops backgrounds.
+
+Preferred channel for personal messages: LinkedIn
+
+Suggested message: "Happy birthday, Priya! Hope you have a
+great day. Let's grab coffee again soon — would love to hear
+how the hiring went."
+```
+
+## Building Your CRM Over Time
+
+- **Quick logging**: After any interaction, just message OpenClaw something like "caught up with Maria at the conference, she's pivoting to healthcare tech, wants an intro to our CTO." OpenClaw logs everything.
+- **Smart follow-up cadence**: Not everyone needs the same frequency. Your five closest professional relationships might be weekly. Industry acquaintances might be quarterly. OpenClaw helps you set and adjust these based on actual interaction patterns.
+- **Event-based reach outs**: When OpenClaw detects that a contact changed jobs, published an article, or had a company milestone, it suggests reaching out with something relevant rather than a generic "how are you."
+- **Relationship scoring**: Over time, OpenClaw can show you which relationships are strongest (frequent, mutual interactions) and which are one-sided (you always initiate). This helps you invest your energy wisely.
+- **Group outreach**: Planning a dinner or event? Ask OpenClaw to suggest a guest list based on contacts in a specific tag who live in your city and who you have not seen in a while.
+
+<CTACard variant="community" />

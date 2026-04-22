@@ -1,0 +1,228 @@
+---
+title: Lead Generation Automation
+description: Automate lead discovery, qualification, and outreach tracking with OpenClaw's lead generation playbook.
+---
+
+# Lead Generation Automation
+
+Finding new leads is essential for any business, but the process is often painfully manual. You scour LinkedIn, monitor industry forums, check who visited your website, cross-reference with your CRM, and then try to craft a personalized outreach message before the moment of relevance passes. By the time you get to the outreach part, the lead has already gone cold.
+
+The Lead Generation playbook puts OpenClaw to work as your always-on prospecting assistant. It monitors the sources you care about, identifies potential leads based on your criteria, scores them, and keeps everything organized so you can focus on the human part — actually having the conversation.
+
+## What This Playbook Does
+
+The lead generation pipeline has four core functions:
+
+- **Discovery** — Finds potential leads from sources you configure (social media engagement, website visitors, event attendees, referral mentions)
+- **Qualification** — Scores leads based on criteria you define (company size, industry, engagement signals, budget indicators)
+- **Enrichment** — Gathers additional context about qualified leads (company info, recent news, mutual connections)
+- **Tracking** — Keeps a running log of all leads with their status, last activity, and next steps
+
+Notice that "outreach" is not on this list. OpenClaw can draft outreach messages for you, but it deliberately does not send them automatically. Outreach should feel personal and genuine, so you always have the final say on what gets sent and when.
+
+## Who Should Use This
+
+This playbook is designed for salespeople, founders, freelancers, and anyone who needs a steady flow of new business opportunities. It works especially well if you:
+
+- Have a clear picture of your ideal customer but lack the time to prospect consistently
+- Get leads from multiple channels and struggle to keep track of them all
+- Want to respond to inbound signals (like someone engaging with your content) quickly
+
+If you are a larger sales team, each member can run their own instance of this playbook with different qualification criteria and territory filters.
+
+## Defining Your Ideal Lead
+
+Before setting up the playbook, get clear on what makes a good lead for you. Think about:
+
+- **Industry**: Which industries are your best customers in?
+- **Company size**: Are you targeting startups, mid-market, or enterprise?
+- **Role/title**: Who is the decision-maker you want to reach?
+- **Signals**: What actions suggest someone might be interested? (visiting your pricing page, engaging with your posts, attending a relevant webinar)
+- **Disqualifiers**: What automatically makes someone a bad fit?
+
+The more specific you are here, the better OpenClaw will be at filtering out noise and surfacing real opportunities.
+
+## SOUL.md Additions
+
+```markdown
+## Behaviors
+
+### Lead Generation
+- Monitor configured lead sources continuously during business hours
+- Score each potential lead on a 1-10 scale based on my Ideal Customer Profile
+- Only surface leads that score 6 or higher
+- For each qualified lead, provide: name, company, role, score, source, and one-sentence context
+- Enrich qualified leads with: company size, industry, recent news, and any mutual connections
+- Track all leads in a simple pipeline: New, Contacted, Replied, Meeting Booked, Disqualified
+- When I say "contacted [name]" or "meeting booked with [name]," update their status
+- Draft personalized outreach messages when asked, but never send anything automatically
+- Surface warm leads (people who have engaged with my content multiple times) separately — these are higher priority
+- Weekly summary every Friday: new leads discovered, pipeline changes, and conversion metrics
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: social-listener
+    provider: openclaw-native
+    config:
+      platforms: ["linkedin", "twitter"]
+      track: ["mentions", "engagement", "profile-views"]
+    description: Monitors social platforms for lead signals
+
+  - name: website-tracker
+    provider: openclaw-native
+    config:
+      track_pages: ["/pricing", "/demo", "/case-studies"]
+    description: Identifies and enriches website visitors on key pages
+
+  - name: company-enrichment
+    provider: clearbit  # or apollo, zoominfo
+    permissions: read-only
+    description: Enriches lead profiles with company data
+
+  - name: crm-connector
+    provider: hubspot  # or salesforce, pipedrive
+    permissions: read-write
+    description: Syncs leads and pipeline updates with your CRM
+```
+
+<PremiumContent title="Complete Playbook Configuration">
+
+## Cron Configuration
+
+```yaml
+cron:
+  lead-discovery:
+    schedule: "0 */2 8-18 * * 1-5"  # Every 2 hours, 8 AM to 6 PM, weekdays
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: lead-discovery-scan
+    config:
+      min_score: 6  # minimum qualification score to surface
+      enrich: true  # auto-enrich qualified leads
+      dedup: true  # skip leads already in the pipeline
+    retry:
+      attempts: 1
+      delay: 10m
+
+  lead-weekly-report:
+    schedule: "0 16 * * 5"  # Friday at 4:00 PM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: lead-weekly-summary
+    config:
+      include_metrics: true
+      include_stale_leads: true  # flag leads with no activity in 7+ days
+
+  lead-followup-reminder:
+    schedule: "0 9 * * 1-5"  # Every weekday at 9:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: lead-followup-check
+    config:
+      remind_after: 3d  # remind about leads not contacted within 3 days
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  new-leads:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#leads"
+      format: rich
+      notify: true  # push notification for high-score leads (8+)
+      notify_threshold: 8
+
+  lead-updates:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: compact
+      batch_window: 60m  # batch lower-priority updates hourly
+
+  lead-weekly-report:
+    type: email
+    config:
+      recipient: "you@yourcompany.com"
+      subject_prefix: "[Leads]"
+      format: html
+      cc: ["sales-manager@yourcompany.com"]  # optional
+```
+
+## Example Output
+
+Here is what a new lead alert looks like in your #leads channel:
+
+```
+NEW LEAD — Score: 9/10
+
+Name: Rachel Torres
+Company: Greenfield Analytics (Series B, 85 employees)
+Role: Head of Operations
+Source: Engaged with your LinkedIn post on workflow automation (liked + commented)
+
+Context: Rachel commented "This is exactly what we're struggling with"
+on your post about reducing manual data entry. Greenfield Analytics
+is a data platform company that recently raised $18M.
+
+Enrichment:
+  Industry: Data & Analytics
+  HQ: Austin, TX
+  Tech stack: Salesforce, Slack, Notion
+  Recent news: Hired 12 people in Q1, expanding into healthcare vertical
+  Mutual connections: You're both connected to David Park (Sequoia)
+
+Suggested outreach angle: Reference her comment, tie in the healthcare
+expansion (you have a case study in that space), mention David as a
+mutual connection.
+
+Reply "draft outreach for Rachel" to get a personalized message.
+```
+
+And here is a Friday weekly summary:
+
+```
+LEAD GENERATION — Weekly Summary (April 10-17)
+
+This Week's Numbers:
+  Discovered: 23 potential leads
+  Qualified (6+): 8 leads
+  Contacted: 5
+  Replies received: 2
+  Meetings booked: 1
+
+Pipeline Snapshot:
+  New (not yet contacted): 3
+  Contacted (awaiting reply): 7
+  Replied (in conversation): 4
+  Meeting booked: 2
+  Disqualified this week: 1
+
+NEEDS ATTENTION
+  Marcus Webb (Apex Solutions) — Contacted 5 days ago, no reply.
+    Consider a follow-up or a different channel.
+  Priya Sharma (NovaTech) — Replied positively on Monday but
+    you haven't responded yet.
+
+TOP PERFORMING SOURCE THIS WEEK
+  LinkedIn engagement: 5 qualified leads (63%)
+  Website visitors: 2 qualified leads (25%)
+  Referral mentions: 1 qualified lead (12%)
+```
+
+## Pro Tips
+
+- **CRM sync**: If you use HubSpot or Salesforce, enable the crm-connector skill to automatically push qualified leads into your CRM. This prevents double entry and keeps your sales manager happy.
+- **Outreach templates**: Create 3-4 outreach templates in your SOUL.md for different lead types (cold, warm, referral, event follow-up). OpenClaw will pick the right template and personalize it.
+- **Disqualification rules**: Be aggressive about disqualifying leads that do not fit. A clean pipeline with 10 real opportunities is infinitely more useful than a bloated one with 100 maybes.
+- **Team handoffs**: If a lead needs to be passed to a colleague, just say "hand off Rachel Torres to @sarah" and OpenClaw will transfer the lead context and notify your teammate.
+
+</PremiumContent>
+
+<CTACard variant="community" />

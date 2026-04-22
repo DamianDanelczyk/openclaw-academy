@@ -1,0 +1,511 @@
+---
+title: Lobster
+description: OpenClaw's visual workflow builder — automate multi-step tasks with drag-and-drop simplicity.
+---
+
+# Lobster
+
+Some tasks are not one-and-done. They are sequences — "when this happens, do that, then check this, then notify me." Doing these manually every time is tedious. That is why OpenClaw includes **Lobster**, a visual workflow builder that lets you automate multi-step processes without writing code.
+
+## What Is Lobster?
+
+Lobster is a drag-and-drop workflow builder built into OpenClaw. If you have ever used tools like Zapier, Make, or Apple Shortcuts, the concept is similar — but with a key difference: your AI agent is a first-class participant in the workflow. Lobster workflows are not just "if this then that" automations. They can include agent reasoning, decisions, and natural language processing at any step.
+
+Think of it like this: traditional automation tools connect apps. Lobster connects apps *and* your AI agent.
+
+## How Lobster Works
+
+Every Lobster workflow is a series of **steps** connected by **flows**. Steps are actions — send an email, check a calendar, ask the agent to summarize something. Flows are the lines between them — they can be simple (always go to the next step) or conditional (go left if X, go right if Y).
+
+```
+┌─────────┐     ┌──────────┐     ┌──────────┐
+│ Trigger │ ──→ │  Step 1   │ ──→ │  Step 2   │
+└─────────┘     └──────────┘     └──────────┘
+                                       │
+                               ┌───────┴───────┐
+                               │  Condition?    │
+                               └───────┬───────┘
+                              Yes │         │ No
+                                  ▼         ▼
+                            ┌─────────┐ ┌─────────┐
+                            │ Step 3a │ │ Step 3b │
+                            └─────────┘ └─────────┘
+```
+
+You build these visually in the Lobster editor — drag steps onto a canvas, connect them with lines, configure each step's settings.
+
+## Workflow Configuration
+
+While you can build workflows visually, they are stored as YAML under the hood. This means you can also write them by hand, version-control them, or share them with others.
+
+```yaml
+# lobster/workflows/example.yaml
+workflow:
+  name: "Morning Briefing"
+  description: "Automated morning summary delivered daily"
+  enabled: true
+
+  trigger:
+    type: "schedule"
+    cron: "0 8 * * 1-5"  # 8 AM, Monday through Friday
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_calendar"
+      skill: "calendar"
+      action: "get_today_events"
+      output: "today_events"
+
+    - id: "get_weather"
+      skill: "weather"
+      action: "get_forecast"
+      params:
+        location: "Warsaw"
+      output: "weather"
+
+    - id: "get_emails"
+      skill: "email"
+      action: "get_unread"
+      params:
+        limit: 10
+        priority: "high"
+      output: "urgent_emails"
+
+    - id: "summarize"
+      type: "agent"
+      prompt: |
+        Create a morning briefing from this data:
+        Calendar: {{today_events}}
+        Weather: {{weather}}
+        Urgent emails: {{urgent_emails}}
+
+        Keep it under 200 words. Start with the most important item.
+      output: "briefing"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "voice"
+      message: "{{briefing}}"
+      fallback: "push_notification"
+```
+
+That is a complete workflow. Every weekday at 8 AM, Lobster checks your calendar, weather, and email, asks your agent to create a summary, and reads it to you. If voice is not available (maybe your phone is on silent), it falls back to a push notification.
+
+## 5 Example Workflows
+
+### 1. Email Triage
+
+Automatically sort incoming emails by urgency and draft responses for the routine ones.
+
+```yaml
+workflow:
+  name: "Email Triage"
+  description: "Sort and pre-respond to incoming emails"
+
+  trigger:
+    type: "event"
+    source: "email"
+    event: "new_email"
+    filter:
+      exclude_senders: ["noreply@*", "newsletter@*"]
+
+  steps:
+    - id: "classify"
+      type: "agent"
+      prompt: |
+        Classify this email:
+        From: {{trigger.sender}}
+        Subject: {{trigger.subject}}
+        Body: {{trigger.body}}
+
+        Categories: urgent, needs_response, informational, spam
+        Also rate importance 1-5.
+      output: "classification"
+
+    - id: "route"
+      type: "condition"
+      rules:
+        - if: "classification.category == 'urgent'"
+          goto: "alert_user"
+        - if: "classification.category == 'needs_response'"
+          goto: "draft_response"
+        - if: "classification.category == 'informational'"
+          goto: "file_away"
+        - if: "classification.category == 'spam'"
+          goto: "archive"
+
+    - id: "alert_user"
+      type: "notify"
+      channel: "push"
+      priority: "high"
+      message: "Urgent email from {{trigger.sender}}: {{trigger.subject}}"
+
+    - id: "draft_response"
+      type: "agent"
+      prompt: |
+        Draft a brief, professional response to this email.
+        Match my usual tone and style.
+        From: {{trigger.sender}}
+        Subject: {{trigger.subject}}
+        Body: {{trigger.body}}
+      output: "draft"
+
+    - id: "save_draft"
+      skill: "email"
+      action: "save_draft"
+      params:
+        to: "{{trigger.sender}}"
+        subject: "Re: {{trigger.subject}}"
+        body: "{{draft}}"
+
+    - id: "file_away"
+      skill: "email"
+      action: "move_to_folder"
+      params:
+        folder: "Read Later"
+
+    - id: "archive"
+      skill: "email"
+      action: "archive"
+```
+
+This workflow intercepts every incoming email (except newsletters and no-reply addresses). The agent classifies it, and Lobster routes it: urgent emails get an immediate push notification, emails needing a response get a pre-written draft saved, informational emails go to a Read Later folder, and spam gets archived. You wake up to a tidy inbox.
+
+### 2. Meeting Prep
+
+Automatically prepare briefing docs before every meeting.
+
+```yaml
+workflow:
+  name: "Meeting Prep"
+  description: "Prepare context before each meeting"
+
+  trigger:
+    type: "event"
+    source: "calendar"
+    event: "upcoming_event"
+    lead_time: 15          # Trigger 15 minutes before
+
+  steps:
+    - id: "get_attendees"
+      skill: "calendar"
+      action: "get_event_details"
+      params:
+        event_id: "{{trigger.event_id}}"
+      output: "event_details"
+
+    - id: "find_context"
+      type: "agent"
+      prompt: |
+        I have a meeting in 15 minutes:
+        Title: {{event_details.title}}
+        Attendees: {{event_details.attendees}}
+        Agenda: {{event_details.description}}
+
+        Search my memories for relevant context about these people
+        and this topic. Prepare a brief (under 150 words) with:
+        - Key points from last meeting with these people
+        - Any pending action items
+        - Suggested talking points
+      memory_search: true
+      output: "briefing"
+
+    - id: "check_docs"
+      skill: "file_manager"
+      action: "search"
+      params:
+        query: "{{event_details.title}}"
+        recency: "30 days"
+      output: "related_docs"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "push"
+      message: |
+        Meeting in 15 min: {{event_details.title}}
+
+        {{briefing}}
+
+        Related docs: {{related_docs.names}}
+```
+
+### 3. Weekly Report Generator
+
+Compile a weekly summary every Friday afternoon.
+
+```yaml
+workflow:
+  name: "Weekly Report"
+  description: "Generate and send weekly progress report"
+
+  trigger:
+    type: "schedule"
+    cron: "0 16 * * 5"   # 4 PM every Friday
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_completed_tasks"
+      skill: "jira"
+      action: "get_completed"
+      params:
+        period: "this_week"
+        assignee: "me"
+      output: "completed"
+
+    - id: "get_commits"
+      skill: "github"
+      action: "get_activity"
+      params:
+        period: "this_week"
+        user: "me"
+      output: "code_activity"
+
+    - id: "get_meetings"
+      skill: "calendar"
+      action: "get_events"
+      params:
+        period: "this_week"
+      output: "meetings"
+
+    - id: "generate_report"
+      type: "agent"
+      prompt: |
+        Write a weekly report based on:
+        Completed tasks: {{completed}}
+        Code activity: {{code_activity}}
+        Meetings attended: {{meetings}}
+
+        Format:
+        ## Accomplishments
+        ## In Progress
+        ## Blockers
+        ## Next Week
+      output: "report"
+
+    - id: "render_canvas"
+      type: "canvas"
+      template: "weekly_report"
+      data:
+        tasks: "{{completed}}"
+        report_text: "{{report}}"
+      output: "visual_report"
+
+    - id: "send_report"
+      skill: "email"
+      action: "send"
+      params:
+        to: "dr.chen@techcorp.com"
+        subject: "Weekly Report — {{date.format('MMM D')}}"
+        body: "{{report}}"
+        attachments: ["{{visual_report.export_pdf}}"]
+```
+
+### 4. Smart Home Routine
+
+Automate your evening wind-down.
+
+```yaml
+workflow:
+  name: "Evening Wind-Down"
+  description: "Gradually transition the home for sleep"
+
+  trigger:
+    type: "schedule"
+    cron: "0 21 * * *"   # 9 PM daily
+    alternative_trigger:
+      type: "voice"
+      phrase: "start wind-down"
+
+  steps:
+    - id: "dim_lights"
+      skill: "smart_home"
+      action: "set_lights"
+      params:
+        rooms: ["living_room", "bedroom"]
+        brightness: 30
+        color_temp: "warm"
+        transition: "10 minutes"
+
+    - id: "adjust_thermostat"
+      skill: "smart_home"
+      action: "set_temperature"
+      params:
+        target: 19
+        mode: "night"
+
+    - id: "check_tomorrow"
+      skill: "calendar"
+      action: "get_tomorrow_events"
+      output: "tomorrow"
+
+    - id: "prepare_summary"
+      type: "agent"
+      prompt: |
+        Give me a very brief tomorrow preview:
+        Events: {{tomorrow}}
+        Keep it to 2-3 sentences. Mention if I need to wake up
+        earlier than usual for an early meeting.
+      output: "preview"
+
+    - id: "set_alarm"
+      type: "condition"
+      rules:
+        - if: "tomorrow.earliest_event.time < '09:00'"
+          goto: "early_alarm"
+        - else:
+          goto: "normal_alarm"
+
+    - id: "early_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "{{tomorrow.earliest_event.time - 90min}}"
+        label: "Early meeting day"
+      goto: "goodnight"
+
+    - id: "normal_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "07:30"
+        label: "Good morning"
+
+    - id: "goodnight"
+      type: "notify"
+      channel: "voice"
+      message: "{{preview}} Your alarm is set. Goodnight."
+      voice_settings:
+        voice: "flint"
+        volume: 0.3
+```
+
+### 5. Content Research Pipeline
+
+Research a topic, compile sources, and create a structured brief.
+
+```yaml
+workflow:
+  name: "Research Pipeline"
+  description: "Deep research on a given topic"
+
+  trigger:
+    type: "command"
+    phrase: "/research {topic}"
+
+  input:
+    topic:
+      type: "string"
+      required: true
+
+  steps:
+    - id: "web_search"
+      skill: "web_search"
+      action: "search"
+      params:
+        query: "{{input.topic}}"
+        num_results: 20
+        recency: "6 months"
+      output: "search_results"
+
+    - id: "filter_sources"
+      type: "agent"
+      prompt: |
+        Review these search results for "{{input.topic}}":
+        {{search_results}}
+
+        Select the 5 most credible and relevant sources.
+        Explain why each was selected.
+      output: "top_sources"
+
+    - id: "deep_read"
+      skill: "web_search"
+      action: "read_pages"
+      params:
+        urls: "{{top_sources.urls}}"
+      output: "full_content"
+
+    - id: "synthesize"
+      type: "agent"
+      prompt: |
+        Based on these sources about "{{input.topic}}":
+        {{full_content}}
+
+        Create a research brief with:
+        ## Key Findings (3-5 bullet points)
+        ## Detailed Analysis (500 words)
+        ## Conflicting Viewpoints (if any)
+        ## Sources (with links)
+        ## Questions for Further Research
+      output: "brief"
+
+    - id: "save"
+      skill: "notes"
+      action: "create"
+      params:
+        title: "Research: {{input.topic}}"
+        content: "{{brief}}"
+        tags: ["research", "{{input.topic}}"]
+
+    - id: "notify"
+      type: "notify"
+      channel: "push"
+      message: "Research on '{{input.topic}}' is complete. Saved to your notes."
+```
+
+Trigger this with `/research quantum computing trends` and walk away. Come back to a structured brief in your notes.
+
+## Managing Workflows
+
+```bash
+# List all workflows
+openclaw lobster list
+
+# Run a workflow manually
+openclaw lobster run "Morning Briefing"
+
+# Pause a workflow
+openclaw lobster pause "Email Triage"
+
+# View run history
+openclaw lobster history "Weekly Report" --last 10
+
+# Debug a failed run
+openclaw lobster debug --run-id run_abc123
+
+# Import a shared workflow
+openclaw lobster import workflow.yaml
+
+# Export for sharing
+openclaw lobster export "Meeting Prep" --output meeting-prep.yaml
+```
+
+## Error Handling
+
+Workflows can fail — an API might be down, a skill might time out. Lobster handles this gracefully:
+
+```yaml
+workflow:
+  error_handling:
+    default: "retry_then_skip"
+    retries: 3
+    retry_delay: 10s
+
+    on_failure:
+      notify: true
+      channel: "push"
+      message: "Workflow '{{workflow.name}}' failed at step '{{failed_step.id}}'"
+
+    per_step_overrides:
+      - step: "send_report"
+        on_failure: "halt"    # Don't skip the final send — stop and alert me
+```
+
+## Tips for Building Workflows
+
+1. **Start with the trigger.** What kicks off the workflow? A time, an event, a command?
+2. **Keep workflows focused.** One workflow, one job. "Morning Briefing" should not also handle email triage.
+3. **Test with dry runs.** Use `openclaw lobster run "My Workflow" --dry-run` to see what *would* happen without actually doing it.
+4. **Use the agent step liberally.** Any time you need judgment, summarization, or natural language processing, use an agent step. That is Lobster's superpower over traditional automation tools.
+5. **Set up error notifications.** You do not want a workflow silently failing for days. Always configure failure alerts.
+
+Lobster turns your agent from reactive (answer when asked) to proactive (do things automatically). The best workflows are the ones you set up once and forget about — they just quietly make your life easier in the background.

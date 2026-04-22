@@ -1,0 +1,415 @@
+---
+title: WebChat Channel
+description: Use OpenClaw's built-in WebChat interface at localhost:18789 for instant testing, customization, and website embedding.
+---
+
+# WebChat Channel
+
+Every OpenClaw installation comes with a built-in WebChat interface. No accounts to create, no APIs to configure, no webhooks to set up. Start OpenClaw, open your browser to `http://localhost:18789`, and start chatting. It is the fastest path from "I just installed this" to "I am talking to my assistant."
+
+WebChat is not just a throwaway dev tool, though. It is a fully customizable chat interface that you can embed in your own website, brand with your colors and logo, and deploy as a customer-facing product. Think of it as both your testing sandbox and your production web channel.
+
+## Getting Started
+
+If you have OpenClaw installed, WebChat is already enabled by default. Start the server:
+
+```bash
+npx openclaw dev
+```
+
+You will see in the logs:
+
+```
+[webchat] WebChat server starting on port 18789...
+[webchat] Interface available at http://localhost:18789
+[webchat] Channel ready
+```
+
+Open `http://localhost:18789` in your browser. That is it. You are chatting with your assistant.
+
+The default interface is clean and functional — a message input at the bottom, a conversation area above, and a minimal header. It works on desktop and mobile browsers alike.
+
+## Configuration
+
+Even though WebChat works out of the box, you can customize it extensively:
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    webchat: {
+      enabled: true,
+      port: 18789,
+
+      // Server options
+      server: {
+        host: '0.0.0.0',         // Listen on all interfaces (default: localhost)
+        cors: {
+          origin: ['https://yoursite.com'],  // Allowed origins for embedding
+          credentials: true,
+        },
+      },
+
+      // Appearance
+      ui: {
+        title: 'OpenClaw Assistant',
+        subtitle: 'Ask me anything',
+        placeholder: 'Type your message...',
+        welcomeMessage: 'Hello! I am your AI assistant. How can I help you today?',
+        avatarUrl: '/assets/bot-avatar.png',
+        showTimestamps: true,
+        showTypingIndicator: true,
+      },
+
+      // Behavior
+      behavior: {
+        persistConversation: true,    // Remember chat across page refreshes
+        maxHistoryLength: 100,        // Keep last 100 messages in view
+        autoScroll: true,             // Scroll to bottom on new messages
+        soundNotifications: false,    // Play a sound on new messages
+      },
+    },
+  },
+});
+```
+
+## Theming and Branding
+
+WebChat ships with a theming system that lets you match your brand without writing CSS from scratch:
+
+```typescript
+webchat: {
+  theme: {
+    // Color scheme
+    mode: 'light',                    // 'light' | 'dark' | 'auto' (follows system)
+    colors: {
+      primary: '#6366F1',             // Main accent color (buttons, links)
+      background: '#FFFFFF',          // Chat background
+      surface: '#F8FAFC',            // Message bubble background (bot)
+      userBubble: '#6366F1',         // User message bubble
+      userText: '#FFFFFF',           // Text inside user bubble
+      botBubble: '#F1F5F9',          // Bot message bubble
+      botText: '#1E293B',           // Text inside bot bubble
+      border: '#E2E8F0',            // Borders and dividers
+      inputBackground: '#FFFFFF',    // Message input field
+    },
+
+    // Typography
+    fonts: {
+      body: '"Inter", -apple-system, sans-serif',
+      code: '"JetBrains Mono", "Fira Code", monospace',
+      sizeBase: '15px',
+    },
+
+    // Layout
+    layout: {
+      maxWidth: '720px',             // Max width of the chat area
+      borderRadius: '12px',          // Roundness of bubbles and containers
+      messagePadding: '12px 16px',
+      avatarSize: '32px',
+    },
+
+    // Custom CSS for anything the theme system doesn't cover
+    customCss: `
+      .message-bot .content a {
+        color: #6366F1;
+        text-decoration: underline;
+      }
+      .message-bot .content code {
+        background: #F1F5F9;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    `,
+  },
+},
+```
+
+For dark mode, you can either set `mode: 'dark'` or let it follow the user's system preference with `mode: 'auto'`. When using auto mode, you can provide both light and dark color palettes:
+
+```typescript
+webchat: {
+  theme: {
+    mode: 'auto',
+    colors: {
+      primary: '#6366F1',
+      background: '#FFFFFF',
+      // ...light mode colors
+    },
+    darkColors: {
+      primary: '#818CF8',
+      background: '#0F172A',
+      surface: '#1E293B',
+      userBubble: '#6366F1',
+      userText: '#FFFFFF',
+      botBubble: '#1E293B',
+      botText: '#E2E8F0',
+      border: '#334155',
+      inputBackground: '#1E293B',
+    },
+  },
+},
+```
+
+## Embedding in Your Website
+
+WebChat can be embedded in any website as a chat widget — the little floating bubble in the corner that opens a chat panel when clicked. This is how you turn your OpenClaw assistant into a customer-facing chat experience.
+
+### Script Embed (Simplest)
+
+Add a single script tag to your website:
+
+```html title="your-website.html"
+<!-- Add before </body> -->
+<script
+  src="https://your-openclaw-server.com:18789/embed.js"
+  data-server="https://your-openclaw-server.com:18789"
+  data-position="bottom-right"
+  data-theme="auto"
+  data-title="Need help?"
+  data-welcome="Hi there! Ask me anything about our product."
+  defer
+></script>
+```
+
+This injects a floating chat button in the corner of your page. When clicked, it opens a chat panel that communicates with your OpenClaw server.
+
+### React Component
+
+If your site is built with React, you can use the OpenClaw WebChat component directly:
+
+```tsx title="ChatWidget.tsx"
+import { OpenClawChat } from '@openclaw/webchat-react';
+
+export function ChatWidget() {
+  return (
+    <OpenClawChat
+      server="https://your-openclaw-server.com:18789"
+      position="bottom-right"
+      theme="auto"
+      title="AI Assistant"
+      welcomeMessage="Hello! How can I help?"
+      user={{
+        id: currentUser.id,        // Optional: link to your user system
+        name: currentUser.name,
+      }}
+      styles={{
+        primary: '#6366F1',
+        borderRadius: '16px',
+      }}
+      onMessage={(msg) => {
+        analytics.track('chat_message', { length: msg.length });
+      }}
+    />
+  );
+}
+```
+
+### iframe Embed
+
+For maximum isolation (the chat runs in its own browsing context), use an iframe:
+
+```html
+<iframe
+  src="https://your-openclaw-server.com:18789?embed=true&theme=light"
+  style="width: 400px; height: 600px; border: none; border-radius: 12px;"
+  allow="microphone"
+  title="AI Chat"
+></iframe>
+```
+
+The `?embed=true` query parameter strips the header and renders the chat in a compact layout suited for iframe embedding.
+
+## Authentication and Access Control
+
+For public-facing deployments, you probably do not want anyone on the internet to have unlimited access to your assistant. WebChat supports several access control mechanisms:
+
+```typescript
+webchat: {
+  auth: {
+    // No authentication — anyone can chat
+    mode: 'open',
+
+    // Simple token-based auth
+    // mode: 'token',
+    // tokens: ['secret-token-1', 'secret-token-2'],
+
+    // JWT-based auth (integrate with your auth system)
+    // mode: 'jwt',
+    // jwtSecret: process.env.JWT_SECRET,
+    // jwtIssuer: 'your-app',
+  },
+
+  rateLimit: {
+    maxMessagesPerMinute: 10,        // Per-session rate limit
+    maxSessionsPerIP: 3,            // Limit sessions from a single IP
+    cooldownMessage: 'You are sending messages too quickly. Please wait a moment.',
+  },
+},
+```
+
+For JWT authentication, your website generates a token when the user logs in, and the WebChat widget sends it with every request. This lets you tie chat sessions to your own user accounts.
+
+## Conversation Features
+
+WebChat supports features that some messaging platforms lack:
+
+### Markdown Rendering
+
+Assistant responses are rendered with full Markdown support — headers, bold, italic, lists, tables, code blocks with syntax highlighting, and even LaTeX math expressions:
+
+```typescript
+webchat: {
+  rendering: {
+    markdown: true,
+    syntaxHighlighting: true,    // Highlight code blocks by language
+    mathRendering: true,         // Render LaTeX with KaTeX
+    linkTarget: '_blank',        // Open links in new tabs
+    sanitizeHtml: true,          // Prevent XSS in rendered content
+  },
+},
+```
+
+### File Uploads
+
+Users can drag and drop files or click an upload button to share files with the assistant:
+
+```typescript
+webchat: {
+  fileUpload: {
+    enabled: true,
+    maxSizeMB: 10,
+    allowedTypes: ['image/*', 'application/pdf', '.txt', '.csv', '.json'],
+    dragAndDrop: true,
+  },
+},
+```
+
+### Suggested Responses
+
+You can configure the assistant to offer clickable suggestion buttons after certain responses:
+
+```typescript
+webchat: {
+  suggestions: {
+    enabled: true,
+    position: 'below-message',   // 'below-message' | 'above-input'
+    style: 'chips',              // 'chips' | 'buttons' | 'list'
+  },
+},
+```
+
+The assistant decides what suggestions to show based on context. For example, after explaining a concept, it might suggest "Tell me more," "Show me an example," or "Move on to the next topic."
+
+### Conversation Export
+
+Users can export their conversation as a text file, Markdown file, or JSON:
+
+```typescript
+webchat: {
+  export: {
+    enabled: true,
+    formats: ['markdown', 'json', 'txt'],
+    includeTimestamps: true,
+  },
+},
+```
+
+## Development vs. Production
+
+### Development
+
+In development, WebChat runs on `localhost:18789` with no authentication and full debug features:
+
+```typescript
+webchat: {
+  enabled: true,
+  port: 18789,
+  debug: {
+    showTokenCount: true,       // Display token usage per message
+    showLatency: true,          // Show response generation time
+    showRawPayload: false,      // Toggle to see raw API payloads
+  },
+},
+```
+
+The debug panel appears at the top of the chat interface, showing you token counts, latency, and model info for each message. This is invaluable for understanding how your assistant performs.
+
+### Production
+
+For production, lock things down:
+
+```typescript
+webchat: {
+  enabled: true,
+  port: 18789,
+  server: {
+    host: '0.0.0.0',
+    cors: {
+      origin: ['https://yoursite.com', 'https://www.yoursite.com'],
+    },
+    trustProxy: true,           // If behind nginx/Caddy
+  },
+  auth: {
+    mode: 'jwt',
+    jwtSecret: process.env.JWT_SECRET,
+  },
+  rateLimit: {
+    maxMessagesPerMinute: 10,
+    maxSessionsPerIP: 3,
+  },
+  debug: {
+    showTokenCount: false,
+    showLatency: false,
+    showRawPayload: false,
+  },
+},
+```
+
+Put a reverse proxy (nginx, Caddy, Cloudflare) in front of the WebChat server for TLS termination. Do not expose port 18789 directly to the internet.
+
+```nginx title="nginx.conf"
+server {
+    listen 443 ssl http2;
+    server_name chat.yoursite.com;
+
+    ssl_certificate /etc/ssl/certs/yoursite.pem;
+    ssl_certificate_key /etc/ssl/private/yoursite.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:18789;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+## Keyboard Shortcuts
+
+The WebChat interface includes keyboard shortcuts for power users:
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Send message |
+| `Shift+Enter` | New line (no send) |
+| `Ctrl+/` or `Cmd+/` | Focus the message input |
+| `Escape` | Close the chat widget (embed mode) |
+| `Ctrl+Shift+X` | Clear conversation |
+| `Ctrl+Shift+E` | Export conversation |
+
+## Why Start with WebChat
+
+WebChat is the channel with the lowest barrier to entry. There are no third-party accounts, no API keys, no webhook configurations. It is the channel that is always there, always working. Use it to:
+
+- **Test your assistant** before connecting external platforms.
+- **Demo to stakeholders** without requiring them to install anything.
+- **Embed on your website** as a production chat interface.
+- **Debug issues** with the built-in debug panel.
+
+Once you are happy with how your assistant behaves in WebChat, branch out to Telegram, Discord, Slack, or whichever channel your users prefer. The assistant's behavior will be identical — only the delivery mechanism changes.

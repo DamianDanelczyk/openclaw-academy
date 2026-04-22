@@ -1,0 +1,232 @@
+---
+title: Sessions
+description: How OpenClaw sessions track context, manage daily resets, and keep conversations coherent.
+---
+
+# Sessions
+
+Every time you start talking to OpenClaw, you are inside a **session**. Sessions are how OpenClaw keeps track of what you have been discussing, what you asked five minutes ago, and what matters right now. Without sessions, every message would feel like talking to a stranger.
+
+## What Is a Session?
+
+A session is a bounded conversation context. It starts when you begin interacting and ends based on rules you define — usually at the end of the day or after a period of inactivity. During a session, everything you say and everything OpenClaw says is held in working memory.
+
+Think of it like a desk. When you sit down to work, you pull out the documents you need. Throughout the day, you add papers, reference earlier notes, and everything stays within reach. At the end of the day, you tidy up — some things get filed away for later, others get recycled. That is a session.
+
+## Session Lifecycle
+
+Here is how a session flows from start to finish:
+
+```
+Session Start
+    │
+    ├─ Load SOUL.md (personality)
+    ├─ Load USER.md (your profile)
+    ├─ Retrieve relevant long-term memories
+    ├─ Check pending tasks from previous sessions
+    │
+    ▼
+Active Session
+    │
+    ├─ Every message adds to session context
+    ├─ Memories are tagged and weighted
+    ├─ Skills fire and results are captured
+    │
+    ▼
+Session End (daily reset or timeout)
+    │
+    ├─ Important context → long-term memory
+    ├─ Session summary generated
+    ├─ Temporary data discarded
+    └─ Session archived
+```
+
+## Context Tracking
+
+During an active session, OpenClaw tracks much more than just your messages. It maintains a structured context that includes:
+
+```yaml
+# What a session context looks like internally
+session:
+  id: "ses_20260422_a8f3c"
+  user: "damian"
+  agent: "Atlas"
+  started_at: "2026-04-22T09:15:00Z"
+  messages: 23
+  context:
+    topics:
+      - "quarterly budget review"
+      - "team meeting agenda"
+    entities:
+      people: ["Sarah", "Mike", "Dr. Chen"]
+      projects: ["Project Falcon", "Q2 Launch"]
+      dates: ["next Tuesday", "April 30th"]
+    active_tasks:
+      - "draft email to Sarah about timeline"
+      - "find last quarter's revenue numbers"
+    mood_signals: "focused, slightly rushed"
+    skills_used: ["calendar", "email", "web_search"]
+```
+
+This context tracking is why OpenClaw can handle follow-up questions naturally. When you say "What about the one Mike mentioned?", OpenClaw knows who Mike is and what "the one" refers to because it has been tracking entities and topics throughout the session.
+
+## Daily Resets
+
+By default, sessions reset every 24 hours. This is intentional. A fresh session means your assistant starts clean without dragging along irrelevant context from yesterday's conversations.
+
+But "reset" does not mean "forget." Before a session ends, OpenClaw runs a distillation process:
+
+```yaml
+session_management:
+  daily_reset:
+    time: "04:00"
+    timezone: "user_local"
+
+  distillation:
+    enabled: true
+    preserve:
+      - ongoing_tasks
+      - important_decisions
+      - user_preferences_learned
+      - follow_up_items
+    discard:
+      - casual_chitchat
+      - one_off_lookups
+      - superseded_information
+
+  summary:
+    generate: true
+    max_length: 500
+    store_in: "daily_memories"
+```
+
+At 4 AM (your local time), the session wraps up. OpenClaw writes a summary, saves important items to long-term memory, and discards the noise. When you start talking the next morning, you get a fresh context — but your agent still remembers that you have a follow-up with Sarah on Tuesday.
+
+## Scope Rules
+
+Not everything in your session is treated equally. OpenClaw uses **scope rules** to determine what context is available and how long it persists.
+
+```yaml
+scope_rules:
+  levels:
+    - scope: "turn"
+      description: "Single message-response pair"
+      persists: "current turn only"
+      example: "Intermediate calculation results"
+
+    - scope: "conversation"
+      description: "Current conversation thread"
+      persists: "until topic changes or session ends"
+      example: "The budget numbers you're discussing"
+
+    - scope: "session"
+      description: "Entire current session"
+      persists: "until daily reset"
+      example: "That you had a rough morning"
+
+    - scope: "persistent"
+      description: "Crosses session boundaries"
+      persists: "until explicitly removed"
+      example: "Your preference for metric units"
+```
+
+You can also set scope manually when you want something remembered or forgotten:
+
+```
+You: Remember that my new phone number is 555-0142
+→ Scope: persistent (saved to USER.md)
+
+You: For this conversation, assume all prices are in EUR
+→ Scope: conversation (forgotten when topic changes)
+
+You: Don't remember any of this conversation
+→ Scope: turn (everything is turn-scoped, nothing persists)
+```
+
+## Session Configuration
+
+You have control over how sessions behave:
+
+```json
+{
+  "sessions": {
+    "timeout": {
+      "idle_minutes": 120,
+      "action": "pause",
+      "resume_greeting": true
+    },
+    "context_window": {
+      "strategy": "sliding",
+      "max_messages": 100,
+      "summarize_after": 50,
+      "priority_retain": ["user_instructions", "task_context", "recent_messages"]
+    },
+    "multi_device": {
+      "sync": true,
+      "conflict_resolution": "latest_wins",
+      "handoff_notification": true
+    },
+    "privacy": {
+      "auto_redact": ["credit_card", "ssn", "password"],
+      "session_encryption": true,
+      "retention_days": 30
+    }
+  }
+}
+```
+
+Let's walk through the interesting parts:
+
+**Timeout** — after 2 hours of silence, the session pauses (not ends). When you come back, OpenClaw greets you with a quick recap: "Welcome back! We were working on the budget review. Want to pick up where we left off?"
+
+**Context window strategy** — "sliding" means older messages gradually drop out as new ones come in, but a summary is generated so context is not lost. The `priority_retain` setting ensures your explicit instructions never get summarized away.
+
+**Multi-device sync** — if you start a conversation on your phone and switch to your laptop, the session follows you. `handoff_notification` gives you a quick "Continuing from your phone..." message so you know everything carried over.
+
+**Privacy** — credit card numbers, social security numbers, and passwords are automatically redacted from session logs. Sessions are encrypted, and old session data is deleted after 30 days.
+
+## Inspecting Your Session
+
+Curious what is in your current session? You can ask:
+
+```
+You: /session status
+
+OpenClaw: Current session started 3 hours ago.
+  Messages: 47
+  Topics: project planning, lunch recommendation, API debugging
+  Active tasks: 2
+  Context usage: 34% of window
+  Skills used: calendar, web_search, code_exec
+```
+
+Or get more detail:
+
+```
+You: /session context
+
+OpenClaw: Here's what I'm tracking:
+  - You're planning the Q2 launch (ongoing)
+  - Sarah is handling design, Mike is on backend
+  - Deadline is April 30th (8 days away)
+  - You prefer concise updates
+  - You asked me to remind you about the vendor call tomorrow
+```
+
+## Manual Session Controls
+
+Sometimes you want to take the wheel:
+
+```
+/session new         — Start a fresh session right now
+/session save        — Force-save current session to memory
+/session export      — Download session as JSON or Markdown
+/session privacy     — See what data is being retained
+/session forget      — Clear current session without saving
+```
+
+The `/session forget` command is worth knowing about. If you discussed something sensitive and want no trace of it, this wipes the current session clean — no summary, no memory storage, nothing.
+
+## Why Sessions Matter
+
+Sessions might seem like plumbing — something that just works in the background. But well-configured sessions are the difference between an AI that feels like it knows you and one that feels like a stranger every time. They give OpenClaw the ability to follow a train of thought across dozens of messages, hand off seamlessly between devices, and start each day fresh without losing what matters.

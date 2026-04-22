@@ -1,0 +1,351 @@
+---
+title: Deployment
+description: Step-by-step instructions for deploying OpenClaw on a Mac, Raspberry Pi, VPS, or Docker container.
+---
+
+# Deployment
+
+You've been running OpenClaw on your laptop during development. That's fine for testing, but if you want it running 24/7 — handling messages while you sleep, processing emails at 3 AM, keeping your agents available around the clock — you need to deploy it somewhere more permanent.
+
+This guide covers four deployment options, from the simplest to the most production-ready. Pick the one that matches your situation.
+
+## Option 1: Mac with launchd
+
+If you have a Mac that stays on all day (a Mac Mini tucked under your desk, for example), this is the easiest path. macOS has a built-in process manager called **launchd** that can keep OpenClaw running in the background and restart it if it crashes.
+
+### Step 1: Create the plist file
+
+```bash
+nano ~/Library/LaunchAgents/com.openclaw.agent.plist
+```
+
+Paste this configuration:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.openclaw.agent</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/openclaw</string>
+        <string>start</string>
+        <string>--config</string>
+        <string>/Users/YOUR_USERNAME/openclaw/config.yaml</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USERNAME/openclaw/logs/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USERNAME/openclaw/logs/stderr.log</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USERNAME/openclaw</string>
+</dict>
+</plist>
+```
+
+Replace `YOUR_USERNAME` with your actual macOS username.
+
+### Step 2: Create the logs directory and load the service
+
+```bash
+mkdir -p ~/openclaw/logs
+launchctl load ~/Library/LaunchAgents/com.openclaw.agent.plist
+```
+
+### Step 3: Verify it's running
+
+```bash
+launchctl list | grep openclaw
+```
+
+You should see the service listed with a PID. If the PID column shows `-`, something went wrong — check the log files.
+
+### Managing the service
+
+```bash
+# Stop OpenClaw
+launchctl unload ~/Library/LaunchAgents/com.openclaw.agent.plist
+
+# Restart (unload then load)
+launchctl unload ~/Library/LaunchAgents/com.openclaw.agent.plist
+launchctl load ~/Library/LaunchAgents/com.openclaw.agent.plist
+
+# Check logs
+tail -f ~/openclaw/logs/stdout.log
+```
+
+**Pros:** Zero extra software, runs automatically on login, very stable.
+**Cons:** Only works on macOS, tied to your user session (unless you set it up as a system-level daemon).
+
+## Option 2: Raspberry Pi
+
+A Raspberry Pi 4 or 5 is a great low-cost, always-on server for OpenClaw. It sips power (about $5/year in electricity), fits in a drawer, and handles the workload just fine since the heavy AI processing happens on the API provider's servers, not locally.
+
+### Step 1: Install Node.js on the Pi
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+sudo apt-get install -y nodejs
+```
+
+### Step 2: Install OpenClaw
+
+```bash
+npm install -g openclaw
+openclaw init ~/openclaw
+```
+
+### Step 3: Set up systemd
+
+Create a service file:
+
+```bash
+sudo nano /etc/systemd/system/openclaw.service
+```
+
+```ini
+[Unit]
+Description=OpenClaw AI Assistant
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/openclaw
+ExecStart=/usr/bin/openclaw start --config /home/pi/openclaw/config.yaml
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+Environment=OPENCLAW_API_KEY=your-api-key-here
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Step 4: Enable and start the service
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable openclaw
+sudo systemctl start openclaw
+```
+
+### Step 5: Verify
+
+```bash
+sudo systemctl status openclaw
+```
+
+You should see "active (running)" in green. If not, check the logs:
+
+```bash
+journalctl -u openclaw -f
+```
+
+**Pros:** Cheap, silent, low power, always on.
+**Cons:** Limited RAM (may struggle with many concurrent agents), SD cards can fail over time (use an SSD for reliability).
+
+## Option 3: VPS (DigitalOcean or Hetzner)
+
+For production workloads or if you want something accessible from anywhere, a VPS (Virtual Private Server) is the way to go. We'll cover two popular options.
+
+### DigitalOcean
+
+#### Step 1: Create a Droplet
+
+- Go to [digitalocean.com](https://digitalocean.com) and create an account
+- Click **Create Droplet**
+- Choose **Ubuntu 22.04 LTS**
+- Select the **$6/month** plan (1 GB RAM, 1 vCPU) — plenty for a single OpenClaw instance
+- Choose a datacenter region close to your users
+- Add your SSH key
+- Click **Create**
+
+#### Step 2: SSH in and install
+
+```bash
+ssh root@your-droplet-ip
+
+# Create a non-root user
+adduser openclaw
+usermod -aG sudo openclaw
+su - openclaw
+
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+sudo apt-get install -y nodejs
+
+# Install OpenClaw
+npm install -g openclaw
+openclaw init ~/openclaw
+```
+
+#### Step 3: Set up systemd (same as Raspberry Pi)
+
+Use the same systemd service file from the Raspberry Pi section above, adjusting paths and username from `pi` to `openclaw`.
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable openclaw
+sudo systemctl start openclaw
+```
+
+### Hetzner
+
+Hetzner is a European provider that's often cheaper than DigitalOcean. The setup is nearly identical.
+
+#### Step 1: Create a server
+
+- Go to [hetzner.com/cloud](https://hetzner.com/cloud)
+- Create a new project, then a new server
+- Choose **Ubuntu 22.04**, **CX11** plan (about 3.85 EUR/month)
+- Add your SSH key and create
+
+#### Step 2: Install (same commands as DigitalOcean)
+
+SSH in and follow the exact same installation steps. The only difference is the IP address.
+
+**VPS Pros:** Accessible from anywhere, reliable uptime, easy to scale up.
+**VPS Cons:** Monthly cost, you're responsible for security updates.
+
+### Securing your VPS
+
+Whichever VPS provider you choose, do these things immediately:
+
+```bash
+# Set up a firewall
+sudo ufw allow OpenSSH
+sudo ufw allow 3000/tcp  # OpenClaw dashboard
+sudo ufw enable
+
+# Disable root SSH login
+sudo nano /etc/ssh/sshd_config
+# Set: PermitRootLogin no
+sudo systemctl restart sshd
+
+# Enable automatic security updates
+sudo apt install unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
+
+## Option 4: Docker
+
+Docker is the most portable option. It works on any platform and makes it easy to reproduce your exact setup across different machines.
+
+### Step 1: Create a Dockerfile
+
+In your OpenClaw project directory:
+
+```dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN npm install -g openclaw
+
+COPY config/ ./config/
+COPY data/ ./data/
+
+EXPOSE 3000
+
+CMD ["openclaw", "start", "--config", "/app/config/config.yaml"]
+```
+
+### Step 2: Create a docker-compose.yml
+
+```yaml
+version: "3.8"
+services:
+  openclaw:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - OPENCLAW_API_KEY=${OPENCLAW_API_KEY}
+      - NODE_ENV=production
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### Step 3: Build and run
+
+```bash
+# Set your API key
+export OPENCLAW_API_KEY=your-api-key-here
+
+# Build and start
+docker compose up -d
+
+# Check it's running
+docker compose ps
+
+# View logs
+docker compose logs -f openclaw
+```
+
+### Updating OpenClaw in Docker
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+**Docker Pros:** Portable, reproducible, easy updates, isolation from host system.
+**Docker Cons:** Extra layer of abstraction, slightly more setup, need to learn Docker basics.
+
+## Process Managers: pm2
+
+If you don't want to deal with systemd or launchd, **pm2** is a popular Node.js process manager that works on any platform.
+
+```bash
+# Install pm2
+npm install -g pm2
+
+# Start OpenClaw with pm2
+pm2 start openclaw -- start --config ~/openclaw/config.yaml
+
+# Save the process list so it survives reboots
+pm2 save
+pm2 startup  # Follow the printed instructions
+
+# Useful pm2 commands
+pm2 status           # See running processes
+pm2 logs openclaw    # View logs
+pm2 restart openclaw # Restart
+pm2 monit            # Live monitoring dashboard
+```
+
+pm2 also has a built-in log rotation module:
+
+```bash
+pm2 install pm2-logrotate
+pm2 set pm2-logrotate:max_size 10M
+pm2 set pm2-logrotate:retain 7
+```
+
+## Which Option Should You Choose?
+
+| Situation | Recommendation |
+|---|---|
+| Just me, playing around | Mac with launchd |
+| Small business, budget-conscious | Raspberry Pi |
+| Production, need reliability | VPS (DigitalOcean/Hetzner) |
+| Team deployment, multiple environments | Docker |
+| Already have a server, want it simple | pm2 on existing machine |
+
+Start with the simplest option that meets your needs. You can always migrate later — your OpenClaw configuration files are portable across all of these setups.

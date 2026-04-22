@@ -1,0 +1,213 @@
+---
+title: Email Triage and Priority Sorting
+description: Let OpenClaw automatically sort, prioritize, and surface the emails that actually matter to you.
+---
+
+# Email Triage and Priority Sorting
+
+If you are anything like most professionals, your inbox is a warzone. Newsletters you meant to unsubscribe from, CC chains that have nothing to do with you, vendor pitches disguised as personal messages, and buried somewhere in all of that, the three emails that actually need your attention today.
+
+The Email Triage playbook teaches OpenClaw to sort through the noise so you only deal with what matters. It does not delete anything or send replies on your behalf (unless you want it to). It simply reads, categorizes, and surfaces the emails that deserve your time and attention.
+
+## How It Works
+
+OpenClaw connects to your email inbox with read-only access and periodically scans for new messages. For each email, it evaluates several factors:
+
+- **Sender importance**: Is this someone you interact with regularly? A client? Your boss? A stranger?
+- **Content urgency**: Does the email contain deadlines, questions directed at you, or time-sensitive requests?
+- **Thread context**: Is this part of an ongoing conversation you have been active in?
+- **Pattern matching**: Based on your past behavior, are you likely to open and act on this email?
+
+Based on this evaluation, OpenClaw assigns each email to one of four buckets:
+
+1. **Act Now** — Emails that need a response or action today
+2. **Review** — Worth reading but not urgent
+3. **FYI** — Informational, no action needed
+4. **Noise** — Newsletters, automated notifications, marketing
+
+You get a summary delivered to your preferred channel with the Act Now items front and center. Everything else is organized and waiting for when you have time.
+
+## Why This Matters
+
+Email overload is not just annoying. It is genuinely costly. Studies suggest that the average knowledge worker spends over two hours per day on email, and much of that time is spent deciding what to read rather than actually reading it. By automating the triage step, you reclaim a significant chunk of your day.
+
+More importantly, you stop missing important emails. When everything sits in one undifferentiated pile, critical messages get buried. When OpenClaw surfaces the important ones, nothing slips through the cracks.
+
+## Setting Up Your Rules
+
+Before configuring the technical side, spend a few minutes thinking about your email patterns. Ask yourself:
+
+- Which senders should always be flagged as high priority?
+- Are there domains you always want to deprioritize (like marketing tools or social media notifications)?
+- Do you want OpenClaw to treat internal emails differently from external ones?
+- Are there keywords that always signal urgency for you (like "deadline," "approval needed," or a specific project name)?
+
+Write these down. You will use them in your SOUL.md configuration.
+
+## SOUL.md Additions
+
+Add these behaviors to your SOUL.md file:
+
+```markdown
+## Behaviors
+
+### Email Triage
+- Scan incoming emails every 30 minutes during business hours
+- Categorize each email into: Act Now, Review, FYI, or Noise
+- Always treat emails from direct reports, my manager, and active clients as high priority
+- Flag any email that contains a question directed at me or a deadline within 48 hours
+- Group newsletter and marketing emails into a weekly digest instead of showing them individually
+- Never mark an email as Noise if the sender has emailed me directly (not CC) more than 3 times this month
+- When summarizing an email, include: sender, subject, one-sentence summary, and suggested action
+- Do not include the full email body in summaries — just enough context to decide if I need to read it
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: email-scanner
+    provider: gmail  # or outlook-mail
+    permissions: read-only
+    description: Reads incoming emails and metadata
+
+  - name: contact-resolver
+    provider: google-contacts  # or outlook-contacts
+    permissions: read-only
+    description: Identifies sender relationships and importance
+
+  - name: email-labeler
+    provider: gmail
+    permissions: read-write  # needed to apply labels/categories
+    description: Applies triage labels to emails in your inbox
+
+  - name: digest-composer
+    provider: openclaw-native
+    description: Compiles email summaries into formatted digests
+```
+
+<PremiumContent title="Complete Playbook Configuration">
+
+## Cron Configuration
+
+The email triage playbook runs on two schedules: frequent scans during business hours and a daily summary:
+
+```yaml
+cron:
+  email-triage-scan:
+    schedule: "*/30 8-18 * * 1-5"  # Every 30 minutes, 8 AM to 6 PM, weekdays
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: email-triage-scan
+    config:
+      mode: incremental  # only scan new emails since last run
+      label_in_inbox: true  # apply triage labels directly in Gmail/Outlook
+    retry:
+      attempts: 1
+      delay: 5m
+
+  email-triage-summary:
+    schedule: "0 9 * * 1-5"  # 9:00 AM daily summary
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: email-triage-summary
+    config:
+      lookback: 14h  # cover overnight emails
+      include_stats: true  # show email volume breakdown
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  email-urgent:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: true  # send a push notification for Act Now emails
+      batch_window: 15m  # batch Act Now emails within 15-min windows to reduce interruptions
+
+  email-daily-digest:
+    type: email
+    config:
+      recipient: "you@yourcompany.com"
+      subject_prefix: "[OpenClaw Digest]"
+      format: html
+      include_categories: ["Review", "FYI"]
+
+  email-noise-weekly:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: compact
+      schedule: "weekly"  # overrides cron — delivers once per week
+```
+
+## Example Output
+
+Here is what an urgent email alert looks like in Slack:
+
+```
+EMAIL TRIAGE — 2 emails need your attention
+
+ACT NOW
+
+1. From: Lisa Park (VP Sales)
+   Subject: "Contract approval needed before EOD"
+   Summary: Lisa needs your sign-off on the Meridian Corp contract.
+   The client wants it finalized by 5 PM today.
+   Suggested action: Review the attached contract and reply with approval.
+
+2. From: Dev Team (via Jira)
+   Subject: "Production incident — API latency spike"
+   Summary: API response times jumped to 4s avg in the last hour.
+   The on-call engineer is investigating but flagged you as escalation.
+   Suggested action: Check the incident channel and confirm you are aware.
+```
+
+And here is a snippet from the daily digest email:
+
+```
+DAILY EMAIL DIGEST — Wednesday, April 15
+
+Volume: 47 emails received since yesterday
+  Act Now: 3 (all addressed)
+  Review: 8
+  FYI: 14
+  Noise: 22
+
+REVIEW (8 emails)
+
+  Marketing Team — "Q2 Campaign Results Preview"
+    Early numbers from the spring campaign look promising. Full report coming Friday.
+
+  HR Department — "Updated PTO Policy"
+    Minor changes to the carry-over rules. Worth reading when you have a moment.
+
+  Alex Rivera — "Thoughts on the new dashboard design?"
+    Alex shared mockups and is looking for feedback, no hard deadline mentioned.
+
+  ... (5 more in Review category)
+
+FYI (14 emails)
+  Summarized: 6 internal announcements, 4 tool notifications,
+  3 industry newsletters, 1 event invitation (AI Summit, June 12).
+```
+
+## Fine-Tuning Over Time
+
+The triage system gets smarter as you use it. Here are some ways to help it learn faster:
+
+- **Correct misclassifications**: If an email lands in "Noise" that should have been "Act Now," tell OpenClaw. A simple "that email from John should have been high priority" is enough.
+- **Add VIP senders**: Update your SOUL.md with specific names or domains that should always be prioritized.
+- **Adjust the batch window**: If 15-minute batching feels too slow for urgent emails, reduce it to 5 minutes. If you are getting interrupted too often, increase it to 30.
+- **Create custom categories**: Some users add a fifth bucket like "Delegate" for emails that someone else on their team should handle.
+
+The goal is not to automate email completely. It is to make sure you spend your email time on the messages that actually matter, and spend less of it overall.
+
+</PremiumContent>
+
+<CTACard variant="community" />

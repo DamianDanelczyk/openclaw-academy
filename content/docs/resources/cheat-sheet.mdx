@@ -1,0 +1,234 @@
+---
+title: Cheat Sheet
+description: A quick-reference guide covering essential OpenClaw commands, config locations, keyboard shortcuts, and important URLs.
+---
+
+# OpenClaw Cheat Sheet
+
+Everything you need on one page. Bookmark this. Print it. Tape it to your monitor. Whatever works.
+
+## Essential Commands
+
+### Getting Started
+
+| Command | What It Does |
+|---|---|
+| `openclaw init` | Initialize a new OpenClaw project in the current directory |
+| `openclaw start` | Start the OpenClaw server |
+| `openclaw stop` | Stop the server gracefully |
+| `openclaw restart` | Restart the server |
+| `openclaw status` | Show whether OpenClaw is running and basic health info |
+| `openclaw update` | Update OpenClaw to the latest version |
+| `openclaw version` | Display current version |
+
+### Agent Management
+
+| Command | What It Does |
+|---|---|
+| `openclaw agent list` | List all configured agents |
+| `openclaw agent create <name>` | Create a new agent with interactive setup |
+| `openclaw agent test <name> "message"` | Send a test message to an agent |
+| `openclaw agent reload <name>` | Reload an agent's config without restarting |
+| `openclaw agent logs <name>` | View logs for a specific agent |
+| `openclaw agent disable <name>` | Temporarily disable an agent |
+| `openclaw agent enable <name>` | Re-enable a disabled agent |
+
+### Channel Management
+
+| Command | What It Does |
+|---|---|
+| `openclaw channel list` | Show all configured channels |
+| `openclaw channel test <type>` | Test a channel connection (slack, email, etc.) |
+| `openclaw channel add <type>` | Add a new channel with guided setup |
+| `openclaw channel remove <type>` | Remove a channel |
+
+### Memory and Knowledge
+
+| Command | What It Does |
+|---|---|
+| `openclaw memory status` | Show memory index health and statistics |
+| `openclaw memory add <file>` | Add a document to the knowledge base |
+| `openclaw memory search "query"` | Search the knowledge base |
+| `openclaw memory reindex` | Rebuild the entire memory index |
+| `openclaw memory clear` | Clear all stored memory (use with caution) |
+
+### Monitoring and Debugging
+
+| Command | What It Does |
+|---|---|
+| `openclaw logs` | View live server logs |
+| `openclaw logs --tail 100` | View last 100 log lines |
+| `openclaw config validate` | Check config files for errors |
+| `openclaw budget status` | Show current month's spending vs. budget |
+| `openclaw models list` | List all available models for your API key |
+| `openclaw health` | Run a full health check (API, database, channels) |
+
+### Cron and Automation
+
+| Command | What It Does |
+|---|---|
+| `openclaw cron list` | Show all scheduled jobs |
+| `openclaw cron run <job>` | Manually trigger a cron job |
+| `openclaw cron disable <job>` | Pause a cron job |
+| `openclaw cron enable <job>` | Resume a paused cron job |
+
+## Config File Locations
+
+All configuration lives in your OpenClaw project directory. Here's where everything goes:
+
+```
+your-project/
+├── config/
+│   ├── config.yaml          # Main server configuration
+│   ├── agents/              # Agent definitions
+│   │   ├── support-bot.yaml
+│   │   └── sales-bot.yaml
+│   ├── channels/            # Channel configurations
+│   │   ├── slack.yaml
+│   │   ├── email.yaml
+│   │   └── webchat.yaml
+│   ├── routing.yaml         # Model routing rules
+│   ├── budget.yaml          # Spending limits and alerts
+│   ├── caching.yaml         # Response cache settings
+│   ├── monitoring.yaml      # Logging and alert config
+│   └── cron.yaml            # Scheduled job definitions
+├── data/
+│   ├── memory/              # Knowledge base files
+│   ├── conversations/       # Conversation history
+│   └── cache/               # Response cache storage
+├── logs/                    # Log files
+├── plugins/                 # Installed plugins
+├── SOUL.md                  # Agent personality definition
+└── .env                     # Environment variables (API keys)
+```
+
+## Environment Variables
+
+Set these in your `.env` file or system environment:
+
+| Variable | Purpose | Example |
+|---|---|---|
+| `OPENCLAW_API_KEY` | Primary API key (Anthropic) | `sk-ant-...` |
+| `OPENAI_API_KEY` | OpenAI API key (if using GPT models) | `sk-...` |
+| `GOOGLE_API_KEY` | Google API key (if using Gemini) | `AIza...` |
+| `OPENCLAW_PORT` | Server port (default: 3000) | `3001` |
+| `OPENCLAW_ENV` | Environment (development/production) | `production` |
+| `OPENCLAW_LOG_LEVEL` | Log verbosity (debug/info/warn/error) | `info` |
+| `SLACK_BOT_TOKEN` | Slack bot OAuth token | `xoxb-...` |
+| `SLACK_SIGNING_SECRET` | Slack app signing secret | `abc123...` |
+| `SMTP_HOST` | Email server host | `smtp.gmail.com` |
+| `SMTP_USER` | Email account username | `bot@yourcompany.com` |
+| `SMTP_PASS` | Email account password | `app-password-here` |
+
+## SOUL.md Quick Template
+
+```markdown
+# Agent Name
+
+## Identity
+You are [name], a [role] for [company/purpose].
+
+## Personality
+- Tone: [friendly / professional / casual / formal]
+- Style: [concise / detailed / conversational]
+
+## Rules
+- Always [key behavior]
+- Never [prohibited behavior]
+- When unsure, [fallback behavior]
+
+## Knowledge
+- You know about: [domains]
+- You don't handle: [out of scope topics]
+- Redirect [topic] questions to [where]
+```
+
+## Model Quick Reference
+
+| Shorthand | Full Name | Best For | Relative Cost |
+|---|---|---|---|
+| `claude-haiku` | Claude Haiku | Fast, simple tasks | $ |
+| `claude-sonnet` | Claude Sonnet | General purpose | $$ |
+| `claude-opus` | Claude Opus | Complex reasoning | $$$$ |
+| `gpt-4o-mini` | GPT-4o Mini | Budget alternative | $ |
+| `gpt-4o` | GPT-4o | General purpose | $$ |
+| `gemini-flash` | Gemini 1.5 Flash | Ultra-budget bulk | $ |
+
+## Important URLs
+
+| Resource | URL |
+|---|---|
+| OpenClaw Dashboard (local) | `http://localhost:3000` |
+| Agent Testing UI | `http://localhost:3000/playground` |
+| API Documentation | `http://localhost:3000/docs/api` |
+| OpenClaw Academy | `https://academy.openclaw.dev` |
+| Community Discord | `https://discord.gg/openclaw` |
+| GitHub Repository | `https://github.com/openclaw/openclaw` |
+| Bug Reports | `https://github.com/openclaw/openclaw/issues` |
+| Anthropic API Status | `https://status.anthropic.com` |
+| OpenAI API Status | `https://status.openai.com` |
+
+## Common Config Snippets
+
+### Basic Agent Setup
+
+```yaml
+name: my-agent
+model: claude-sonnet
+temperature: 0.7
+max_tokens: 1024
+system_prompt_file: SOUL.md
+```
+
+### Rate Limiting
+
+```yaml
+rate_limiting:
+  requests_per_minute: 60
+  retry_on_429: true
+  max_retries: 3
+```
+
+### Simple Cron Job
+
+```yaml
+cron:
+  - name: daily-summary
+    schedule: "0 9 * * *"  # 9 AM daily
+    agent: summarizer
+    task: "Generate yesterday's activity summary"
+```
+
+### Budget Alert
+
+```yaml
+budget:
+  monthly_limit: 100.00
+  alerts:
+    - threshold: 80%
+      notify: email
+```
+
+## Keyboard Shortcuts (Dashboard)
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl/Cmd + K` | Open command palette |
+| `Ctrl/Cmd + L` | Jump to logs |
+| `Ctrl/Cmd + A` | Jump to agents |
+| `Ctrl/Cmd + .` | Open settings |
+| `Esc` | Close current panel |
+
+<DownloadGate fileName="OpenClaw Cheat Sheet PDF">
+
+## Downloadable Version
+
+Get the complete OpenClaw Cheat Sheet as a printable PDF. Includes all commands, config references, and model comparisons formatted for easy desk reference.
+
+The PDF version also includes:
+- Color-coded command categories
+- Visual config file structure diagram
+- Model comparison decision tree
+- Troubleshooting quick-reference card
+
+</DownloadGate>

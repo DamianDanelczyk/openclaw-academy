@@ -1,0 +1,299 @@
+---
+title: Voice
+description: Configure wake words, Talk Mode, and practical voice interactions with your OpenClaw assistant.
+---
+
+# Voice
+
+Typing is great for precision. But sometimes you just want to talk. OpenClaw's voice system lets you have natural spoken conversations with your agent — hands-free, on any device. Whether you are cooking dinner, driving, or just too comfortable on the couch to reach for your keyboard, voice makes your assistant truly accessible.
+
+## Wake Word Configuration
+
+The wake word is how you get your agent's attention without touching a device. By default, it is **"Hey Claw"**, but you can customize it.
+
+```yaml
+# voice/wake-word.yaml
+wake_word:
+  phrase: "Hey Claw"
+  sensitivity: 0.7          # 0.0 (never triggers) to 1.0 (triggers on anything)
+  processing: "on_device"   # Wake word detection never leaves your device
+
+  alternatives:
+    - "OK Claw"
+    - "Claw"                 # Single word, works but more false positives
+
+  custom:
+    enabled: true
+    phrase: "Hey Atlas"      # Use your agent's name as wake word
+    training_samples: 10     # Say it 10 times to train the model
+
+  behavior:
+    confirmation_sound: true          # Chime when activated
+    confirmation_sound_file: "soft_chime.wav"
+    listen_timeout: 10                # Seconds to wait for speech
+    cancel_phrase: "never mind"
+    ambient_noise_adaptation: true    # Adjusts to background noise
+```
+
+A few notes on sensitivity:
+
+- **0.5 - 0.6** — rarely triggers accidentally but you might need to speak clearly and directly at the device.
+- **0.7** — the sweet spot for most people. Reliable without too many false positives.
+- **0.8 - 0.9** — very sensitive. Good in quiet environments, but might trigger from TV or conversations nearby.
+
+### Custom Wake Word Training
+
+If you want a custom wake word (like your agent's name), OpenClaw trains a small on-device model:
+
+```bash
+# Start wake word training
+openclaw voice train-wake-word "Hey Atlas"
+
+# The CLI will ask you to say the phrase 10 times in different
+# conditions (quiet, noisy, close, far away).
+
+# Test the new wake word
+openclaw voice test-wake-word
+
+# Reset to default
+openclaw voice reset-wake-word
+```
+
+The training takes about two minutes. Say your wake word at different distances and volumes for the best results. The model runs entirely on your device — your voice samples never leave it.
+
+## Talk Mode
+
+Talk Mode is a continuous conversation mode where you do not need the wake word for every exchange. Activate it once, and you can have a back-and-forth conversation naturally, like talking to another person.
+
+```yaml
+# voice/talk-mode.yaml
+talk_mode:
+  activation:
+    trigger: "Hey Claw, let's talk"
+    hotkey: "hold_volume_button"     # Platform-dependent
+    auto_activate: false
+
+  behavior:
+    continuous_listening: true
+    turn_detection: "voice_activity"  # Detects when you stop talking
+    pause_threshold: 1.5              # Seconds of silence = your turn is done
+    interrupt_allowed: true           # You can interrupt mid-response
+
+  response:
+    voice: "ember"                    # Options: ember, sage, nova, flint
+    speed: 1.0                        # 0.5 (slow) to 2.0 (fast)
+    pitch: "natural"
+    language: "auto_detect"
+
+  deactivation:
+    phrase: "That's all, thanks"
+    auto_timeout: 300                 # End Talk Mode after 5 min silence
+    explicit_only: false              # Also ends on timeout
+```
+
+### Voice Options
+
+OpenClaw ships with several voice personas:
+
+```yaml
+voices:
+  ember:
+    description: "Warm, mid-range, conversational"
+    best_for: "everyday use, personal assistant"
+    gender_presentation: "neutral"
+
+  sage:
+    description: "Calm, measured, authoritative"
+    best_for: "professional contexts, briefings"
+    gender_presentation: "neutral"
+
+  nova:
+    description: "Bright, energetic, upbeat"
+    best_for: "creative sessions, brainstorming"
+    gender_presentation: "neutral"
+
+  flint:
+    description: "Low, steady, minimal"
+    best_for: "quiet environments, nighttime use"
+    gender_presentation: "neutral"
+```
+
+You can switch voices on the fly:
+
+```
+You: Switch to the sage voice.
+OpenClaw (now in sage voice): Done. I'll use this voice going forward.
+```
+
+## Speech-to-Text Configuration
+
+When you speak, OpenClaw converts your voice to text before processing. You have control over how this works:
+
+```yaml
+speech_to_text:
+  engine: "whisper-large-v3"
+  processing: "hybrid"       # on_device for short, cloud for long
+  threshold:
+    on_device_max: 30        # Seconds — process on-device up to 30s
+    cloud_above: 30          # Longer audio goes to cloud
+
+  language:
+    primary: "en"
+    secondary: "pl"
+    auto_detect: true
+    code_switching: true     # Handle mid-sentence language switches
+
+  enhancements:
+    punctuation: true        # Add punctuation automatically
+    profanity_filter: false  # Don't censor
+    domain_vocabulary:
+      - "OpenClaw"
+      - "ClawHub"
+      - "SOUL.md"
+      - "Pi runtime"
+
+  privacy:
+    audio_retention: "none"  # Don't store raw audio
+    transcription_retention: "session"  # Kept for session, then deleted
+```
+
+The `domain_vocabulary` setting is important. It teaches the speech-to-text engine to correctly transcribe words it might not know — like "OpenClaw" instead of "open claw" or "SOUL.md" instead of "soul MD."
+
+## Practical Voice Use Cases
+
+### Morning Briefing
+
+```
+You: Hey Claw, good morning. What's my day look like?
+
+OpenClaw: Good morning. You've got three meetings today.
+First up is a standup at 10 with the product team.
+Then lunch with Sarah at 12:30 — she suggested that new place
+on Nowy Swiat. Your 1-on-1 with Dr. Chen is at 3.
+Between meetings, you have about two hours of focus time.
+Oh, and it's 12 degrees and partly cloudy — you might want a jacket.
+```
+
+This works beautifully as a voice interaction while you are making coffee. No screen required.
+
+### Hands-Free Cooking
+
+```
+You: Hey Claw, let's talk.
+
+OpenClaw: Talk Mode active. What's up?
+
+You: I'm making that mushroom risotto. Walk me through it step by step.
+
+OpenClaw: Sure. First, get your mushrooms sliced and your stock
+warming on a back burner. Ready for step one?
+
+You: Ready.
+
+OpenClaw: Heat two tablespoons of olive oil in a wide pan over medium
+heat. Add a diced onion and cook until it's soft, about five minutes.
+
+You: Done, what's next?
+
+OpenClaw: Add the arborio rice — about one and a half cups. Stir it
+around for a minute until the grains are coated and slightly translucent
+at the edges.
+
+You: Wait, should I add garlic?
+
+OpenClaw: Good call. Add two minced cloves right after the onion
+softens, before the rice. Cook the garlic for just 30 seconds so it
+doesn't burn.
+```
+
+Notice how Talk Mode lets you have a natural back-and-forth without saying the wake word every time. And you can interrupt or ask questions mid-recipe.
+
+### Driving Mode
+
+```yaml
+# voice/driving-mode.yaml
+driving_mode:
+  activation: "Hey Claw, I'm driving"
+  behavior:
+    responses: "voice_only"      # Never show visual content
+    length: "extra_concise"      # Keep answers very short
+    confirmations: "verbal"      # "Should I send that?" instead of showing a draft
+    no_questions: true            # Don't ask clarifying questions, make best guess
+    emergency_override: true     # Always alert for urgent messages
+
+  allowed_skills:
+    - navigation
+    - music
+    - calls
+    - messages_read_only
+  blocked_skills:
+    - email_compose
+    - code_exec
+    - file_manager
+```
+
+Driving mode is a safety feature. It restricts what the agent can do, forces voice-only output, and keeps responses ultra-short. Your agent will not ask you to look at a screen.
+
+### Meeting Quick Notes
+
+```
+You: Hey Claw, quick note. Sarah wants to move the deadline
+to May 15th. Mike pushed back but agreed if we cut scope on
+the analytics dashboard. Decision: we'll ship without the
+real-time charts and add them in v2.
+
+OpenClaw: Got it. Saved:
+  - Sarah proposed deadline change to May 15
+  - Mike agreed with condition: cut analytics dashboard scope
+  - Decision: ship without real-time charts, add in v2
+  Want me to send this summary to the team?
+```
+
+Voice notes captured, structured, and ready to share — all while you are walking back from the conference room.
+
+### Bedtime Wind-Down
+
+```yaml
+# voice/night-mode.yaml
+night_mode:
+  activation:
+    time: "22:00"
+    manual: "Hey Claw, nighttime mode"
+
+  behavior:
+    voice: "flint"             # Low, quiet voice
+    volume: 0.4                # Reduced volume
+    responses: "minimal"       # Very short answers
+    no_proactive: true         # Don't volunteer information
+
+  sleep_sounds:
+    enabled: true
+    trigger: "play sleep sounds"
+    options: ["rain", "ocean", "forest", "white_noise"]
+    timer: 30                  # Auto-stop after 30 minutes
+```
+
+## Troubleshooting Voice
+
+Common issues and fixes:
+
+```bash
+# Test your microphone
+openclaw voice mic-test
+
+# Check wake word detection
+openclaw voice debug-wake-word
+# Shows real-time confidence scores as you speak
+
+# Recalibrate for a new environment
+openclaw voice calibrate
+# Adjusts noise floor and sensitivity for your current space
+
+# Check voice latency
+openclaw voice latency-test
+# Shows processing time breakdown: STT → processing → TTS
+```
+
+If your wake word triggers too often, lower the sensitivity. If it misses your voice, raise it. If speech recognition is getting words wrong, add them to the `domain_vocabulary` list. Most voice issues come down to these three adjustments.
+
+Voice is one of those features that feels gimmicky until you use it in the right context. Cooking, driving, morning routines, quick notes on the go — once you find your use cases, you will wonder how you ever typed everything.

@@ -1,0 +1,335 @@
+---
+title: Skills & ClawHub
+description: Extend OpenClaw with skills from ClawHub or build your own — a guide to the top skills, installation, and custom development.
+---
+
+# Skills & ClawHub
+
+Out of the box, OpenClaw can talk. With **skills**, it can *do*. Skills are modular capabilities that let your agent interact with the outside world — check your calendar, send emails, search the web, control smart home devices, run code, and hundreds more. **ClawHub** is the marketplace where you find, install, and share them.
+
+## What Is a Skill?
+
+A skill is a self-contained package that gives your agent a new ability. It defines:
+
+- **What it can do** — the actions it supports
+- **What it needs** — any API keys, permissions, or configurations
+- **When to use it** — trigger conditions and intent matching
+
+When you say "What's on my calendar today?", your agent does not magically know your schedule. The `calendar` skill connects to Google Calendar (or Outlook, or Apple Calendar), fetches your events, and returns them in a format your agent can present to you.
+
+## Top 20 Skills on ClawHub
+
+Here are the most popular skills, ranked by installs:
+
+| # | Skill | What It Does | Installs |
+|---|-------|-------------|----------|
+| 1 | `calendar` | Manage events across Google, Outlook, Apple | 284K |
+| 2 | `email` | Read, draft, send, and organize email | 261K |
+| 3 | `web_search` | Search the web with source attribution | 249K |
+| 4 | `notes` | Create and manage notes (Notion, Obsidian, Apple Notes) | 198K |
+| 5 | `reminders` | Set, manage, and deliver reminders | 187K |
+| 6 | `weather` | Current and forecast weather data | 176K |
+| 7 | `smart_home` | Control lights, thermostats, locks (HomeKit, Hue, etc.) | 164K |
+| 8 | `music` | Play, pause, queue music (Spotify, Apple Music) | 152K |
+| 9 | `code_exec` | Run code in sandboxed environments | 143K |
+| 10 | `file_manager` | Read, write, organize files on your devices | 138K |
+| 11 | `translator` | Real-time translation across 95 languages | 127K |
+| 12 | `finance` | Track expenses, budgets, and investments | 119K |
+| 13 | `github` | Manage repos, PRs, issues | 112K |
+| 14 | `shopping` | Price comparison and shopping lists | 104K |
+| 15 | `recipes` | Meal planning and recipe management | 97K |
+| 16 | `travel` | Flight search, hotel booking, itinerary planning | 89K |
+| 17 | `fitness` | Workout tracking and health data integration | 82K |
+| 18 | `news` | Curated news from preferred sources | 78K |
+| 19 | `slack` | Read and send Slack messages | 71K |
+| 20 | `pdf` | Read, summarize, and extract data from PDFs | 65K |
+
+## Installing Skills from ClawHub
+
+Installing a skill is a one-liner:
+
+```bash
+# Install a single skill
+openclaw skill install calendar
+
+# Install multiple skills at once
+openclaw skill install calendar email web_search notes
+
+# Install a specific version
+openclaw skill install github@2.4.1
+
+# Browse available skills
+openclaw skill search "project management"
+
+# See what's installed
+openclaw skill list
+```
+
+After installation, most skills need configuration — usually an API key or account connection:
+
+```bash
+# Configure a skill interactively
+openclaw skill setup calendar
+```
+
+This launches a guided setup that walks you through connecting your account, setting permissions, and testing the connection.
+
+### Skill Configuration File
+
+Under the hood, skill configs live in a YAML file:
+
+```yaml
+# skills/calendar.yaml
+skill: calendar
+version: "3.2.0"
+source: "clawhub/official"
+
+auth:
+  provider: "google"
+  credentials: "${GOOGLE_OAUTH_TOKEN}"
+  scopes:
+    - "calendar.readonly"
+    - "calendar.events"
+
+settings:
+  default_calendar: "Work"
+  time_format: "24h"
+  timezone: "Europe/Warsaw"
+  reminder_default: 15  # minutes before event
+
+permissions:
+  can_create_events: true
+  can_delete_events: false  # Safety: require confirmation
+  can_invite_others: true
+  can_access_other_calendars: false
+
+triggers:
+  - intent: "check_schedule"
+    examples: ["what's on my calendar", "any meetings today", "am I free at 3"]
+  - intent: "create_event"
+    examples: ["schedule a meeting", "add to my calendar", "book time for"]
+```
+
+Notice the `can_delete_events: false` setting. You can control exactly what a skill is allowed to do, even if the skill *supports* more. This is how you keep your agent from accidentally deleting your 3 PM meeting.
+
+## Building Custom Skills
+
+ClawHub has hundreds of skills, but sometimes you need something specific to your workflow. Building a custom skill is straightforward.
+
+### Skill Structure
+
+```
+my-custom-skill/
+├── manifest.yaml      # Metadata and configuration
+├── handler.py         # Main logic
+├── triggers.yaml      # When the skill activates
+├── test/
+│   └── test_handler.py
+└── README.md
+```
+
+### The Manifest
+
+```yaml
+# manifest.yaml
+name: "jira-standup"
+version: "1.0.0"
+author: "damian"
+description: "Generates daily standup summaries from Jira"
+runtime: "python3.11"
+
+dependencies:
+  - jira-client>=3.0
+  - markdown2>=2.4
+
+auth:
+  required:
+    - name: "JIRA_API_TOKEN"
+      description: "Your Jira API token"
+    - name: "JIRA_URL"
+      description: "Your Jira instance URL"
+
+permissions:
+  network: true        # Needs to call Jira API
+  filesystem: false    # No file access needed
+  execute: false       # No shell execution
+```
+
+### The Handler
+
+```python
+# handler.py
+from openclaw_sdk import Skill, SkillResponse
+from jira import JIRA
+
+class JiraStandupSkill(Skill):
+    def setup(self):
+        self.jira = JIRA(
+            server=self.config["JIRA_URL"],
+            token_auth=self.config["JIRA_API_TOKEN"]
+        )
+
+    def handle(self, intent: str, params: dict) -> SkillResponse:
+        if intent == "generate_standup":
+            return self.generate_standup(params.get("user", "currentUser()"))
+
+    def generate_standup(self, user: str) -> SkillResponse:
+        # Get issues updated yesterday
+        yesterday_issues = self.jira.search_issues(
+            f'assignee = {user} AND updated >= -1d ORDER BY updated DESC'
+        )
+
+        # Get current sprint issues
+        in_progress = self.jira.search_issues(
+            f'assignee = {user} AND status = "In Progress"'
+        )
+
+        standup = {
+            "completed_yesterday": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in yesterday_issues
+                if i.fields.status.name == "Done"
+            ],
+            "working_on_today": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+            ],
+            "blockers": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+                if hasattr(i.fields, 'flagged') and i.fields.flagged
+            ]
+        }
+
+        return SkillResponse(
+            data=standup,
+            display="standup_template",
+            summary=f"Found {len(standup['completed_yesterday'])} completed, "
+                    f"{len(standup['working_on_today'])} in progress"
+        )
+```
+
+### Triggers
+
+```yaml
+# triggers.yaml
+triggers:
+  - intent: "generate_standup"
+    examples:
+      - "generate my standup"
+      - "what did I work on yesterday"
+      - "standup report"
+      - "daily update from Jira"
+    params:
+      user:
+        type: "string"
+        default: "currentUser()"
+        description: "Jira username"
+```
+
+### Testing and Publishing
+
+```bash
+# Test locally
+openclaw skill test ./my-custom-skill
+
+# Run the test suite
+openclaw skill test ./my-custom-skill --run-tests
+
+# Publish to ClawHub
+openclaw skill publish ./my-custom-skill
+
+# Publish privately (only you can install it)
+openclaw skill publish ./my-custom-skill --private
+```
+
+## Security Considerations
+
+Skills can be powerful, which means they need guardrails.
+
+### Permission Model
+
+Every skill declares what it needs, and you approve or deny:
+
+```yaml
+# What a skill requests vs. what you grant
+skill: smart_home
+requested_permissions:
+  network: true        # Needs to talk to smart home hub
+  filesystem: false
+  execute: false
+  location: true       # Wants location for geofencing
+
+granted_permissions:
+  network: true        # Approved
+  location: false      # Denied — I don't want geofencing
+```
+
+### Sandboxing
+
+Skills run in isolated sandboxes. A misbehaving skill cannot:
+
+- Access other skills' data
+- Read your USER.md or SOUL.md directly
+- Make network calls beyond its declared endpoints
+- Execute system commands (unless explicitly permitted)
+- Persist data outside its allocated storage
+
+```yaml
+# Security policy for skills
+security:
+  sandbox:
+    enabled: true
+    network_allowlist:
+      calendar: ["*.googleapis.com"]
+      email: ["*.gmail.com", "*.outlook.com"]
+      smart_home: ["192.168.1.0/24"]  # Local network only
+    resource_limits:
+      max_memory: "256MB"
+      max_cpu_time: "10s"
+      max_storage: "100MB"
+  audit:
+    log_all_actions: true
+    alert_on_permission_escalation: true
+  review:
+    require_review_for: ["filesystem", "execute"]
+    auto_approve: ["network"]  # If in allowlist
+```
+
+### Vetting on ClawHub
+
+Skills on ClawHub go through a review process:
+
+- **Official skills** (by the OpenClaw team) are fully audited.
+- **Verified skills** (by known developers) are code-reviewed.
+- **Community skills** are peer-reviewed and flagged if issues arise.
+- **Private skills** skip review (only you use them).
+
+Always check a skill's permissions before installing. If a weather skill asks for filesystem access, that is a red flag.
+
+## Managing Installed Skills
+
+```bash
+# Update all skills
+openclaw skill update
+
+# Update a specific skill
+openclaw skill update calendar
+
+# Disable a skill without uninstalling
+openclaw skill disable music
+
+# Remove a skill entirely
+openclaw skill uninstall shopping
+
+# Check for security advisories
+openclaw skill audit
+```
+
+## Tips for Getting the Most from Skills
+
+1. **Start with the core four:** calendar, email, web_search, and notes cover 80% of what most people need.
+2. **Configure permissions tightly.** If a skill can delete things, consider disabling that until you trust it.
+3. **Check for updates monthly.** Skills improve, bugs get fixed, and security patches roll out.
+4. **Build before you browse.** If your workflow is unique, a custom skill that fits perfectly beats a general one that kind of works.
+5. **Read the permissions.** Five seconds of reading can prevent a skill from accessing things it should not.

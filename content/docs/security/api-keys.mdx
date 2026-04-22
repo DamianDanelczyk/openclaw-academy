@@ -1,0 +1,285 @@
+---
+title: API Keys
+description: A non-technical guide to creating, storing, and rotating API keys in OpenClaw to keep your integrations secure.
+---
+
+# API Keys
+
+If you have ever used a password to log in to a website, you already understand the basic idea behind API keys. An API key is like a password, but instead of a person using it to log in, it is used by software to prove its identity when talking to another piece of software.
+
+When your OpenClaw assistant connects to GitHub, sends a message through Slack, or processes a payment through Stripe, it uses API keys to say "I am allowed to do this." This page covers everything you need to know about creating, storing, and managing those keys safely.
+
+## What Is an API Key, Really?
+
+An API key is a long string of characters -- letters, numbers, and sometimes special characters -- that acts as a credential. Here is what one looks like:
+
+```
+oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+```
+
+That prefix (`oc_sk_`) tells you it is an OpenClaw secret key. Different services use different prefixes:
+
+| Service | Key prefix | Example |
+|---------|-----------|---------|
+| OpenClaw | `oc_sk_` | `oc_sk_9f8a2c4e...` |
+| GitHub | `ghp_` | `ghp_aBcDeFgHiJ...` |
+| Stripe | `sk_live_` | `sk_live_51Hx7y...` |
+| OpenAI | `sk-` | `sk-abc123def...` |
+
+The key itself is random. There is no way to guess it, which is what makes it secure -- as long as you keep it private.
+
+### Keys vs. Passwords
+
+There are a few important differences between API keys and passwords:
+
+- **You do not choose API keys.** They are generated randomly by the system. This makes them much harder to guess than a human-chosen password.
+- **API keys do not expire by default.** Unless you set up rotation (more on that below), a key works forever.
+- **One service can have multiple keys.** You might have separate keys for development, staging, and production, each with different permissions.
+- **Keys can be scoped.** A key can be limited to specific actions (read-only, write-only, full access) so that even if it leaks, the damage is contained.
+
+## Creating API Keys
+
+### OpenClaw Internal Keys
+
+To generate a new API key for your OpenClaw instance:
+
+```bash
+openclaw keys generate --name "production-main" --scope "full"
+```
+
+```
+Key generated successfully:
+
+  Name:    production-main
+  Key:     oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+  Scope:   full
+  Created: 2026-04-22
+
+⚠️  Copy this key now. It will not be shown again.
+```
+
+That last warning is important. OpenClaw stores a hash of the key, not the key itself. Once you close this screen, there is no way to retrieve the original key. If you lose it, you will need to generate a new one.
+
+### Scoped Keys
+
+Instead of giving every key full access, create keys with limited permissions:
+
+```bash
+# Read-only key for monitoring dashboards
+openclaw keys generate --name "monitoring-readonly" --scope "read"
+
+# Key that can only access specific tools
+openclaw keys generate --name "calendar-bot" --scope "custom" \
+  --allowed-tools "calendar.*,weather.*"
+```
+
+List your existing keys:
+
+```bash
+openclaw keys list
+```
+
+```
+NAME                  SCOPE    CREATED       LAST USED       STATUS
+production-main       full     2026-01-15    2026-04-22      active
+monitoring-readonly   read     2026-02-20    2026-04-22      active
+calendar-bot          custom   2026-03-08    2026-04-21      active
+old-test-key          full     2025-11-01    2025-12-15      active ⚠️
+```
+
+Notice the warning on `old-test-key` -- it has not been used in months. That is a candidate for revocation.
+
+## Storing Keys Safely
+
+This is the single most important section on this page. How you store your keys determines whether they stay secret.
+
+### The Golden Rule: Use Environment Variables
+
+Never put API keys directly in your configuration files, source code, or version control. Instead, store them in a `.env` file:
+
+```bash
+# .env — this file stays on your machine and never gets committed
+OPENCLAW_API_KEY=oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+GITHUB_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345
+STRIPE_SECRET_KEY=sk_live_YOUR_STRIPE_KEY_HERE
+OPENAI_API_KEY=sk-abc123def456ghi789jkl012mno345pqr
+SLACK_BOT_TOKEN=xoxb-YOUR-BOT-TOKEN-HERE
+```
+
+Then reference them in your config with the `${}` syntax:
+
+```yaml
+# openclaw.config.yaml — safe to commit
+integrations:
+  github:
+    token: "${GITHUB_TOKEN}"
+  stripe:
+    secret_key: "${STRIPE_SECRET_KEY}"
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+  slack:
+    bot_token: "${SLACK_BOT_TOKEN}"
+```
+
+### Make Sure .env Is Git-Ignored
+
+This step is critical. Run this command right now if you have not already:
+
+```bash
+echo ".env" >> .gitignore
+echo ".env.local" >> .gitignore
+echo ".env.production" >> .gitignore
+```
+
+Verify it worked:
+
+```bash
+git status
+```
+
+Your `.env` file should not appear in the output. If it does, it is not being ignored -- check your `.gitignore` file.
+
+### What If I Accidentally Committed a Key?
+
+It happens. Here is what to do:
+
+1. **Revoke the key immediately.** Do not wait. A leaked key is a compromised key.
+2. **Generate a new key** and update your `.env` file.
+3. **Remove the key from git history.** Simply deleting the file in a new commit is not enough -- the key is still in the old commit.
+
+```bash
+# Revoke the compromised key
+openclaw keys revoke "compromised-key-name"
+
+# Generate a replacement
+openclaw keys generate --name "replacement-key" --scope "full"
+```
+
+### Using a Secrets Manager
+
+For production deployments, consider using a dedicated secrets manager instead of `.env` files:
+
+```yaml
+# openclaw.config.yaml
+secrets:
+  provider: "vault"
+  config:
+    address: "https://vault.internal.example.com"
+    path: "secret/openclaw"
+    auth_method: "approle"
+```
+
+OpenClaw supports several providers:
+
+| Provider | Config value | Best for |
+|----------|-------------|----------|
+| `.env` files | `"dotenv"` (default) | Local development, small deployments |
+| HashiCorp Vault | `"vault"` | Enterprise, teams |
+| AWS Secrets Manager | `"aws-secrets"` | AWS-hosted deployments |
+| Google Secret Manager | `"gcp-secrets"` | GCP-hosted deployments |
+| Azure Key Vault | `"azure-keyvault"` | Azure-hosted deployments |
+
+## Rotating Keys
+
+Key rotation means periodically replacing your keys with new ones. It is like changing your locks -- even if someone made a copy of the old key, it stops working.
+
+### Why Rotate?
+
+- A key may have been exposed without your knowledge.
+- Team members who had access may have moved on.
+- It limits the window of exposure if a breach occurs.
+
+### Setting Up a Rotation Schedule
+
+```yaml
+# openclaw.config.yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    notify_before_days: 14
+    auto_rotate: false
+```
+
+This configuration tells OpenClaw to remind you 14 days before each key is 90 days old. You can check the rotation status at any time:
+
+```bash
+openclaw keys rotation-status
+```
+
+```
+KEY ROTATION STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+production-main       Age: 97 days    ⚠️ OVERDUE (due 7 days ago)
+monitoring-readonly   Age: 61 days    ✓ OK (due in 29 days)
+calendar-bot          Age: 45 days    ✓ OK (due in 45 days)
+```
+
+### The Rotation Process
+
+When it is time to rotate a key, follow these steps:
+
+```bash
+# Step 1: Generate the new key
+openclaw keys generate --name "production-main-v2" --scope "full"
+
+# Step 2: Update your .env file with the new key
+# (edit .env manually or use your secrets manager)
+
+# Step 3: Reload the configuration
+openclaw config reload
+
+# Step 4: Verify the new key works
+openclaw keys test "production-main-v2"
+
+# Step 5: Revoke the old key
+openclaw keys revoke "production-main"
+```
+
+The reason you do not revoke the old key until you have confirmed the new one works is to avoid locking yourself out. There is a brief window where both keys are active, which is normal and expected during rotation.
+
+### Automatic Rotation
+
+If your setup can handle it, enable automatic rotation:
+
+```yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    auto_rotate: true
+    on_rotate:
+      - action: "system.notify"
+        params:
+          message: "API key rotated automatically"
+          channel: "security-alerts"
+```
+
+With `auto_rotate: true`, OpenClaw generates a new key, updates the internal reference, and revokes the old key -- all without manual intervention. However, this only works for OpenClaw's own keys. External service keys (GitHub, Stripe, etc.) need to be rotated through their respective dashboards.
+
+## Revoking Keys
+
+When a key is no longer needed or may have been compromised:
+
+```bash
+openclaw keys revoke "old-test-key"
+```
+
+```
+Key "old-test-key" revoked.
+  Status: revoked
+  Revoked at: 2026-04-22 14:30 UTC
+  Any requests using this key will now receive 401 Unauthorized.
+```
+
+Revocation is immediate and irreversible. There is no undo. If you revoke a key by mistake, generate a new one.
+
+## Best Practices Summary
+
+1. **Generate keys with the CLI**, never by hand.
+2. **Store keys in `.env` files** or a secrets manager, never in code or config files.
+3. **Scope keys narrowly.** Give each key only the permissions it needs.
+4. **Rotate every 90 days.** Set up reminders so you do not forget.
+5. **Revoke unused keys.** If a key has not been used in 60 days, it probably should not exist.
+6. **Treat a leaked key as compromised.** Revoke first, ask questions later.
+7. **Audit regularly.** Run `openclaw keys list` monthly and clean up anything stale.

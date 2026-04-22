@@ -1,0 +1,244 @@
+---
+title: Recommended Tools
+description: A curated list of complementary tools and services that work well alongside OpenClaw, organized by category.
+---
+
+# Recommended Tools
+
+OpenClaw doesn't exist in a vacuum. It's one piece of a larger stack, and the right companion tools can make your setup significantly more powerful, reliable, and easier to manage. This page collects the tools and services that OpenClaw users find most useful, organized by category.
+
+None of these are required. OpenClaw works fine on its own. But as your usage grows, you'll likely reach for some of these to fill gaps or add capabilities.
+
+## API Providers
+
+These are the companies that provide the AI models OpenClaw connects to. You need at least one.
+
+### Anthropic (Claude)
+
+The maker of Claude — Haiku, Sonnet, and Opus. This is the default and most commonly used provider with OpenClaw. Strong at reasoning, writing, following instructions, and handling nuanced conversations.
+
+- **Best for:** General-purpose agents, customer support, content creation, complex reasoning
+- **Pricing:** Pay per token, varies by model tier
+- **Link:** [anthropic.com](https://anthropic.com)
+
+### OpenAI (GPT)
+
+The company behind GPT-4o and GPT-4o Mini. A solid alternative or complement to Claude, especially if you want model diversity for voting patterns or fallback routing.
+
+- **Best for:** Broad general knowledge, code generation, creative writing
+- **Pricing:** Pay per token
+- **Link:** [openai.com](https://openai.com)
+
+### Google (Gemini)
+
+Google's AI models, including Gemini 1.5 Flash (extremely cheap) and Gemini 1.5 Pro. Flash is particularly useful for high-volume, cost-sensitive tasks.
+
+- **Best for:** Bulk processing, budget-conscious deployments, multimodal tasks
+- **Pricing:** Very competitive, especially Flash
+- **Link:** [ai.google.dev](https://ai.google.dev)
+
+### Groq
+
+Specializes in extremely fast inference. If response speed is critical (real-time chat, voice applications), Groq can return responses in milliseconds rather than seconds.
+
+- **Best for:** Speed-critical applications, real-time interactions
+- **Pricing:** Competitive, emphasis on speed over model size
+- **Link:** [groq.com](https://groq.com)
+
+### Ollama (Local Models)
+
+Run open-source AI models locally on your own hardware. No API costs, complete privacy, but requires decent hardware (especially GPU) for good performance.
+
+- **Best for:** Privacy-sensitive data, offline operation, eliminating API costs
+- **Pricing:** Free (you provide the hardware)
+- **Link:** [ollama.com](https://ollama.com)
+
+---
+
+## Monitoring and Observability
+
+Once your agents are handling real traffic, you need to know what's happening.
+
+### Langfuse
+
+An open-source observability platform built specifically for LLM applications. Tracks every request, shows token usage, latency, costs, and lets you debug individual conversations.
+
+- **Best for:** Detailed LLM request tracing, prompt debugging, cost tracking
+- **Pricing:** Free self-hosted, paid cloud option
+- **Link:** [langfuse.com](https://langfuse.com)
+
+### Helicone
+
+An API proxy that sits between OpenClaw and your AI provider. Logs every request, provides dashboards for usage patterns, and offers caching and rate-limiting features.
+
+- **Best for:** API request logging, usage analytics, request caching
+- **Pricing:** Free tier available, paid plans for higher volume
+- **Link:** [helicone.ai](https://helicone.ai)
+
+### Uptime Kuma
+
+A self-hosted uptime monitoring tool. Set it up to ping your OpenClaw instance every few minutes and alert you via email, Slack, or Discord if it goes down.
+
+- **Best for:** Simple uptime monitoring, self-hosted alerting
+- **Pricing:** Free and open source
+- **Link:** [github.com/louislam/uptime-kuma](https://github.com/louislam/uptime-kuma)
+
+### Better Stack (formerly Logtail)
+
+Cloud-based log management. Ships your OpenClaw logs to a searchable dashboard with alerting. Useful when you don't want to SSH into your server to read log files.
+
+- **Best for:** Cloud log aggregation, searchable log history, alerts
+- **Pricing:** Free tier, paid for higher volume
+- **Link:** [betterstack.com](https://betterstack.com)
+
+---
+
+## Deployment and Infrastructure
+
+Tools that help you get OpenClaw running and keep it running.
+
+### Docker
+
+Containerize your OpenClaw deployment for portability and reproducibility. If you're deploying to any cloud platform, Docker makes the process consistent across environments.
+
+- **Best for:** Reproducible deployments, multi-environment setups
+- **Pricing:** Free (Docker Desktop has a paid tier for large businesses)
+- **Link:** [docker.com](https://docker.com)
+
+### DigitalOcean
+
+Cloud hosting with simple, predictable pricing. Their $6/month droplet is enough for most OpenClaw deployments. Good documentation, beginner-friendly.
+
+- **Best for:** Simple VPS hosting, predictable costs, beginners
+- **Pricing:** Starting at $4/month
+- **Link:** [digitalocean.com](https://digitalocean.com)
+
+### Hetzner
+
+European cloud provider known for aggressive pricing. Often 30-50% cheaper than DigitalOcean for equivalent specs. Excellent for European users or anyone who wants to save on hosting.
+
+- **Best for:** Cost-conscious hosting, European data residency
+- **Pricing:** Starting at ~3.85 EUR/month
+- **Link:** [hetzner.com](https://hetzner.com)
+
+### Coolify
+
+A self-hosted alternative to platforms like Heroku or Vercel. Gives you a nice web UI for deploying and managing applications on your own server, including OpenClaw.
+
+- **Best for:** Self-hosted PaaS, deploying without learning Docker/systemd
+- **Pricing:** Free and open source
+- **Link:** [coolify.io](https://coolify.io)
+
+### Cloudflare Tunnels
+
+Expose your locally-running OpenClaw instance to the internet without opening ports on your router or setting up a VPN. Particularly useful for the Raspberry Pi deployment path.
+
+- **Best for:** Exposing local servers safely, avoiding port forwarding
+- **Pricing:** Free tier available
+- **Link:** [developers.cloudflare.com/cloudflare-one/connections/connect-networks](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks)
+
+---
+
+## Productivity and Workflow
+
+Tools that extend what your agents can do.
+
+### n8n
+
+A workflow automation platform (like Zapier, but self-hostable). Connect OpenClaw to hundreds of services — CRMs, spreadsheets, databases, email platforms — without writing custom integrations.
+
+- **Best for:** Complex multi-step automations, connecting to third-party services
+- **Pricing:** Free self-hosted, paid cloud option
+- **Link:** [n8n.io](https://n8n.io)
+
+### Zapier
+
+The most popular no-code automation platform. If you don't want to self-host n8n, Zapier offers similar capabilities with a polished cloud interface. Connect OpenClaw webhooks to thousands of apps.
+
+- **Best for:** No-code automations, quick integrations, non-technical users
+- **Pricing:** Free tier (limited), paid plans from $20/month
+- **Link:** [zapier.com](https://zapier.com)
+
+### Notion
+
+Many OpenClaw users keep their knowledge base content in Notion, then export or sync it to OpenClaw's memory system. Also useful for documenting your agent configurations and workflows.
+
+- **Best for:** Knowledge base management, team documentation, agent planning
+- **Pricing:** Free for personal use, paid for teams
+- **Link:** [notion.so](https://notion.so)
+
+### Cal.com
+
+Open-source scheduling tool. Pair it with an OpenClaw appointment scheduling agent so your bot can actually book meetings on your calendar.
+
+- **Best for:** Appointment booking integration, calendar management
+- **Pricing:** Free self-hosted, paid cloud option
+- **Link:** [cal.com](https://cal.com)
+
+### Resend
+
+A developer-friendly email API. If your OpenClaw agents send transactional emails (confirmations, notifications, summaries), Resend makes it simple and reliable.
+
+- **Best for:** Transactional email sending, email channel integration
+- **Pricing:** Free tier (100 emails/day), paid for more
+- **Link:** [resend.com](https://resend.com)
+
+---
+
+## Development Tools
+
+For users who are building custom integrations or extending OpenClaw.
+
+### VS Code
+
+The most popular code editor. Useful for editing SOUL.md files, YAML configurations, and any custom code. The YAML extension catches syntax errors before they cause problems.
+
+- **Best for:** Editing configs and SOUL.md files, custom development
+- **Pricing:** Free
+- **Link:** [code.visualstudio.com](https://code.visualstudio.com)
+
+### Claude Code
+
+Anthropic's CLI tool for AI-assisted development. Use it alongside OpenClaw to write agent configurations, debug issues, and build custom tools. See our [OpenClaw vs Claude Code](/docs/advanced/openclaw-vs-claude-code) page for how they complement each other.
+
+- **Best for:** Writing and debugging OpenClaw configurations, custom tool development
+- **Pricing:** Pay per use (uses your Anthropic API key)
+- **Link:** [claude.ai/claude-code](https://claude.ai/claude-code)
+
+### Bruno
+
+An open-source API client (alternative to Postman). Useful for testing OpenClaw's API endpoints, debugging webhook integrations, and exploring channel APIs.
+
+- **Best for:** API testing, webhook debugging, integration development
+- **Pricing:** Free and open source
+- **Link:** [usebruno.com](https://usebruno.com)
+
+### GitHub
+
+Version control for your OpenClaw configuration. Store your SOUL.md, YAML configs, and custom tools in a Git repository. Makes it easy to track changes, collaborate, and roll back if something breaks.
+
+- **Best for:** Version control, collaboration, change tracking
+- **Pricing:** Free for public repos, free tier for private repos
+- **Link:** [github.com](https://github.com)
+
+### Cursor
+
+An AI-powered code editor that can help you write and edit OpenClaw configurations, debug YAML issues, and build custom integrations faster. Particularly useful if you're not a developer but need to make configuration changes.
+
+- **Best for:** AI-assisted config editing, learning YAML, custom integrations
+- **Pricing:** Free tier, paid for more features
+- **Link:** [cursor.com](https://cursor.com)
+
+---
+
+## Choosing Your Stack
+
+You don't need all of these. Most users start with:
+
+1. **One API provider** (usually Anthropic)
+2. **One deployment method** (Docker or a VPS)
+3. **One monitoring tool** (Uptime Kuma for basics, Langfuse for detail)
+
+Add more tools as your needs grow. The beauty of OpenClaw's modular design is that you can swap out or add components at any time without rebuilding your whole setup.
+
+If you're just getting started, keep it simple. A DigitalOcean droplet, an Anthropic API key, and VS Code for editing configs will carry you surprisingly far.

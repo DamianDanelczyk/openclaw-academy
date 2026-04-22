@@ -1,0 +1,240 @@
+---
+title: Invoice and Payment Tracking
+description: Automate invoice monitoring, payment reminders, and cash flow visibility with OpenClaw's financial tracking playbook.
+---
+
+# Invoice and Payment Tracking
+
+Cash flow is the lifeblood of any business, but keeping track of who owes you what and when can feel like a part-time job in itself. Invoices get lost in email threads, payment terms get confused, and by the time you realize a client is 30 days overdue, the conversation has already become awkward.
+
+The Invoice and Payment Tracking playbook gives OpenClaw visibility into your invoicing and accounts receivable. It monitors outstanding invoices, sends you reminders before payments are due, flags overdue accounts, and gives you a clear picture of your cash flow at any time. No accounting degree required.
+
+## What This Playbook Tracks
+
+OpenClaw connects to your invoicing tool and monitors the full lifecycle of every invoice:
+
+- **Sent** — Invoice has been delivered to the client
+- **Viewed** — Client has opened the invoice (if your invoicing tool supports read receipts)
+- **Due Soon** — Payment due date is within 7 days
+- **Overdue** — Payment is past the due date
+- **Partially Paid** — Client has paid some but not all of the invoice
+- **Paid** — Payment received in full
+
+For each invoice, OpenClaw tracks the amount, client name, due date, current status, and days outstanding. It calculates running totals so you always know your total accounts receivable at a glance.
+
+## Why This Matters
+
+Getting paid on time is not just about cash flow. It is about respect and professionalism. When you have a system that proactively tracks payments and reminds you to follow up, you can address late payments early, before they become a pattern. A friendly "just checking in on invoice #247" sent at day 3 past due is very different from a frustrated email sent at day 45.
+
+Many freelancers and small business owners tell us that this playbook alone has reduced their average days-to-payment by 30 to 40 percent, simply because they follow up sooner and more consistently.
+
+## Before You Start
+
+This playbook works best when connected to your invoicing tool. It supports popular options like QuickBooks, FreshBooks, Stripe, Xero, and Wave. If you use a tool that is not directly supported, you can often connect it through a webhook or by forwarding invoice confirmation emails to OpenClaw.
+
+You will also want to think about your follow-up strategy. How many days after the due date do you send a first reminder? A second? At what point do you escalate? Having a clear policy makes the automation straightforward.
+
+## SOUL.md Additions
+
+```markdown
+## Behaviors
+
+### Invoice Tracking
+- Monitor all invoices from my connected invoicing tool
+- Alert me when an invoice has been outstanding for more than 3 days past due
+- Send me a weekly summary every Monday with: total receivable, overdue amount, and upcoming payments
+- For overdue invoices, suggest a follow-up message that is professional and friendly (not aggressive)
+- Escalate to a firmer tone if an invoice is more than 14 days overdue and there has been no response to the first follow-up
+- Track payment trends per client — if a client is consistently late, flag them
+- Never send payment reminders directly to clients — always draft them for my review
+- When a payment is received, confirm the amount and mark it as resolved
+- Monthly summary on the 1st: total invoiced, total collected, average days to payment, outstanding balance
+- If total overdue amount exceeds $5,000, send an immediate alert regardless of schedule
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: invoice-reader
+    provider: quickbooks  # or freshbooks, xero, stripe-invoicing, wave
+    permissions: read-only
+    description: Reads invoice data, statuses, and payment history
+
+  - name: payment-monitor
+    provider: stripe  # or bank-feed
+    permissions: read-only
+    description: Monitors incoming payments and matches them to invoices
+
+  - name: email-drafter
+    provider: gmail  # or outlook-mail
+    permissions: draft-only
+    description: Creates follow-up email drafts for overdue invoices
+
+  - name: spreadsheet-writer
+    provider: google-sheets
+    permissions: read-write
+    description: Maintains a running accounts receivable spreadsheet
+```
+
+## Cron Configuration
+
+```yaml
+cron:
+  invoice-daily-check:
+    schedule: "0 9 * * 1-5"  # Weekdays at 9:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: invoice-status-scan
+    config:
+      check_overdue: true
+      check_due_soon: true  # flag invoices due within 7 days
+      threshold_alert: 5000  # immediate alert if overdue total exceeds this
+    retry:
+      attempts: 2
+      delay: 10m
+
+  invoice-weekly-summary:
+    schedule: "0 8 * * 1"  # Monday at 8:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: invoice-weekly-report
+    config:
+      include_aging: true  # show 30/60/90 day aging breakdown
+      include_trends: true
+
+  invoice-monthly-summary:
+    schedule: "0 9 1 * *"  # 1st of each month at 9:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: invoice-monthly-report
+    config:
+      include_client_breakdown: true
+      include_collection_rate: true
+
+  invoice-payment-watcher:
+    schedule: "0 */4 * * *"  # Every 4 hours
+    timezone: "UTC"
+    action: run-playbook
+    playbook: payment-reconciliation
+    config:
+      auto_match: true  # automatically match payments to invoices
+      notify_on_payment: true
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  invoice-alerts:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: true  # push notifications for overdue alerts
+
+  invoice-reports:
+    type: email
+    config:
+      recipient: "you@yourcompany.com"
+      subject_prefix: "[Invoices]"
+      format: html
+      cc: ["bookkeeper@yourcompany.com"]  # optional
+
+  payment-received:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: compact
+      notify: false  # no push for payments — just a nice confirmation in DM
+```
+
+## Example Output
+
+Here is a daily overdue alert:
+
+```
+INVOICE ALERT — 2 Overdue Invoices
+
+1. Invoice #1047 — BlueHarbor LLC
+   Amount: $4,200.00
+   Due date: April 10 (6 days overdue)
+   Status: Sent, viewed on April 9
+   Previous follow-up: None
+   Client payment history: Usually pays within 5 days. This is unusual.
+   Suggested action: Send a friendly check-in. Draft ready for review.
+
+   Draft message:
+   "Hi Marcus, hope you're doing well. Just a quick note that invoice
+   #1047 ($4,200) was due on April 10. Want to make sure it didn't
+   get lost in the shuffle. Let me know if you need anything from
+   my end to process it. Thanks!"
+
+2. Invoice #1039 — Cascade Digital
+   Amount: $8,750.00
+   Due date: April 2 (14 days overdue)
+   Status: Sent, not viewed
+   Previous follow-up: Sent April 8, no response
+   Client payment history: Has been late on 3 of last 5 invoices.
+   Suggested action: Firmer follow-up. Consider calling their AP department.
+
+   Draft message:
+   "Hi team, following up on invoice #1039 ($8,750) which was due
+   on April 2. I sent a reminder last week but haven't heard back.
+   Could you confirm when we can expect payment? Happy to resend
+   the invoice if needed. Thanks."
+
+TOTAL OVERDUE: $12,950.00
+
+Reply "send draft 1" or "send draft 2" to create the email draft,
+or "edit draft 1" to modify before sending.
+```
+
+Here is a Monday weekly summary:
+
+```
+INVOICE SUMMARY — Week of April 13
+
+ACCOUNTS RECEIVABLE SNAPSHOT
+  Total outstanding: $34,200.00
+  Due this week: $7,500.00 (2 invoices)
+  Overdue: $12,950.00 (2 invoices)
+  Collected last week: $15,400.00 (3 invoices)
+
+AGING BREAKDOWN
+  Current (not yet due): $21,250.00
+  1-7 days overdue: $4,200.00
+  8-14 days overdue: $8,750.00
+  15-30 days overdue: $0.00
+  30+ days overdue: $0.00
+
+UPCOMING DUE DATES
+  April 15: Invoice #1051 — Greenfield Analytics — $3,500.00
+  April 18: Invoice #1052 — Northwind Partners — $4,000.00
+
+PAYMENTS RECEIVED LAST WEEK
+  April 8: Meridian Corp — $6,200.00 (Invoice #1042, on time)
+  April 9: TechFlow Inc — $5,200.00 (Invoice #1044, 2 days early)
+  April 11: Apex Solutions — $4,000.00 (Invoice #1045, on time)
+
+CLIENT HEALTH
+  Cascade Digital: Flagged — consistently late, currently 14 days overdue.
+  Consider adjusting their payment terms or requiring deposits.
+
+AVERAGE DAYS TO PAYMENT
+  This month: 8.2 days
+  Last month: 11.4 days
+  Trend: Improving (thanks to faster follow-ups)
+```
+
+## Making the Most of This Playbook
+
+- **Connect your bank**: If your bank supports feed integration or you use Stripe, connect the payment-monitor skill to automatically match incoming payments to invoices. No more manual reconciliation.
+- **Client payment profiles**: Over time, OpenClaw builds a payment profile for each client. You will see patterns like "Acme Corp always pays on the 15th regardless of due date" or "BlueHarbor needs a reminder every time." Use these patterns to adjust your expectations and follow-up timing.
+- **Deposit and milestone invoicing**: If you bill in installments (common in consulting and agencies), OpenClaw tracks partial payments and knows when the next installment is due.
+- **Tax time helper**: At year end, ask OpenClaw for a full summary of all invoices, payments, and outstanding receivables. It exports cleanly to a spreadsheet for your accountant.
+- **Cash flow forecasting**: Based on your invoice pipeline and historical payment patterns, OpenClaw can estimate your expected cash inflow for the next 30, 60, and 90 days.
+
+<CTACard variant="community" />

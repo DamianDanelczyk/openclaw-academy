@@ -1,0 +1,129 @@
+---
+title: OpenClaw vs Claude Code
+description: Understanding how OpenClaw and Claude Code complement each other, and when to use which tool.
+---
+
+# OpenClaw vs Claude Code
+
+This comes up a lot: "I already use Claude Code. Why would I need OpenClaw? Aren't they doing the same thing?"
+
+Short answer: No. They're built for different jobs. They complement each other the way a hammer complements a screwdriver. Both are tools. Both are useful. Neither replaces the other.
+
+Let's break down exactly where each one shines and how power users get the most out of running both.
+
+## What Claude Code Actually Is
+
+Claude Code is Anthropic's official CLI (command-line interface) for working with Claude directly in your terminal. It's designed for **developers** doing **development work**. You open your terminal, type a command or describe what you want, and Claude Code reads your codebase, writes code, runs commands, creates commits, and reviews pull requests.
+
+Think of Claude Code as a very smart pair programmer sitting next to you. It sees your files. It understands your project. It writes and edits code in real time. Its whole world is your current development environment.
+
+## What OpenClaw Actually Is
+
+OpenClaw is a **platform for building and deploying AI assistants**. It's not about helping you write code (though it can). It's about creating AI agents that run autonomously across multiple channels — web chat, Slack, email, WhatsApp — handling tasks for your business or personal workflow.
+
+Think of OpenClaw as the infrastructure that lets you *build things powered by AI* and put them in front of other people. It's less about your terminal and more about your customers, your team, and your automated workflows.
+
+## The Key Differences
+
+### Audience
+
+**Claude Code** is for developers, during development. You're the user. You're sitting at your keyboard. You're asking Claude to help you build something.
+
+**OpenClaw** is for building things that *other people* use. Your customers interact with an OpenClaw-powered chatbot. Your team uses an OpenClaw-powered Slack assistant. Your business runs on OpenClaw-powered automations. You build it once and it keeps running.
+
+### Lifecycle
+
+**Claude Code** is interactive and session-based. You start it, work with it, and close it. The conversation ends when you walk away from your laptop.
+
+**OpenClaw** is persistent and always-on. Once deployed, your agents keep working 24/7. They handle incoming messages, process emails, run scheduled tasks, and operate independently of whether you're at your computer.
+
+### Scope
+
+**Claude Code** operates within a single project or repository. It reads your local files, understands your codebase, and works within that context.
+
+**OpenClaw** operates across your entire business. It connects to external services, manages conversations across multiple channels, stores long-term memory, and coordinates between multiple agents.
+
+## Feature Comparison
+
+| Feature | Claude Code | OpenClaw |
+|---|---|---|
+| Primary use | Code development | AI assistant platform |
+| Interface | Terminal / CLI | Multi-channel (web, Slack, email, etc.) |
+| Who uses it | The developer | End users, customers, team members |
+| Runtime | Interactive sessions | Always-on, deployed |
+| Code editing | Yes, core feature | Not its focus |
+| Multi-channel | No | Yes |
+| Memory / persistence | Session-based | Long-term memory across conversations |
+| Agent orchestration | No | Yes (sub-agents, pipelines) |
+| Cron / scheduling | No | Yes |
+| Customer-facing | No | Yes |
+| Git integration | Deep | Basic |
+| Model selection | Claude only | Multi-provider (Claude, GPT, Gemini, etc.) |
+| Self-hosted | No | Yes |
+| Cost management | Pay per use | Built-in routing, budgets, caching |
+
+## When to Use Claude Code
+
+Reach for Claude Code when you're:
+
+- **Writing or refactoring code.** It understands your project structure, reads your files, and makes edits directly. This is what it was built for.
+- **Debugging.** Describe the bug, let Claude Code read the relevant files, and get targeted fixes.
+- **Creating commits and PRs.** It can stage changes, write commit messages, and even create pull requests.
+- **Exploring unfamiliar code.** Point it at a new codebase and ask questions. It's like having a guide who's already read everything.
+- **One-off tasks.** Quick scripts, data transformations, file operations — anything you need done right now in your terminal.
+
+## When to Use OpenClaw
+
+Reach for OpenClaw when you're:
+
+- **Building a customer-facing chatbot.** OpenClaw handles the conversation management, channel integration, and deployment. Claude Code doesn't do any of that.
+- **Setting up automated workflows.** Email processing, scheduled reports, lead qualification — things that need to run without you.
+- **Running multiple AI agents.** Sub-agents, delegation patterns, pipelines. OpenClaw is built for agent orchestration.
+- **Connecting AI to business tools.** CRM integration, Slack bots, WhatsApp support — OpenClaw is the glue between AI and your existing stack.
+- **Managing costs across a team or business.** Model routing, caching, budgets, usage tracking — OpenClaw has this built in.
+
+## Using Both Together
+
+Here's where it gets interesting. The best workflow isn't choosing one or the other — it's using both for what they're best at.
+
+### Workflow: Building an OpenClaw Agent with Claude Code
+
+1. **Claude Code** helps you write the SOUL.md file, craft the agent's personality, and set up the configuration YAML
+2. **Claude Code** helps you write any custom tools or integrations your agent needs
+3. **Claude Code** helps you write tests for your agent's behavior
+4. **OpenClaw** deploys the agent and makes it available to users
+5. **OpenClaw** runs the agent 24/7, handling conversations and workflows
+6. When you need to iterate on the agent's behavior, go back to **Claude Code** to edit the configuration
+
+### Workflow: Debugging an OpenClaw Issue
+
+1. **OpenClaw** flags an issue — maybe an agent is giving weird responses or a workflow is failing
+2. You check the **OpenClaw dashboard** to see the logs and trace the problem
+3. You open **Claude Code** to read the relevant config files, understand the issue, and make fixes
+4. **Claude Code** commits the changes
+5. You redeploy through **OpenClaw**
+
+### Workflow: Prototyping Before Deployment
+
+1. Use **Claude Code** to quickly prototype a conversation flow or test how a model responds to certain prompts
+2. Once you're happy with the behavior, build it into an **OpenClaw** agent with proper configuration
+3. Deploy through **OpenClaw** to make it available across channels
+
+## A Concrete Example
+
+Say you run a small law firm and you want an AI assistant that:
+- Answers basic legal questions on your website
+- Handles intake forms via email
+- Summarizes case documents uploaded by your team on Slack
+
+**Claude Code's role:** Help you write the SOUL.md that defines the assistant's personality and legal boundaries. Write the custom tool that parses intake emails. Debug the document summarization prompt when it's not extracting the right information.
+
+**OpenClaw's role:** Deploy the assistant to your website widget, connect it to your email inbox, integrate with your Slack workspace. Keep it running around the clock. Route simple questions through a cheap model and complex ones through a more capable one. Store conversation history so the assistant remembers returning clients.
+
+Neither tool can do the other's job well. Claude Code is terrible at running a 24/7 multi-channel chatbot. OpenClaw isn't designed to help you write and debug code in your terminal. Together, they cover the full lifecycle from building to deploying to maintaining your AI systems.
+
+## The Bottom Line
+
+Don't think of this as OpenClaw *versus* Claude Code. Think of it as OpenClaw *and* Claude Code.
+
+Claude Code is your development tool. OpenClaw is your deployment and operations platform. Use Claude Code to build the thing. Use OpenClaw to run the thing. Use both to build better AI systems than either could deliver alone.

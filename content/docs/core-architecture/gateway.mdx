@@ -1,0 +1,180 @@
+---
+title: The Gateway
+description: How OpenClaw's central Gateway connects your AI assistant to models, devices, and the world.
+---
+
+# The Gateway
+
+If OpenClaw were a city, the Gateway would be its central train station. Every message you send, every response you receive, every skill that fires off — it all passes through the Gateway. Understanding it gives you a mental map of how everything in OpenClaw fits together.
+
+## What the Gateway Actually Does
+
+At its core, the Gateway is a **WebSocket server**. If that sounds intimidating, think of it like a phone line that stays open. Unlike a traditional web request (knock, ask a question, get an answer, hang up), a WebSocket connection stays alive. That means your conversation with OpenClaw flows naturally, in real time, without constant reconnecting.
+
+Here is what the Gateway handles on every single interaction:
+
+- **Receives your input** — whether typed, spoken, or triggered by an automation.
+- **Routes it to the right AI model** — maybe GPT-4o for a complex question, or a smaller model for a quick lookup.
+- **Manages your session** — keeps track of who you are, what you have been talking about, and what context matters.
+- **Dispatches skills** — if your message triggers a skill (like checking your calendar), the Gateway orchestrates that.
+- **Delivers the response** — streams it back to whatever device you are using.
+
+Think of it as air traffic control. Planes (your messages) come in, get directed to the right runway (AI model), and take off again (response back to you).
+
+## Model Routing
+
+One of the Gateway's most powerful features is **model routing**. You are not locked into a single AI model. The Gateway can send different types of requests to different models based on rules you define.
+
+Here is a basic routing configuration:
+
+```yaml
+# gateway.yaml
+routing:
+  default_model: "gpt-4o"
+  rules:
+    - match:
+        intent: "quick_answer"
+      model: "gpt-4o-mini"
+      reason: "Simple questions don't need the heavy model"
+
+    - match:
+        intent: "code_generation"
+      model: "claude-sonnet"
+      reason: "Strong at structured code output"
+
+    - match:
+        intent: "creative_writing"
+      model: "gpt-4o"
+      temperature: 0.9
+      reason: "Higher creativity setting for writing tasks"
+
+    - match:
+        skill: "image_*"
+      model: "dall-e-3"
+      reason: "Route image skills to the image model"
+```
+
+What is happening here? You are telling the Gateway: "When someone asks a simple question, use a cheaper, faster model. When they want code, use one that is good at code. When they want images, use an image model." This saves you money and gets you better results at the same time.
+
+## Connection Configuration
+
+The Gateway needs to know a few things to get started: where to listen, how to authenticate, and what limits to enforce.
+
+```json
+{
+  "gateway": {
+    "host": "0.0.0.0",
+    "port": 8340,
+    "websocket": {
+      "path": "/ws",
+      "ping_interval": 30,
+      "max_message_size": "1MB"
+    },
+    "auth": {
+      "method": "token",
+      "token_expiry": "24h",
+      "refresh_enabled": true
+    },
+    "rate_limiting": {
+      "messages_per_minute": 60,
+      "burst_allowance": 10
+    },
+    "cors": {
+      "allowed_origins": ["https://yourdomain.com"],
+      "allow_credentials": true
+    }
+  }
+}
+```
+
+Let's break that down in plain language:
+
+- **host and port** — where the Gateway listens. `0.0.0.0` means it accepts connections from anywhere (you would lock this down in production).
+- **websocket settings** — the `ping_interval` keeps the connection alive by sending a heartbeat every 30 seconds. `max_message_size` prevents anyone from sending absurdly large messages.
+- **auth** — tokens expire after 24 hours for security. Refresh tokens let you stay logged in without re-entering credentials.
+- **rate_limiting** — prevents abuse. 60 messages per minute with a burst of 10 means you can send a quick flurry but can not flood the system.
+
+## How the Gateway Connects Everything
+
+Here is the flow of a typical interaction, step by step:
+
+```
+You (phone/laptop/desktop)
+    │
+    ▼
+┌──────────┐
+│ Gateway  │ ← WebSocket connection stays open
+└──────────┘
+    │
+    ├──→ Session Manager (loads your context)
+    ├──→ SOUL.md + USER.md (loads personality + your profile)
+    ├──→ Memory Layer (recalls relevant past conversations)
+    ├──→ Model Router (picks the right AI model)
+    ├──→ Skill Dispatcher (triggers any needed skills)
+    │
+    ▼
+┌──────────┐
+│ Response │ ← Streamed back to your device
+└──────────┘
+```
+
+Everything fans out from the Gateway and converges back through it. No component talks directly to another — the Gateway is always in the middle, coordinating.
+
+## Multi-Model Fallback
+
+What happens if a model goes down? The Gateway has you covered with fallback chains:
+
+```yaml
+routing:
+  fallback:
+    enabled: true
+    chain:
+      - model: "gpt-4o"
+        timeout: 10s
+      - model: "claude-sonnet"
+        timeout: 15s
+      - model: "gpt-4o-mini"
+        timeout: 5s
+    on_all_failed: "queue_and_retry"
+    retry_delay: 30s
+```
+
+The Gateway tries the primary model first. If it times out or errors, it moves to the next one. If everything fails, it queues your message and retries after 30 seconds. You never see an error — just a slightly longer wait.
+
+## Monitoring Your Gateway
+
+You can check on your Gateway's health at any time:
+
+```yaml
+monitoring:
+  health_check:
+    endpoint: "/health"
+    interval: 10s
+  metrics:
+    enabled: true
+    export: "prometheus"
+    track:
+      - request_latency
+      - model_usage
+      - active_connections
+      - error_rate
+  alerts:
+    - condition: "error_rate > 5%"
+      notify: "email"
+    - condition: "latency_p95 > 3s"
+      notify: "slack"
+```
+
+This is optional, but if you are running OpenClaw for a team or business, knowing that your error rate spiked or latency jumped can save you headaches.
+
+## Practical Tips
+
+**Start simple.** You do not need custom routing rules on day one. The default configuration works well for most people. Add routing rules when you notice certain tasks would benefit from a different model.
+
+**Watch your rate limits.** If you are building automations that fire rapidly, increase the `messages_per_minute` or you will hit throttling.
+
+**Use fallbacks.** Model providers have outages. A fallback chain costs nothing when things are working and saves you when they are not.
+
+**Keep your Gateway updated.** OpenClaw releases Gateway updates regularly with performance improvements and new model support. A quick `openclaw update gateway` keeps you current.
+
+The Gateway is one of those things you configure once and mostly forget about. But when you understand what it does, the rest of OpenClaw's architecture makes a lot more sense. Everything flows through here — and that is by design.

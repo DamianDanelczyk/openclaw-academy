@@ -1,0 +1,292 @@
+---
+title: Research Assistant Workflow
+description: Automate research gathering, synthesis, and reporting for any topic with OpenClaw's research assistant playbook.
+---
+
+# Research Assistant Workflow
+
+Whether you are evaluating a new market, preparing a competitive analysis, exploring a technology decision, or just trying to get smart on a topic before a big meeting, research is one of those tasks that always takes longer than you think. You start with a simple question, fall down a rabbit hole of tabs and PDFs, and two hours later you have 40 bookmarks and no clear summary.
+
+The Research Assistant playbook gives OpenClaw a structured approach to research. You give it a question or topic, it goes to work gathering information from multiple sources, and it delivers a synthesized report that actually answers your question. No more tab overload, no more copy-pasting quotes into a doc that never gets organized.
+
+## How the Research Process Works
+
+OpenClaw follows a research workflow that mirrors how a good analyst thinks:
+
+1. **Brief** — You define the research question, scope, and what kind of answer you need
+2. **Gather** — OpenClaw searches across configured sources: web, databases, internal documents, industry reports
+3. **Filter** — It evaluates source credibility, relevance, and recency, discarding low-quality results
+4. **Synthesize** — The gathered information gets organized into a structured analysis with key findings
+5. **Report** — A final report is delivered with findings, sources, and recommended next steps
+
+The whole process can take anywhere from five minutes for a quick lookup to a few hours for a deep-dive analysis. You control the depth based on what you need.
+
+## Types of Research
+
+This playbook handles a wide range of research tasks:
+
+- **Market research** — Size a market, identify trends, understand customer segments
+- **Competitive analysis** — Compare products, pricing, positioning, and recent moves
+- **Technology evaluation** — Assess tools, frameworks, or platforms for your stack
+- **Person research** — Prepare for meetings by learning about attendees, speakers, or potential partners
+- **Industry trends** — Track emerging patterns, regulatory changes, or shifting dynamics
+- **Decision support** — Gather pros and cons for a specific decision you need to make
+
+You can request research ad-hoc (just ask OpenClaw a question) or set up recurring research on topics you want to track over time.
+
+## Getting Good Results
+
+The quality of your research output depends heavily on how well you frame the question. Here are some tips:
+
+- **Be specific**: "What is the market size for B2B SaaS tools in the healthcare vertical" gets better results than "tell me about healthcare SaaS"
+- **Define the audience**: "Explain this for a non-technical executive" produces a very different report than "give me the technical details"
+- **Set scope boundaries**: "Focus on North American companies with less than 500 employees" prevents the research from going too broad
+- **Specify format**: "Give me a comparison table" or "I need bullet points, not paragraphs" helps you get output you can actually use
+
+## SOUL.md Additions
+
+```markdown
+## Behaviors
+
+### Research Assistant
+- When I request research, first confirm the scope, depth, and desired output format before starting
+- Use multiple sources for any factual claim — never rely on a single source
+- Always evaluate source credibility: prefer primary sources, peer-reviewed data, and established publications over blog posts and opinion pieces
+- Clearly distinguish between facts, estimates, and opinions in research reports
+- Include source citations for every key finding — I need to be able to verify claims
+- Structure reports with: Executive Summary, Key Findings, Detailed Analysis, Sources, and Recommended Next Steps
+- For competitive analysis, use a consistent comparison framework across all competitors
+- Flag information that is more than 12 months old — it may be outdated
+- If the research question is ambiguous, ask clarifying questions before starting
+- Keep reports concise: aim for 1-2 pages for quick research, 3-5 pages for deep dives
+- Save completed research reports for future reference — I may want to update them later
+- When I ask to "update" a previous research report, build on what exists rather than starting from scratch
+```
+
+## Recommended Skills
+
+```yaml
+skills:
+  - name: web-researcher
+    provider: openclaw-native
+    config:
+      search_engines: ["google", "bing"]
+      max_sources_per_query: 20
+      credibility_filter: true
+    description: Searches the web and evaluates source quality
+
+  - name: document-analyzer
+    provider: openclaw-native
+    config:
+      supported_formats: ["pdf", "docx", "html", "csv"]
+      max_document_size: "10MB"
+    description: Reads and extracts information from uploaded documents
+
+  - name: data-aggregator
+    provider: openclaw-native
+    config:
+      sources: ["statista", "crunchbase", "similarweb"]
+    description: Pulls data from business intelligence platforms
+
+  - name: report-generator
+    provider: openclaw-native
+    config:
+      output_formats: ["markdown", "pdf", "google-doc"]
+      include_charts: true
+    description: Compiles research into formatted reports
+
+  - name: archive-manager
+    provider: openclaw-native
+    description: Stores and retrieves past research reports for updating
+```
+
+## Cron Configuration
+
+```yaml
+cron:
+  research-recurring-weekly:
+    schedule: "0 7 * * 1"  # Monday at 7:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: research-recurring
+    config:
+      topics:
+        - name: "Competitor Watch"
+          query: "Monitor competitor product updates, pricing changes, and press coverage"
+          competitors: ["Competitor A", "Competitor B", "Competitor C"]
+          depth: quick
+        - name: "Industry Trends"
+          query: "Track emerging trends and notable developments in [your industry]"
+          depth: quick
+    retry:
+      attempts: 2
+      delay: 15m
+
+  research-monthly-deep-dive:
+    schedule: "0 8 1 * *"  # 1st of each month at 8:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: research-deep-dive
+    config:
+      topic: "Monthly market landscape update"
+      depth: comprehensive
+      compare_to_previous: true  # highlight what changed since last month
+      output_format: google-doc
+
+  research-cleanup:
+    schedule: "0 9 1 */3 *"  # Quarterly, 1st day at 9:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: research-archive-review
+    config:
+      archive_older_than: 90d
+      flag_outdated: true
+```
+
+## Channel Setup
+
+```yaml
+channels:
+  research-requests:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#research"
+      format: rich
+      description: "Post research requests here — OpenClaw picks them up"
+      thread: true  # each request gets its own thread with updates
+
+  research-delivery:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: true  # push notification when research is complete
+
+  research-recurring-reports:
+    type: email
+    config:
+      recipient: "you@yourcompany.com"
+      subject_prefix: "[Research]"
+      format: html
+      attach_pdf: true  # attach the full report as a PDF
+```
+
+## Example Output
+
+Here is what an ad-hoc research report looks like:
+
+```
+RESEARCH REPORT
+Topic: "Best project management tools for remote teams under 50 people"
+Requested: April 14 | Completed: April 14 | Depth: Standard
+Sources evaluated: 34 | Sources used: 12
+
+EXECUTIVE SUMMARY
+The remote project management tool market is mature and highly
+competitive. For teams under 50 people, the top options are Linear,
+Notion, Asana, and Monday.com, each with distinct strengths.
+Linear excels for engineering teams. Notion is best for teams that
+want flexibility and documentation in one place. Asana suits
+cross-functional teams with complex workflows. Monday.com is
+strongest for visual project tracking and non-technical teams.
+
+KEY FINDINGS
+
+1. Pricing scales dramatically above 25 users
+   All four tools are affordable under 25 users ($7-12/user/month).
+   Above 25 users, Monday.com becomes the most expensive at
+   $16/user/month on comparable tiers. Notion remains cheapest
+   at $8/user/month for the Plus plan.
+
+2. Integration depth varies significantly
+   Linear integrates deeply with developer tools (GitHub, GitLab,
+   Sentry) but has limited integrations outside engineering.
+   Notion has the broadest API but requires more setup. Asana
+   and Monday.com have the most out-of-box integrations (200+).
+
+3. Remote-specific features are now table stakes
+   All four tools support async updates, timezone-aware scheduling,
+   and video call integrations. The differentiator is now how
+   well they handle async decision-making and status communication.
+
+4. User satisfaction correlates with team type
+   Engineering teams rate Linear highest (4.8/5 on G2). Mixed
+   teams prefer Notion (4.7/5). Marketing and ops teams prefer
+   Monday.com (4.6/5). Asana scores consistently across team
+   types (4.5/5).
+
+COMPARISON TABLE
+
+| Feature          | Linear | Notion | Asana  | Monday.com |
+|------------------|--------|--------|--------|------------|
+| Price (per user) | $8     | $8     | $11    | $12-16     |
+| Best for         | Eng    | Flex   | Cross  | Visual     |
+| Integrations     | 40+    | 80+    | 200+   | 200+       |
+| Mobile app       | Good   | Good   | Great  | Great      |
+| Learning curve   | Low    | Medium | Medium | Low        |
+| G2 rating        | 4.8    | 4.7    | 4.5    | 4.6        |
+
+SOURCES
+1. G2 Grid Report — Project Management, Q1 2026
+2. Gartner Peer Insights — March 2026 reviews
+3. Each tool's pricing page (accessed April 14, 2026)
+4. "State of Remote Work Tools" — Loom Research, Feb 2026
+5. Reddit r/projectmanagement — user discussions, last 90 days
+
+RECOMMENDED NEXT STEPS
+- If your team is primarily engineering: Start a Linear trial
+- If you want an all-in-one workspace: Start a Notion trial
+- If you need advanced workflow automation: Start an Asana trial
+- Consider running two 2-week trials with your team before deciding
+
+Want me to go deeper on any of these tools or research a
+different angle?
+```
+
+And here is a recurring weekly competitor watch:
+
+```
+COMPETITOR WATCH — Week of April 13
+
+COMPETITOR A
+  New: Launched a "Teams" tier at $15/user/month (previously
+  only offered Enterprise pricing). This undercuts our mid-tier
+  by $3/user.
+  Coverage: TechCrunch article (April 10), 2 industry blog mentions.
+  Impact assessment: Medium — could affect our mid-market positioning.
+
+COMPETITOR B
+  New: No product updates. Published a case study with a Fortune
+  500 healthcare company.
+  Coverage: Their blog only. Low external pickup.
+  Impact assessment: Low — reinforces their enterprise positioning,
+  doesn't affect our segment.
+
+COMPETITOR C
+  New: Their CEO posted on LinkedIn about raising a Series B
+  (amount undisclosed). Comments suggest $20-30M range.
+  Coverage: LinkedIn post (1,200 likes), brief mention on Crunchbase.
+  Impact assessment: Medium-High — new funding means likely product
+  acceleration. Worth monitoring closely over the next quarter.
+
+NO SIGNIFICANT CHANGES
+  Industry pricing trends remain stable. No regulatory updates
+  this week.
+
+COMPARED TO LAST WEEK
+  Competitor activity level: Higher than average (new tier launch
+  + funding round). Consider accelerating your Q2 feature roadmap
+  communication to maintain positioning.
+```
+
+## Getting More From Your Research
+
+- **Build a knowledge base**: Every research report gets saved. Over time, you build a searchable library of insights. When a topic comes up again, OpenClaw can reference past research instead of starting from scratch.
+- **Collaborative research**: Share the #research channel with your team. Anyone can post a research request and OpenClaw handles it. This democratizes access to research without adding headcount.
+- **Research chains**: Start with a broad question, then ask follow-up questions to go deeper on specific findings. OpenClaw maintains context across the conversation.
+- **Custom source lists**: If there are specific publications, analysts, or data sources you trust most, add them to your skill configuration. OpenClaw will prioritize those sources in its research.
+- **Presentation-ready output**: Ask for output in "presentation format" and OpenClaw will structure the findings as slides-ready bullet points with supporting data, ready to paste into your deck.
+
+<CTACard variant="community" />

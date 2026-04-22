@@ -1,0 +1,278 @@
+---
+title: Webhooks
+description: Understand what webhooks are, how to set them up securely in OpenClaw, and see five real-world integration examples.
+---
+
+# Webhooks
+
+Imagine you are waiting for a package. You could check the front door every five minutes, or you could just wait for the doorbell to ring. Webhooks are the doorbell. Instead of your OpenClaw assistant constantly asking "did anything happen yet?", external services *tell* OpenClaw the moment something happens.
+
+This page explains webhooks in plain language, walks you through setup and security, and gives you five practical examples you can copy and adapt.
+
+## What Exactly Is a Webhook?
+
+A webhook is a URL that your OpenClaw instance exposes. When an external service (like GitHub, Stripe, or Slack) wants to notify you of an event, it sends an HTTP request to that URL with details about what happened. OpenClaw receives the request, reads the data, and runs whatever action you have configured.
+
+The flow looks like this:
+
+```
+External Service ──► HTTP POST ──► Your OpenClaw Webhook URL ──► Your Action Runs
+```
+
+No polling, no wasted resources, no delays. Events arrive in real time.
+
+## Setting Up Your First Webhook
+
+### Step 1: Register a Webhook Endpoint
+
+In your `openclaw.config.yaml`, add a `webhooks` section:
+
+```yaml
+webhooks:
+  - name: "my-first-webhook"
+    path: "/hooks/my-first-webhook"
+    method: "POST"
+    action: "assistant.send_message('A webhook just fired!')"
+```
+
+### Step 2: Reload the Configuration
+
+```bash
+openclaw config reload
+```
+
+### Step 3: Find Your Webhook URL
+
+```bash
+openclaw webhook list
+```
+
+```
+NAME                URL                                              STATUS
+my-first-webhook    https://your-instance.openclaw.app/hooks/my-first-webhook   active
+```
+
+That URL is what you give to the external service. Whenever it sends a POST request to that address, OpenClaw will run the action.
+
+### Step 4: Test It Locally
+
+You can fire a test request with curl:
+
+```bash
+curl -X POST https://your-instance.openclaw.app/hooks/my-first-webhook \
+  -H "Content-Type: application/json" \
+  -d '{"test": true}'
+```
+
+If everything is wired up, you should see the message "A webhook just fired!" in your OpenClaw dashboard.
+
+## Securing Your Webhooks with HMAC Verification
+
+Here is the problem: once your webhook URL is out in the world, anyone who discovers it could send fake requests. You need a way to verify that incoming requests genuinely come from the service you expect.
+
+The standard approach is **HMAC (Hash-based Message Authentication Code)** verification. It works like this:
+
+1. You and the external service share a secret key.
+2. When the service sends a webhook, it creates a signature by hashing the request body with the secret key.
+3. OpenClaw recalculates the hash using the same key and checks if it matches.
+4. If the signatures match, the request is legitimate. If not, OpenClaw rejects it.
+
+### Configuring HMAC Verification
+
+```yaml
+webhooks:
+  - name: "github-push"
+    path: "/hooks/github"
+    method: "POST"
+    secret: "${GITHUB_WEBHOOK_SECRET}"
+    signature_header: "X-Hub-Signature-256"
+    signature_algorithm: "sha256"
+    action: "automations.on_github_push(payload)"
+```
+
+Store the secret in your `.env` file -- never hard-code it:
+
+```bash
+# .env
+GITHUB_WEBHOOK_SECRET=whsec_a8f29c4e6b1d3f5a7e9c2b4d6f8a0e1c
+```
+
+When a request arrives without a valid signature, OpenClaw returns a `401 Unauthorized` response and logs the attempt:
+
+```
+[WARN] Webhook "github-push" rejected: invalid signature from 203.0.113.42
+```
+
+### Additional Security Options
+
+You can layer on extra protections:
+
+```yaml
+webhooks:
+  - name: "stripe-payment"
+    path: "/hooks/stripe"
+    method: "POST"
+    secret: "${STRIPE_WEBHOOK_SECRET}"
+    signature_header: "Stripe-Signature"
+    signature_algorithm: "sha256"
+    allowed_ips:
+      - "3.18.12.63"
+      - "3.130.192.0/24"
+    rate_limit: "60/min"
+    action: "automations.on_payment(payload)"
+```
+
+- **`allowed_ips`** restricts which IP addresses can call the webhook.
+- **`rate_limit`** prevents abuse by capping how many requests per minute are accepted.
+
+## Accessing Webhook Data
+
+When a webhook fires, the incoming JSON body is available as `payload` inside your action. You can reference fields directly:
+
+```yaml
+webhooks:
+  - name: "new-order"
+    path: "/hooks/orders"
+    method: "POST"
+    secret: "${ORDER_WEBHOOK_SECRET}"
+    signature_header: "X-Signature"
+    signature_algorithm: "sha256"
+    action: |
+      assistant.send_message(
+        'New order received! Customer: {{ payload.customer.name }},
+         Amount: ${{ payload.amount }},
+         Items: {{ payload.items | length }}'
+      )
+```
+
+OpenClaw uses a simple templating syntax. Anything inside `{{ }}` is evaluated from the payload.
+
+## Five Real-World Webhook Examples
+
+### 1. GitHub -- Notify on New Pull Requests
+
+```yaml
+- name: "github-pr"
+  path: "/hooks/github-pr"
+  method: "POST"
+  secret: "${GITHUB_WEBHOOK_SECRET}"
+  signature_header: "X-Hub-Signature-256"
+  signature_algorithm: "sha256"
+  filter: "payload.action == 'opened'"
+  action: |
+    assistant.send_message(
+      'New PR in {{ payload.repository.name }}:
+       "{{ payload.pull_request.title }}" by {{ payload.pull_request.user.login }}'
+    )
+```
+
+In GitHub, go to your repo's Settings > Webhooks > Add Webhook, paste the URL, select "Pull requests" as the event, and enter the shared secret.
+
+### 2. Stripe -- Process Successful Payments
+
+```yaml
+- name: "stripe-payment-success"
+  path: "/hooks/stripe"
+  method: "POST"
+  secret: "${STRIPE_WEBHOOK_SECRET}"
+  signature_header: "Stripe-Signature"
+  signature_algorithm: "sha256"
+  filter: "payload.type == 'payment_intent.succeeded'"
+  action: |
+    assistant.log_payment(
+      amount: payload.data.object.amount / 100,
+      currency: payload.data.object.currency,
+      customer: payload.data.object.customer
+    )
+    assistant.send_message('Payment of ${{ payload.data.object.amount / 100 }} received.')
+```
+
+### 3. Zapier -- Trigger OpenClaw from Any Zap
+
+```yaml
+- name: "zapier-trigger"
+  path: "/hooks/zapier"
+  method: "POST"
+  secret: "${ZAPIER_WEBHOOK_SECRET}"
+  signature_header: "X-Zapier-Signature"
+  signature_algorithm: "sha256"
+  action: |
+    assistant.run_task(
+      task: payload.task_name,
+      params: payload.params
+    )
+```
+
+In Zapier, use the "Webhooks by Zapier" action, set the URL to your OpenClaw endpoint, and include a `task_name` and `params` object in the JSON body.
+
+### 4. Slack -- Respond to Slash Commands
+
+```yaml
+- name: "slack-command"
+  path: "/hooks/slack"
+  method: "POST"
+  secret: "${SLACK_SIGNING_SECRET}"
+  signature_header: "X-Slack-Signature"
+  signature_algorithm: "sha256"
+  action: |
+    assistant.handle_slack_command(
+      command: payload.command,
+      text: payload.text,
+      response_url: payload.response_url
+    )
+```
+
+### 5. Custom Internal Service -- Deployment Notifications
+
+```yaml
+- name: "deploy-notify"
+  path: "/hooks/deploy"
+  method: "POST"
+  secret: "${DEPLOY_WEBHOOK_SECRET}"
+  signature_header: "X-Deploy-Signature"
+  signature_algorithm: "sha256"
+  action: |
+    assistant.send_message(
+      'Deployment complete: {{ payload.service }} v{{ payload.version }}
+       is now live in {{ payload.environment }}.'
+    )
+    system.run_health_check(service: payload.service)
+```
+
+## Debugging Webhooks
+
+If a webhook is not working as expected, start with the logs:
+
+```bash
+openclaw logs --filter webhooks --last 1h
+```
+
+You can also inspect recent deliveries:
+
+```bash
+openclaw webhook history "github-pr" --last 10
+```
+
+```
+TIMESTAMP            STATUS   SOURCE IP       SIGNATURE
+2026-04-22 14:32:01  200 OK   140.82.115.10   valid
+2026-04-22 14:28:44  401      203.0.113.42    invalid
+2026-04-22 13:55:12  200 OK   140.82.115.10   valid
+```
+
+Common issues to check:
+
+- **Wrong secret** -- Make sure the secret in your `.env` file matches exactly what the external service has.
+- **Wrong signature header** -- Each service uses a different header name. Double-check the docs.
+- **Firewall blocking** -- If you have network restrictions enabled, ensure the external service's IPs are allowed. See [Network Security](/docs/security/network-security).
+- **Payload format mismatch** -- Use `openclaw webhook inspect "name"` to see the raw body of the last delivery.
+
+## Webhooks vs. Polling vs. Cron
+
+| Approach | Best for | Latency |
+|---|---|---|
+| Webhooks | Real-time events from external services | Instant |
+| Cron jobs | Time-based recurring tasks | Scheduled |
+| Polling | Services that don't support webhooks | Depends on interval |
+
+In general, prefer webhooks whenever the external service supports them. They are faster, lighter on resources, and easier to reason about. For everything else, there are [Cron Jobs](/docs/automation/cron-jobs).
