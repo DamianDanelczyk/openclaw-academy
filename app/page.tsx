@@ -70,8 +70,7 @@ export default function HomePage() {
             <p className="mt-6 max-w-lg text-lg text-fd-muted-foreground">
               Your plain-English introduction to the AI agent that actually does
               things for you. From zero to production — no coding experience
-              required.{' '}
-              <span className="font-semibold text-[hsl(0,65%,50%)]">100% Free.</span>
+              required.
             </p>
             <p className="mt-3 text-sm italic text-fd-muted-foreground">
               &ldquo;The lobster way&rdquo; — your personal assistant, running on
@@ -82,7 +81,7 @@ export default function HomePage() {
                 href="/docs/getting-started/what-is-openclaw"
                 className="rounded-lg bg-[hsl(0,65%,50%)] px-8 py-3 font-semibold text-white transition-all hover:bg-[hsl(0,65%,45%)]"
               >
-                Start Learning — It&apos;s Free
+                Start Learning
               </Link>
             </div>
           </div>
@@ -203,14 +202,13 @@ export default function HomePage() {
             Ready to get started?
           </h2>
           <p className="mb-8 text-fd-muted-foreground">
-            Everything you need to go from zero to a working AI agent setup —
-            completely free.
+            Everything you need to go from zero to a working AI agent setup.
           </p>
           <Link
             href="/docs/getting-started/what-is-openclaw"
             className="inline-block rounded-lg bg-[hsl(0,65%,50%)] px-8 py-3 font-semibold text-white transition-all hover:bg-[hsl(0,65%,45%)]"
           >
-            Start Learning — It&apos;s Free
+            Start Learning
           </Link>
         </div>
       </section>
