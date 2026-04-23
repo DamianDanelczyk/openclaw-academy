@@ -1,0 +1,64 @@
+---
+title: The Gateway Dashboard Walkthrough
+description: A tour of every section of the OpenClaw dashboard — what each part does and when you'll use it.
+---
+
+Once you've gone through setup and had a few conversations with your agent, it's time to actually understand what you're looking at in the dashboard. A lot of people spend weeks using OpenClaw while barely leaving the Agents section — and that's fine, you can get a lot done there. But knowing what each part of the dashboard does means you'll know exactly where to go when you want to try something new or when something needs fixing.
+
+Let's take a tour.
+
+## Home / Overview
+
+The landing page you see when you first open the dashboard shows you the overall health of your OpenClaw instance at a glance. Is the gateway running? How many messages have been processed today? Is your AI provider responding normally? This section is like the instrument panel on a car — you glance at it to confirm everything is green, and you pay closer attention only when something turns red.
+
+You'll also see recent activity here: the last few messages or events that went through the system. It gives you a quick sense of whether your agent is actually doing anything or sitting idle.
+
+## Agents
+
+This is where most of your time will be spent, especially early on. Each agent you create lives here with its own name, system prompt, and configuration. The system prompt is the instruction you gave your agent about how to behave — something like "You are a helpful personal assistant" — and you can refine it here at any time.
+
+You can have multiple agents if you want different personalities or purposes. One agent might be a personal assistant, another might be focused specifically on writing or research. For most people starting out, one agent is plenty. Add more when you have a clear reason to, not just because you can.
+
+## Channels
+
+Channels are how your agent connects to the outside world. Telegram, web chat, and any other integration you've set up will appear here. Each channel card shows you whether it's connected and active, and clicking into one lets you manage its settings.
+
+If your Telegram bot stops responding, the first place to check is the Channels section — you'll often see immediately whether the connection has dropped. Reconnecting is usually as simple as re-entering your bot token. Think of Channels as the list of "doors" into your agent. At least one needs to be open for your agent to be reachable.
+
+## Memory
+
+Memory is one of the more powerful and underused features in OpenClaw. This is where your agent stores persistent information — things it's been told to remember, facts it's learned from your conversations, preferences you've expressed.
+
+You can view the contents of your agent's memory here, which is useful when your agent seems to be working from outdated information. You can also manually add entries, which is a handy way to front-load context ("My name is Alex, I'm a freelance designer, I prefer short responses"). The Memory section is also where you'd go to delete something your agent has remembered incorrectly.
+
+## Skills
+
+Skills are extra capabilities you can add to your agent beyond basic conversation. These might include things like web search, calendar access, file reading, or custom integrations. Not all Skills are available by default — some require additional setup or API connections.
+
+You won't need to touch this section immediately, but it's worth knowing it exists. When you find yourself thinking "I wish my agent could do X", Skills is often where the answer lives.
+
+## Logs
+
+Logs might be the single most useful section in the entire dashboard, and it tends to be the most ignored until something goes wrong. Every message your agent receives, every response it sends, every action it takes, and every error it encounters gets recorded here with a timestamp.
+
+When your agent gives a strange response or doesn't respond at all, opening Logs is almost always the fastest way to understand why. You can filter by time range, by channel, or by log type (info, warning, error). The error logs in particular will usually tell you in plain terms what went wrong — a failed API call, an invalid token, an action that was blocked.
+
+Make it a habit to glance at Logs whenever something feels off. It's your agent's running diary, and it hides very little.
+
+## Settings
+
+Settings covers everything that affects your OpenClaw instance globally — your dashboard password, API key configuration, Heartbeat, budget alerts, and various system preferences. You set most of this up during onboarding, but you'll return to it occasionally when you need to update a key, change a limit, or toggle a feature.
+
+One thing to know: Settings is split into sub-sections in most dashboard versions. There's usually a General section, an API Keys section, and a Security section at minimum. If you're looking for something and can't find it, check whether it's in a sub-section rather than at the top level.
+
+## You'll Use Four or Five of These Regularly
+
+Don't be overwhelmed by the fact that there are so many sections. In practice, a week of using OpenClaw will involve Agents (adjusting how your agent behaves), Channels (confirming connections are live), Logs (checking what happened), and occasionally Settings (updating something). The rest you'll visit when you have a specific reason to.
+
+The dashboard is well laid out. Give yourself a few sessions to get comfortable with where things live, and it'll start to feel natural.
+
+## What's Next
+
+You've got the tour done. The last page in this section covers the practical side of long-term maintenance — how to keep OpenClaw updated and what to do when things break.
+
+> **Want the full technical details?** See the advanced guide: [Channels Overview](/en/docs/core-architecture/channels/overview)

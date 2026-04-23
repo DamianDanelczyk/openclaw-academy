@@ -33,6 +33,10 @@ const t: Record<Lang, {
   ctaTitle: string;
   ctaSubtitle: string;
   ctaButton: string;
+  beginnerBadge: string;
+  beginnerTitle: string;
+  beginnerSubtitle: string;
+  beginnerCta: string;
   footerRights: string;
   footerPoweredBy: string;
   footerDisclaimer: string;
@@ -66,6 +70,10 @@ const t: Record<Lang, {
     ctaTitle: 'Ready to get started?',
     ctaSubtitle: 'Everything you need to go from zero to a working AI agent setup.',
     ctaButton: 'Start Learning',
+    beginnerBadge: 'New to OpenClaw?',
+    beginnerTitle: 'Start with the Beginner Path',
+    beginnerSubtitle: 'Start here if you\'re a complete beginner or taking the OpenClaw Masterclass on Udemy. Plain English, no coding required.',
+    beginnerCta: 'Start the Beginner Path',
     footerRights: 'All rights reserved.',
     footerPoweredBy: 'Powered by',
     footerDisclaimer: 'OpenClaw Academy is an independent, community-built resource and is not affiliated with, endorsed by, or officially connected to OpenClaw or its creators. All content is written independently for educational purposes.',
@@ -99,6 +107,10 @@ const t: Record<Lang, {
     ctaTitle: '¿Listo para empezar?',
     ctaSubtitle: 'Todo lo que necesitas para pasar de cero a una configuración de agente de IA funcional.',
     ctaButton: 'Empezar a Aprender',
+    beginnerBadge: '¿Nuevo en OpenClaw?',
+    beginnerTitle: 'Empieza con el Camino para Principiantes',
+    beginnerSubtitle: 'Empieza aquí si eres completamente nuevo o estás haciendo el OpenClaw Masterclass en Udemy. En español sencillo, sin necesidad de programar.',
+    beginnerCta: 'Empezar el Camino para Principiantes',
     footerRights: 'Todos los derechos reservados.',
     footerPoweredBy: 'Desarrollado por',
     footerDisclaimer: 'OpenClaw Academy es un recurso independiente creado por la comunidad y no está afiliado, respaldado ni conectado oficialmente a OpenClaw o sus creadores. Todo el contenido es escrito de forma independiente con fines educativos.',
@@ -132,6 +144,10 @@ const t: Record<Lang, {
     ctaTitle: 'Pronto para começar?',
     ctaSubtitle: 'Tudo que você precisa para ir do zero a uma configuração funcional de agente de IA.',
     ctaButton: 'Começar a Aprender',
+    beginnerBadge: 'Novo no OpenClaw?',
+    beginnerTitle: 'Comece com o Caminho para Iniciantes',
+    beginnerSubtitle: 'Comece aqui se você é completamente iniciante ou está fazendo o OpenClaw Masterclass na Udemy. Em português simples, sem necessidade de programar.',
+    beginnerCta: 'Começar o Caminho para Iniciantes',
     footerRights: 'Todos os direitos reservados.',
     footerPoweredBy: 'Desenvolvido por',
     footerDisclaimer: 'OpenClaw Academy é um recurso independente criado pela comunidade e não é afiliado, endossado nem oficialmente conectado ao OpenClaw ou seus criadores. Todo o conteúdo é escrito de forma independente para fins educacionais.',
@@ -165,6 +181,10 @@ const t: Record<Lang, {
     ctaTitle: 'Prêt à commencer ?',
     ctaSubtitle: 'Tout ce dont vous avez besoin pour passer de zéro à une configuration d\'agent IA fonctionnelle.',
     ctaButton: 'Commencer à Apprendre',
+    beginnerBadge: 'Nouveau sur OpenClaw ?',
+    beginnerTitle: 'Commencez par le Parcours Débutant',
+    beginnerSubtitle: 'Commencez ici si vous êtes un débutant complet ou si vous suivez le OpenClaw Masterclass sur Udemy. En français simple, aucune programmation requise.',
+    beginnerCta: 'Commencer le Parcours Débutant',
     footerRights: 'Tous droits réservés.',
     footerPoweredBy: 'Propulsé par',
     footerDisclaimer: 'OpenClaw Academy est une ressource indépendante créée par la communauté et n\'est pas affiliée, approuvée ni officiellement connectée à OpenClaw ou ses créateurs. Tout le contenu est rédigé de manière indépendante à des fins éducatives.',
@@ -198,6 +218,10 @@ const t: Record<Lang, {
     ctaTitle: 'Bereit anzufangen?',
     ctaSubtitle: 'Alles, was Sie brauchen, um von null zu einem funktionierenden KI-Agenten-Setup zu gelangen.',
     ctaButton: 'Jetzt Lernen',
+    beginnerBadge: 'Neu bei OpenClaw?',
+    beginnerTitle: 'Starten Sie mit dem Einsteiger-Pfad',
+    beginnerSubtitle: 'Fangen Sie hier an, wenn Sie ein kompletter Einsteiger sind oder den OpenClaw Masterclass auf Udemy machen. Auf verständlichem Deutsch, keine Programmierkenntnisse erforderlich.',
+    beginnerCta: 'Einsteiger-Pfad starten',
     footerRights: 'Alle Rechte vorbehalten.',
     footerPoweredBy: 'Unterstützt von',
     footerDisclaimer: 'OpenClaw Academy ist eine unabhängige, community-erstellte Ressource und ist nicht mit OpenClaw oder seinen Erstellern verbunden, wird nicht von ihnen unterstützt oder ist offiziell mit ihnen verbunden. Alle Inhalte wurden unabhängig für Bildungszwecke verfasst.',
@@ -231,6 +255,10 @@ const t: Record<Lang, {
     ctaTitle: 'Gotowy na start?',
     ctaSubtitle: 'Wszystko, czego potrzebujesz, żeby przejść od zera do działającego agenta AI.',
     ctaButton: 'Zacznij Naukę',
+    beginnerBadge: 'Nowy w OpenClaw?',
+    beginnerTitle: 'Zacznij od Ścieżki dla Początkujących',
+    beginnerSubtitle: 'Zacznij tutaj jeśli jesteś zupełnym nowicjuszem lub robisz OpenClaw Masterclass na Udemy. Prostym językiem, bez potrzeby programowania.',
+    beginnerCta: 'Zacznij Ścieżkę dla Początkujących',
     footerRights: 'Wszelkie prawa zastrzeżone.',
     footerPoweredBy: 'Napędzane przez',
     footerDisclaimer: 'OpenClaw Academy to niezależny zasób stworzony przez społeczność. Nie jest powiązany, wspierany ani oficjalnie połączony z OpenClaw ani jego twórcami. Wszystkie treści są napisane niezależnie w celach edukacyjnych.',
@@ -370,6 +398,33 @@ export default function HomePage() {
               <p className="mt-1 text-sm text-fd-muted-foreground">{tr.statsLabels[i]}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Beginner Path CTA */}
+      <section className="border-t border-fd-border px-6 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-col items-center gap-6 rounded-2xl border border-[hsl(0,65%,50%)]/20 bg-[hsl(0,65%,50%)]/5 px-8 py-12 text-center md:flex-row md:text-left">
+            <div className="flex-1">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[hsl(0,65%,50%)]">
+                {tr.beginnerBadge}
+              </p>
+              <h2 className="mb-3 text-2xl font-bold text-fd-foreground md:text-3xl">
+                {tr.beginnerTitle}
+              </h2>
+              <p className="text-fd-muted-foreground">
+                {tr.beginnerSubtitle}
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <Link
+                href={`/${lang}/docs/beginner-path/introduction/what-is-openclaw`}
+                className="inline-block rounded-lg bg-[hsl(0,65%,50%)] px-8 py-3 font-semibold text-white transition-all hover:bg-[hsl(0,65%,45%)]"
+              >
+                {tr.beginnerCta}
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

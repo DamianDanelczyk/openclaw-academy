@@ -1,0 +1,54 @@
+---
+title: Building Your Mission Control Dashboard
+description: How to set up a personal Mission Control dashboard inside OpenClaw — a central hub for your tasks, projects, and daily priorities.
+---
+
+Most people who struggle to stay organised don't lack willpower — they lack a single place where everything important lives. Their tasks are in one app, their projects in another, their calendar somewhere else, and their priorities scattered across sticky notes and browser tabs. The result is constant context-switching, and constant context-switching is exhausting.
+
+Mission Control is the answer to that. Not another app to maintain, but a simple, central file inside your OpenClaw workspace that your AI assistant reads before it does anything for you. When your agent always knows where you stand, every conversation you have with it gets dramatically more useful.
+
+## What Mission Control Actually Is
+
+Mission Control is a concept from this course, not a built-in product feature. You're building it yourself, which sounds like more work than it is. At its core, Mission Control is just a workspace file — a plain text document in your OpenClaw workspace that contains four things: your active projects, your current priorities, your key contacts, and what's on your plate today.
+
+Your assistant reads this file as context before responding to you. Ask it "what should I focus on right now?" and instead of a generic answer, it looks at your priorities and gives you something real. Ask it to draft an email and it already knows who your key contacts are. The file is the connective tissue between all the different things you're doing.
+
+OpenClaw's Canvas feature is what makes this work smoothly. Canvas lets you create and manage files in your workspace that your agent can both read and write. Your Mission Control file lives in Canvas, and your agent can update it when you tell it to.
+
+## What to Put in Your Initial Mission Control File
+
+Start simple. You can always add more later — and you will. A solid starting structure looks like this:
+
+A **Priorities** section with your top three focuses for the current week. Not twenty things — three. Your agent will reference these when you ask for advice on what to work on.
+
+An **Active Projects** section with a one-line status on each project you're currently running. Just the name and what stage it's at. The detail lives in separate project files (covered in the next page).
+
+A **Today** section with what you intend to do today. This is the thing you update each morning. Your agent will refer to it when you check in throughout the day.
+
+A **Key Contacts** section with the names and roles of people relevant to your current work. Not your entire address book — just the five or ten people your agent might need to know about when helping you draft communications or plan outreach.
+
+## How to Create It
+
+Open your OpenClaw dashboard at `http://127.0.0.1:18789`. Navigate to Canvas in the sidebar. Create a new file — call it something clear like `mission-control.md`. Then start writing. Plain text, plain headings, no special formatting required.
+
+Once it exists, tell your agent to use it. Something like: "I've created a file called mission-control.md in Canvas. Before answering any of my questions, please read it for context." From that point on, your agent knows to check it.
+
+You can also ask your agent to help you build the file in the first place. Try: "I want to create a Mission Control file in Canvas. Ask me questions to help me fill it in — my active projects, current priorities, key contacts, and today's agenda." Your agent will interview you and build the file as you go.
+
+## Why This Works Better Than a Task App
+
+Task apps are passive. They hold your information until you go look at it. Your Mission Control file is active — it feeds context to an AI that's actively working with you. The difference in practice is that you stop having to mentally carry your to-do list around. Your agent carries it.
+
+You also stop saying "let me remind you what I'm working on" at the start of every conversation. The context is already there. Every session starts from a place of shared understanding, not from zero.
+
+## Common Mistakes
+
+The most common one is making Mission Control too detailed. When you try to capture everything, it stops being a quick-reference context file and becomes a burden to maintain. Keep it high-level. The detail belongs in your project files.
+
+The second common mistake is creating the file and then never updating it. Mission Control is only useful if it's current. Build a habit of spending two minutes each morning updating the "Today" section. That's all it takes.
+
+## What's Next
+
+Now that you have a Mission Control foundation, the next few pages cover the layers around it — your task board, your project files, and your calendar integration — all of which feed into and extend what you've just built.
+
+> **Want the full technical details?** See the advanced guide: [Canvas](/en/docs/core-architecture/canvas)

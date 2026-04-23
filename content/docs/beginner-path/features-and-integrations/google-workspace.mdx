@@ -1,0 +1,64 @@
+---
+title: Installing Google Workspace (GOG)
+description: How to connect OpenClaw to your Google account so your assistant can read, write, and organise your Gmail, Calendar, and Drive.
+---
+
+If there's one integration that makes OpenClaw feel like a real personal assistant rather than a chatbot, it's GOG — the Google Workspace skill. Once it's set up, you can ask your assistant to summarise your unread emails, schedule a meeting, find a document in Drive, or tell you what's on your calendar today. And it just works.
+
+The setup is a bit more involved than most integrations, but it's a one-time process, and the payoff is significant. Walk through each step at a comfortable pace and you'll be fine.
+
+## A Critical Step Before You Start
+
+Create a dedicated Google account for this integration. Do not use your personal Gmail for this.
+
+This is important for two reasons. The first is security: you're granting OpenClaw broad access to the emails, calendar, and files in whichever account you connect. A dedicated account limits the blast radius if anything ever goes wrong — your personal emails and files are never touched. The second is practicality: keeping your personal inbox and your assistant's working inbox separate makes everything cleaner and easier to manage.
+
+Go to accounts.google.com, create a new account, and give it a name you'll recognise — something like your name plus "assistant" works fine. This is the account you'll use for the rest of this setup.
+
+## Creating a Google Cloud Project
+
+Google requires you to create a project in Google Cloud Console before your application can use their APIs. This sounds more intimidating than it is.
+
+Go to `console.cloud.google.com` and sign in with your new dedicated account. Click "Create Project", give it a name (anything recognisable, like "OpenClaw Assistant"), and create it. You'll land on the project dashboard.
+
+Now you need to enable two APIs: Gmail API and Google Calendar API. Use the search bar at the top to find each one, open it, and click Enable. If you also want Drive access, enable the Google Drive API the same way. The process for each one is identical and takes about thirty seconds per API.
+
+## Creating Credentials
+
+With your APIs enabled, you need to create credentials — this is the file that proves to Google that requests coming from OpenClaw are authorised.
+
+In the left sidebar, go to APIs & Services, then Credentials. Click "Create Credentials" and choose "OAuth 2.0 Client ID". You'll be asked what type of application this is — choose "Desktop app". Give it a name and click Create.
+
+Google will generate your credentials and offer you a button to download a JSON file. Download it and keep it somewhere you can find it — you'll paste its contents into OpenClaw in a moment.
+
+You'll also need to configure the OAuth consent screen if prompted. Fill in the required fields: application name, user support email (use your dedicated Google account), and developer contact email. The scope settings can stay at the default for now.
+
+## Adding GOG to OpenClaw
+
+Open your dashboard at `http://127.0.0.1:18789` and go to the ClawHub section. Find the GOG (Google Workspace) skill and click Install.
+
+During the installation, you'll be prompted to enter your credentials. Open the JSON file you downloaded from Google Cloud Console, copy the entire contents, and paste it into the credentials field. OpenClaw will parse the file and configure the connection.
+
+The first time you connect, you'll be redirected to a Google authorisation page where you approve the permissions for your dedicated account. Make sure you're signed in with the dedicated assistant account, not your personal one, when you do this.
+
+Once authorised, the skill will confirm it's connected and test the connection. If everything worked, you'll see the status change to active.
+
+## What You Can Do Now
+
+With GOG installed, your assistant can read your emails in the connected account, search for specific messages, create and update calendar events, check your schedule, and search through Drive documents. You ask for what you want in plain English and the agent handles the mechanics.
+
+Try a few simple requests to start: "What's on my calendar tomorrow?" or "Do I have any unread emails that look important?" Getting comfortable with what the integration can do is the best way to start discovering where it fits into your workflow.
+
+## Common Mistakes
+
+Using a personal Gmail account instead of a dedicated one is the most significant mistake people make here. It's easy to overlook, but it matters — take the few minutes to set up a fresh account.
+
+Skipping the OAuth consent screen configuration causes the authorisation to fail. If you see an error during the Google sign-in step, go back to Cloud Console and make sure the consent screen is filled in.
+
+Enabling only Gmail but not Calendar (or vice versa) and then wondering why half the features don't work is also common. If you want the full integration, enable all three APIs: Gmail, Calendar, and Drive.
+
+## What's Next
+
+With Google Workspace connected, the next page puts it all together in your first real automation project — a daily email digest delivered to Telegram every morning.
+
+> **Want the full technical details?** See the advanced guide: [Skills & ClawHub](/en/docs/core-architecture/skills-clawhub)

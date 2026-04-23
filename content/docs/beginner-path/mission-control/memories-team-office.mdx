@@ -1,0 +1,60 @@
+---
+title: Memories, Team & Office
+description: How OpenClaw's memory system keeps track of what it learns about you, and how to use the team and office features if you're working with others.
+---
+
+Every time you start a new conversation with most AI tools, you're starting from scratch. You explain your situation, your preferences, your context — and then the session ends and it's all gone. Next time, you do it again. It's one of the most frustrating things about AI assistants, and it's the problem OpenClaw's memory system is designed to solve.
+
+## Two Kinds of Memory
+
+OpenClaw uses two distinct types of memory, and understanding the difference helps you use both well.
+
+The first is **conversation memory**. This is the context your agent holds during the current session — everything that's been said in this conversation. It's temporary. When the conversation ends, it doesn't carry forward automatically. Think of it like your agent's short-term memory: sharp and useful in the moment, but not designed to last.
+
+The second is **persistent memory**. This is where your agent permanently stores things it's learned about you — your preferences, your context, facts about your life and work. This memory lives across sessions. When you start a new conversation, your agent has access to everything stored in persistent memory, and it behaves as if it already knows you. Because it does.
+
+## Teaching Your Agent to Remember Things
+
+The simplest way to add something to persistent memory is to just tell your agent to remember it. "Remember that I'm based in Warsaw and prefer to receive summaries in the evening." "Remember that my main client is called Nexus Technologies." "Remember that I always want responses in British English."
+
+Your agent will confirm what it's stored. From that point on, it applies that knowledge in every future conversation without you having to repeat it.
+
+You can also ask your agent to remember things it's inferred from your conversations: "Based on what we've discussed about my work style, what have you noted about me?" It will give you a summary of what it knows, which is a useful way to spot anything that needs correcting.
+
+## Viewing and Managing Memories
+
+To see everything your agent has remembered about you, open your dashboard at `http://127.0.0.1:18789` and navigate to the Memory section. You'll see a list of stored memories. You can edit or delete individual entries directly from here.
+
+This is worth doing occasionally. Over time, memories can become outdated — you might have moved to a different city, changed your working hours, or shifted your priorities. An outdated memory is worse than no memory because your agent acts on it confidently. A five-minute review every month or two keeps things accurate.
+
+## Team Features
+
+If you're working with others, OpenClaw's team features let multiple people share a workspace. Each team member gets their own agent, but they can all access a common set of workspace files — shared project files, team documents, a shared task board.
+
+In practice, this means your teammate can ask their agent about the status of a shared project and get the same up-to-date answer you'd get from yours. Both agents are reading from the same source files. Coordination happens through the files, not through manual syncing.
+
+Setting up team access is done through the Team section in your dashboard. You add members, set their permissions, and assign which workspace files they can access.
+
+## Office Features
+
+The Office layer adds another level of shared infrastructure. Think of it as the team's shared environment — a set of files and configurations that apply to all agents on the team. You might put your company's tone of voice guidelines here, a list of approved suppliers, standard email templates, or any information that every team member's agent should know.
+
+If you're a solo user, you can ignore Office features entirely for now. They're designed for teams of two or more and add complexity you simply don't need when you're working alone.
+
+## A Note for Solo Users
+
+Most people taking this course are working solo. If that's you, focus entirely on persistent memory — it's where almost all the value is. The more thoughtfully you teach your agent about how you work, the better it gets at working with you.
+
+Start by having a simple conversation with your agent: "I want to help you understand how I work. Ask me questions about my preferences, my work style, and my regular context." Let it ask, and answer honestly. By the end of that conversation, your agent will have a solid foundation of persistent memories that will make every future interaction more useful.
+
+## Common Mistakes
+
+The most common one is assuming your agent already knows things it hasn't been told. If you haven't explicitly told it your time zone, it doesn't know your time zone. If you haven't told it your business's name, it doesn't know it. When you notice your agent making a wrong assumption, that's a signal — tell it the correct information and ask it to remember it.
+
+The other common mistake is never reviewing stored memories. Things change, and your agent should change with you. Build the habit of a quick memory review every month.
+
+## What's Next
+
+Now that your agent knows who you are and what you're working on, the next page covers how to make Mission Control truly yours by customising it to match how you actually work.
+
+> **Want the full technical details?** See the advanced guide: [Memory](/en/docs/core-architecture/memory)

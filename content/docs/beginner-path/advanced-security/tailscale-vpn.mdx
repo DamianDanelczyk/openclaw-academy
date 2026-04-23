@@ -1,0 +1,60 @@
+---
+title: Installing Tailscale VPN
+description: How to set up Tailscale to access your OpenClaw dashboard securely from anywhere without exposing it to the internet.
+---
+
+Right now, your OpenClaw dashboard is accessible at `http://127.0.0.1:18789` — but only when you're on the same machine. If your VPS is running it, you'd normally have to open a public port to reach it from your laptop or phone. And opening public ports is exactly the kind of thing that attracts unwanted attention from the internet.
+
+Tailscale solves this elegantly. It creates a private, encrypted network that exists only between your devices. Once you've set it up, your VPS gets a special private IP address — something like `100.64.x.x` — that only your devices can reach. No public exposure, no firewall fiddling, and you can access your dashboard from anywhere in the world as if you were sitting on your home network.
+
+## How Tailscale Works (the simple version)
+
+Think of Tailscale as a private tunnel that connects your devices. Your laptop, your phone, and your VPS are all on the same invisible network. Traffic between them is encrypted automatically. Nobody else can see or reach your devices on this network — not even Tailscale itself handles your data.
+
+This is called a VPN, but not the kind you might be thinking of. A commercial VPN like NordVPN routes all your traffic through someone else's servers to hide your activity. Tailscale is a mesh VPN — it just securely connects your own devices to each other. Much simpler, much more useful for what we're doing.
+
+## Installing Tailscale on Your VPS
+
+SSH into your server first (see the previous page if you haven't done that yet). Once you're in, run this single command:
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+```
+
+This downloads and installs Tailscale. When it's done, run:
+
+```bash
+tailscale up
+```
+
+Your server will print a URL. Copy it, open it in your browser, and log in with your Tailscale account. If you don't have one yet, you can create a free account at tailscale.com — the free tier covers everything you need here.
+
+Once you've authenticated, your VPS is on your Tailscale network. That's the server side done.
+
+## Installing Tailscale on Your Other Devices
+
+Head to tailscale.com/download on each device you want to use. There are apps for Mac, Windows, iPhone, Android, and Linux. Download the right one, install it, and sign in with the same Tailscale account you used on the server. Your devices are now on the same private network.
+
+## Finding Your VPS's Private IP
+
+Open the Tailscale admin console at login.tailscale.com/admin/machines. You'll see a list of your devices. Your VPS will have a "Tailscale IP" listed — it starts with `100.`. Write that down.
+
+Now, from any of your devices (while Tailscale is running), you can open a browser and go to `http://100.x.x.x:18789` — using your actual Tailscale IP — and you'll reach your OpenClaw dashboard. Secure, private, and no public ports needed.
+
+## Common Stumbling Points
+
+If you can't reach the dashboard after setting everything up, check that Tailscale is actually running on both your VPS and the device you're connecting from. On your VPS, run `tailscale status` to confirm it's connected. On your laptop or phone, check that the Tailscale app is turned on — it has a simple on/off toggle.
+
+Another thing to check: make sure you're using `http://` and not `https://` in your browser. The dashboard doesn't use SSL by default, and your browser might try to upgrade the connection and fail.
+
+If you restart your VPS, Tailscale should start automatically. But if something seems off after a reboot, SSH in and run `sudo systemctl restart tailscaled` to bring it back.
+
+## Why This Is Worth Setting Up
+
+Some people skip Tailscale because it feels like an extra step. But it genuinely changes how you feel about your setup. Knowing your dashboard is invisible to the public internet removes a whole category of worry. You're not hoping your firewall rules are right — the service literally can't be reached without being on your Tailscale network. For something that takes about five minutes to set up, that's a very good return.
+
+## What's Next
+
+With SSH and Tailscale in place, you have solid, secure access to your server from anywhere. The next page covers prompt injection — a different kind of security consideration that's about what your AI assistant can be tricked into doing when it browses the web.
+
+> **Want the full technical details?** See the advanced guide: [Network Security](/en/docs/security/network-security)

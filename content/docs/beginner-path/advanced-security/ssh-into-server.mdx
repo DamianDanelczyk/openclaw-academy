@@ -1,0 +1,54 @@
+---
+title: SSH Into Your Server
+description: How to connect to your VPS using SSH — explained simply for people who have never used a terminal to connect to a remote server.
+---
+
+If you've never connected to a remote server before, SSH might sound intimidating. It really isn't. SSH (Secure Shell) is just a way to open a terminal window on a computer that isn't in front of you. Your VPS is sitting in a data centre somewhere, and SSH lets you type commands on it as if you were physically there. That's the whole idea.
+
+You need this skill because the OpenClaw web dashboard handles most things, but occasionally you'll want to do something the dashboard doesn't cover — checking logs, applying a system update, or restarting a service. When that moment comes, SSH is how you get in.
+
+## What You Need Before You Start
+
+You need three things: your server's IP address (you got this when you set up your VPS), your username (usually `root` for a fresh server), and either a password or an SSH key. Your VPS provider will have emailed you these details when you created the server.
+
+## Opening the Connection
+
+On a Mac or Linux machine, you already have everything you need. Open your Terminal app — it's in Applications > Utilities on Mac, or search for it in your launcher on Linux.
+
+Type this command, swapping in your actual server IP:
+
+```bash
+ssh root@your-server-ip
+```
+
+Breaking that down: `ssh` is the command. `root` is the username you're logging in as. The `@` symbol separates the username from the server address. `your-server-ip` is the IP address your VPS provider gave you — something like `134.209.22.45`.
+
+Hit Enter. If this is your first time connecting, your terminal will ask something like "The authenticity of host X can't be established. Are you sure you want to continue?" Type `yes` and press Enter. Your computer is just confirming it hasn't seen this server before — this is normal.
+
+You'll then be asked for your password, or if you're using an SSH key, you might connect automatically without one. Once you're in, you'll see a command prompt that looks something like `root@ubuntu-s-1vcpu-1gb:~#`. That means it worked. You're now inside your server.
+
+## For Windows Users
+
+Windows 10 and 11 come with a built-in SSH client. Open the Windows Terminal or even the regular Command Prompt, and the same `ssh root@your-server-ip` command works exactly the same way.
+
+If you're on an older version of Windows or prefer a graphical tool, download PuTTY from putty.org. It's free and straightforward. You enter your IP address in the "Host Name" field, make sure the port is 22, and click Open.
+
+## Common Problems
+
+The most common error you'll see is something like `ssh: connect to host X port 22: Connection refused`. Nine times out of ten, this just means your server is still starting up. VPS servers take a minute or two to fully boot after being created or restarted. Wait two minutes, try the command again, and it'll usually work.
+
+If you still can't connect after a few minutes, double-check that you're using the right IP address. It's easy to transpose digits. Log into your VPS provider's control panel and confirm the IP shown there matches what you're typing.
+
+Another common stumble: you successfully connect but feel lost because you don't know any Linux commands. That's completely fine — you don't need to become a Linux expert. The main commands you'll use are `ls` (list files in the current folder), `cd` (change directory), and occasionally copying and pasting commands directly from documentation. Most of the time, you're just running one command someone told you to run, then disconnecting.
+
+## Keeping Your Credentials Safe
+
+Your SSH key file (usually a file called `id_rsa` or similar, stored in a hidden folder called `.ssh` on your computer) is like a physical key. If someone else gets it, they can access your server. Keep it backed up somewhere private — a password manager or an encrypted folder works well. Never share it in a chat or email.
+
+If you're using a password instead of a key, make it a strong one. Your VPS is on the public internet, and automated bots do scan for servers with weak passwords.
+
+## What's Next
+
+Once you can reliably SSH in, you're in good shape for anything else this section covers. The next pages build on this foundation — Tailscale, for example, uses SSH under the hood when you first set it up on your server.
+
+> **Want the full technical details?** See the advanced guide: [Deployment](/en/docs/advanced/deployment)

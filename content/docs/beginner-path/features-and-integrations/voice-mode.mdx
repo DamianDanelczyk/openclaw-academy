@@ -1,0 +1,56 @@
+---
+title: Voice Mode
+description: How to use OpenClaw's voice mode to talk to your assistant hands-free, and when it's actually useful.
+---
+
+There's a specific kind of situation that voice mode was made for. You're in the kitchen with flour on your hands, and you need to ask your assistant something. Or you're on a walk and a task pops into your head that you want to capture before you forget. Pulling out your phone and typing feels awkward. That's when being able to just speak is genuinely useful.
+
+Voice mode in OpenClaw isn't trying to replace typing for everything. It's for those moments when your hands are busy or typing would break your flow.
+
+## How It Works
+
+The simplest way to use voice with OpenClaw is through Telegram voice messages. You open your chat with your assistant in Telegram, hold the microphone button, speak your message, and send it. OpenClaw receives the voice note, transcribes what you said, processes it, and replies in text.
+
+That's it. No special setup, no configuration, no extra installation — if you already have your Telegram bot connected, voice messages work out of the box.
+
+There's also a dedicated voice mode you can enable in the dashboard at `http://127.0.0.1:18789`. Go to your channel settings and look for the voice options. Enabling this unlocks some additional voice-related features, like optional audio responses in certain configurations, and refines how voice transcription is handled.
+
+## The Processing Delay
+
+Voice mode is not real-time. There's a short processing delay between when you finish speaking and when your assistant responds — typically a few seconds. This is completely normal and just reflects the time it takes to transcribe your audio and process your request.
+
+This is different from how voice assistants like Siri or Google Assistant feel, where the response comes almost immediately and the experience feels like a live conversation. OpenClaw is more like leaving a voice note for someone and getting a text message back shortly after. It works great once you adjust your expectations to fit that model.
+
+## When Voice Is Great
+
+Voice shines for a handful of specific situations. Dictating tasks while you're doing something else — cooking, exercising, cleaning — is a natural fit. You can rattle off three things you need to remember, a question you want researched, and a message you want drafted, all without stopping what you're doing.
+
+Capturing fleeting thoughts is another strong use case. When something important pops into your head and you need to get it out quickly, speaking is faster than typing. Your assistant captures it and you can deal with it later.
+
+Quick questions when you can't or don't want to type — asking what's on your calendar today, or what the weather is going to be — work well in voice. The question is short, the answer is short, and the experience feels natural.
+
+## When Voice Isn't the Right Tool
+
+Voice gets awkward when you need to see the output. If you're asking your assistant to write a piece of code, build a table, or research something and give you a detailed answer with links — you need to read that response, and you'll be doing that on a screen anyway. Just type the request.
+
+Back-and-forth conversations where you're iterating on something work better as text too. When you need to quote something from the assistant's previous reply or refer back to a specific part of the conversation, having it in text is much easier to work with.
+
+Voice is also less reliable in noisy environments. Background noise can confuse the transcription and lead to garbled requests. If you're somewhere loud, typing is more reliable.
+
+## A Practical Pattern
+
+Use voice for input, text for output. Speak your requests when it's convenient, read the responses. That combination captures the genuine benefit of voice — quick, hands-free input — without trying to force it to do something it's not designed for.
+
+A lot of people find that voice mode becomes a habit for a specific slice of their assistant interactions: the ones that happen away from a desk. While commuting, exercising, or doing household tasks, voice is the natural interface. When you're at your computer working, text is faster and more precise.
+
+## Common Mistakes
+
+Expecting a real-time conversation feels natural but leads to frustration. Voice mode works better when you treat each message as a complete, self-contained request rather than part of a rapid back-and-forth.
+
+Speaking too quickly or unclearly leads to transcription errors. Speak at a normal, clear pace — the same way you'd leave a voice message for a colleague.
+
+## What's Next
+
+With voice covered, the next pages dive into Skills — the add-ons that dramatically expand what your assistant can do.
+
+> **Want the full technical details?** See the advanced guide: [Voice](/en/docs/core-architecture/voice)

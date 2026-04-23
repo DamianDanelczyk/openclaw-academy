@@ -1,0 +1,58 @@
+---
+title: Adding API Keys & Smart Routing
+description: How to add multiple AI provider API keys to OpenClaw and set up smart routing so the right model handles the right task.
+---
+
+Your OpenClaw setup is only as capable as the models you connect it to. Adding an API key takes two minutes, and once it's in, your assistant can start using that provider's models. The slightly more interesting part — smart routing — is what turns a capable assistant into an efficient one.
+
+## What's an API Key?
+
+An API key is basically a password that proves to an AI provider (Anthropic, OpenAI, Google, etc.) that you're allowed to use their service and that your usage should be billed to your account. You get one from each provider's website, paste it into OpenClaw, and that's it — your assistant now has access to those models.
+
+OpenClaw supports keys from Anthropic (Claude models), OpenAI (GPT models), Google (Gemini models), and a handful of others. You don't need all of them. Most people start with just one or two.
+
+## Adding Keys in the Dashboard
+
+Open your dashboard at `http://127.0.0.1:18789` and navigate to the Models section. You'll see a list of supported providers with a field next to each one where you paste your key. There's no config file to edit — it's all handled through the interface.
+
+Once you save a key, OpenClaw immediately validates it by making a small test call to confirm it works. If the key is wrong or the account has no credits, it'll tell you right away. Fix it before moving on.
+
+A practical tip: add at least two providers if you can. That way, if one is down or you run low on credits with one provider, your assistant can fall back to the other without interrupting your workflow.
+
+## What Smart Routing Actually Does
+
+Smart routing means OpenClaw automatically decides which model to use for a given request, based on rules you set. Without it, every request goes to one model regardless of whether that's efficient or appropriate.
+
+The default logic is simple: use the cheapest capable model unless there's a reason not to. For most requests — checking your calendar, sending a message, answering a quick question — a fast cheap model is absolutely fine. For something like "research this topic and write me a structured summary", you might want Sonnet.
+
+## Setting Up Routing Rules
+
+In the dashboard, under Models, you'll find a routing configuration panel. You set a default model first — Claude Haiku or GPT-4o Mini are both solid choices here. Then you can add rules on top of that default.
+
+A practical starting setup looks like this: Haiku handles everything by default. When you use words like "research", "write", "analyse", or "summarise in detail" in your message, OpenClaw routes to Sonnet instead. You're not paying Sonnet prices for a quick "what time is it in Tokyo?" but you do get Sonnet quality when you ask for something that genuinely benefits from it.
+
+You can also route by task type if you use integrations. Email summarisation? Haiku is plenty. Generating a detailed weekly report? Sonnet. The rule builder in the dashboard lets you define these without needing to write any code.
+
+## A Realistic Example
+
+Say you have Anthropic and OpenAI keys added. Your routing setup could be:
+
+- Default: Claude Haiku (fast, cheap, handles everyday tasks)
+- Trigger words like "research", "write a full draft", "detailed analysis": escalate to Claude Sonnet
+- Fallback if Anthropic is unavailable: GPT-4o Mini from OpenAI
+
+This setup means you're almost always using the cheapest appropriate model, you never lose access because of one provider going down, and you still get quality when the task actually needs it.
+
+## Common Mistakes
+
+Putting your most powerful model as the default is the classic error. You'll burn through API credits on tasks that a cheaper model handles identically well.
+
+Not adding a fallback is another one. If you rely on a single provider and their API has a blip — which happens occasionally — your assistant goes silent. A second provider as a fallback takes five minutes to set up and saves a lot of frustration.
+
+Don't forget to check that your keys are valid after adding them. It sounds obvious, but people do paste the wrong key or include a trailing space and wonder why things aren't working.
+
+## What's Next
+
+Now that you know how to connect models and route between them, the next page is about using free and local models as zero-cost fallbacks — so you can run a capable setup for almost nothing if you want to.
+
+> **Want the full technical details?** See the advanced guide: [Cost Optimization](/en/docs/advanced/cost-optimization)

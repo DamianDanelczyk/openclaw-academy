@@ -1,0 +1,58 @@
+---
+title: Local AI Models & The Golden Rule
+description: What local AI models are, when to use them, and the one rule that makes every AI interaction work better.
+---
+
+When most people think about AI, they picture something like ChatGPT — you send a message over the internet and an answer comes back from a server somewhere. That's how cloud AI models work, and they're fantastic. But there's another option that not enough people know about: running an AI model directly on your own computer.
+
+This page explains what local models are, when they make sense, and — more importantly — the one principle that determines whether your AI assistant is actually useful or just frustrating.
+
+## What Are Local AI Models?
+
+A local AI model is exactly what it sounds like: an AI that runs on your machine, without sending anything to an external server. Tools like [Ollama](https://ollama.com) make this surprisingly easy — you install the tool, download a model, and it runs entirely on your hardware.
+
+The appeal is clear. Everything stays private. There are no API costs. You can use it offline on a plane or somewhere without internet. For certain tasks, that's genuinely valuable.
+
+The trade-off is capability. Local models are improving fast, but they're generally slower and less capable than the best cloud models. A conversation that Claude handles with ease might leave a smaller local model confused or producing low-quality output. The models that are good enough to be genuinely useful also tend to require decent hardware — ideally a machine with a reasonable GPU.
+
+## When Local Models Make Sense
+
+Local models are a solid choice when the task is simple and privacy matters. Summarising a local document you don't want leaving your machine. Classifying a list of items. Answering basic questions about a file. Drafting a short piece of text. These are well within what good local models handle reliably.
+
+They're also a good fit if you're experimenting and don't want to spend any money while you're still learning how to use your assistant effectively.
+
+Where they struggle: complex reasoning, nuanced writing, research across multiple topics, or anything that requires understanding long, layered context. For those jobs, cloud models are worth the cost — and as you'll see on the [Free & Paid AI Model Options](/en/docs/beginner-path/setting-up/free-and-paid-models) page, the cost is much lower than most people expect.
+
+## The Golden Rule
+
+This is the single most important thing to understand about working with AI, whether you're using a local model or the most powerful cloud model available.
+
+**Tell the AI what you want, not how to do it.**
+
+That sounds simple, but it runs counter to how most people first think about giving instructions. When we try to control things, we tend to over-specify the process. With AI, that usually backfires.
+
+Here's a concrete example. Suppose you want to research competitors for a business idea. A lot of people start by trying to write out every step:
+
+*"Search for companies in the X space, then for each one visit their website, then extract the pricing information, then format it as a table with columns for name, price, and features."*
+
+That kind of instruction is exhausting to write, easy to get wrong, and often produces worse results than it should. You're essentially trying to do the AI's job for it.
+
+The better version is to describe the outcome:
+
+*"I'm thinking about starting a business that does X. Can you find me the five most relevant competitors, and give me a brief summary of what each one does and roughly what they charge?"*
+
+Same goal. Much simpler to express. The AI figures out how to get there.
+
+This matters especially when you're just starting out, because over-specifying is the most common reason beginners get disappointing results. They assume the AI needs hand-holding at every step. It doesn't. It needs a clear destination.
+
+## A Note on Mixing Local and Cloud
+
+One of the things that makes OpenClaw flexible is that you can use different models for different jobs. You might use a local model for quick, private tasks and switch to Claude for anything that needs more horsepower. You don't have to pick one and stick with it.
+
+As you get more comfortable with your setup, you'll develop a natural intuition for which tool fits which task. For now, don't overthink it. Pick one model to start with, use it, and adjust from there.
+
+## What's Next
+
+The next page covers the full range of model options — free and paid — so you can make an informed choice about where to start.
+
+> **Want the full technical details?** See the advanced guide: [Cost Optimization](/en/docs/advanced/cost-optimization)

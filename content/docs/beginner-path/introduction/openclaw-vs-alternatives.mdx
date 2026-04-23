@@ -1,0 +1,57 @@
+---
+title: OpenClaw vs Claude Code vs Cowork vs n8n
+description: A simple comparison to help you understand what makes OpenClaw different from other AI tools you may have heard of.
+---
+
+If you've been researching AI tools lately, the landscape can feel overwhelming. There are dozens of products that all seem to promise roughly the same thing — and they're genuinely quite different under the hood. This page is about clearing that up, so you know exactly what you're choosing and why.
+
+Let's look at the four names you're most likely to come across when exploring this space.
+
+## Claude Code
+
+Claude Code is a tool made by Anthropic — the same company behind the Claude AI model. It's a command-line tool, which means you use it by typing into a terminal window on your computer. It's designed to help software developers write, review, and debug code.
+
+It's genuinely impressive if you're a developer. But it's a tool, not an assistant. You invoke it when you need it, it does something specific with code, and then you move on. It doesn't sit in the background waiting for you. It doesn't connect to your email or send you messages on Telegram. It doesn't remember your preferences or learn how you work.
+
+If you're not a developer, Claude Code isn't really designed for you at all. If you are a developer, it might still live alongside OpenClaw — they do different jobs.
+
+## Cowork
+
+Cowork is a managed service. Someone else hosts everything for you, handles the maintenance, and gives you access through their platform. The main appeal is that you don't have to set anything up yourself.
+
+The trade-off is ownership. When your assistant runs on someone else's infrastructure, your data flows through their systems. Your conversations, your integrations, your files — all of it lives on their servers under their terms. You're also tied to their pricing, their feature decisions, and their uptime.
+
+For some people, that trade-off is worth it. If you absolutely don't want to touch any configuration files, Cowork might suit you. But if you care about owning your setup — and most people care more about this than they realise once they think about it — then having OpenClaw run on your own machine or your own server is a fundamentally different thing.
+
+## n8n
+
+n8n (pronounced "n-eight-n") is a workflow automation tool. It has a visual, drag-and-drop interface where you build "pipelines" — sequences of automated steps that trigger each other. Fetch this data, transform it, send it to that service. It's powerful and very flexible.
+
+The people who get the most out of n8n tend to be technical users — developers, operations engineers, people who are comfortable thinking in flowcharts and debugging connection errors. Building a workflow in n8n requires understanding how each "node" works, what data format it expects, and how to wire things together correctly.
+
+OpenClaw is a different kind of tool entirely. You don't build pipelines — you have conversations. Instead of dragging nodes around a canvas, you send a message that says "summarise my emails every morning at 8am" and it happens. The interface is Telegram. The language is English.
+
+That said, n8n and OpenClaw aren't necessarily competitors — some power users actually run both. n8n for complex scheduled pipelines, OpenClaw for the conversational side. But if you're choosing one tool to get started and you're not technical, OpenClaw is a far gentler entry point.
+
+## Where OpenClaw sits
+
+OpenClaw's unique position is this: it's a conversational AI assistant that you fully own, runs 24/7, talks to you on Telegram, and doesn't require any visual interface to use. There's no dashboard you have to log into every day. There's no flowchart to maintain. You just talk to it.
+
+It's self-hosted, which means your data is yours. The configuration lives at `~/.openclaw/openclaw.json` on Mac and Linux — a simple file you can read and back up any time. Nothing is locked inside a proprietary cloud.
+
+And because it's always running, it can do things proactively — not just when you ask. It can wake up at 6am, check your inbox, pull the news, and have a briefing waiting for you before you've started your day. That combination of always-on, fully-owned, conversational, and proactive is what makes it different from everything else in this list.
+
+## A simple guide to who should use what
+
+| Tool | Best for |
+|---|---|
+| **OpenClaw** | People who want a personal AI assistant they own, always available on Telegram, no technical background needed |
+| **n8n** | Technical users who want to build and manage automated data pipelines with a visual interface |
+| **Claude Code** | Software developers who want AI help while writing or reviewing code in a terminal |
+| **Cowork** | People who want a managed solution and are comfortable with someone else hosting their data |
+
+There's no wrong answer here — it depends on what you actually need. But if you're reading this, you're probably in the first row.
+
+## What's next
+
+Now that you know what OpenClaw is and how it compares to the alternatives, the next page shows you six concrete things you can do with it right away. Real examples, plain English, no technical setup required to understand them.

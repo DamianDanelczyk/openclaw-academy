@@ -1,0 +1,66 @@
+---
+title: Getting Your Anthropic API Key
+description: How to sign up for Anthropic, get your API key, and add it to OpenClaw — explained step by step.
+---
+
+If you want to use Claude as the brain behind your OpenClaw assistant, you'll need an Anthropic API key. This page walks you through getting one, adding it to OpenClaw, and making sure you never end up with a surprise bill.
+
+## What Is an API Key?
+
+An API key is a secret code that acts like a password between two pieces of software. In this case, it's how OpenClaw proves to Anthropic's servers that it's allowed to use Claude on your behalf.
+
+When OpenClaw sends a message to Claude, it includes your API key with the request. Anthropic sees the key, recognises it as yours, and charges the usage to your account. Without the key, OpenClaw has no way to reach Claude at all.
+
+Think of it like a hotel key card. It's yours, it unlocks your room, and if someone else gets their hands on it, they can use your room. Treat your API key with the same care you'd treat a password.
+
+## Step 1: Create Your Anthropic Account
+
+Go to [console.anthropic.com](https://console.anthropic.com) in your browser. Click the sign-up option and create an account using your email address. You'll go through a standard account creation flow — email verification, maybe a phone number for security purposes.
+
+Once your account is created and verified, you'll land in the Anthropic console. This is where you manage everything related to your API usage: your keys, your spending, and your usage history.
+
+## Step 2: Add a Payment Method
+
+Before you can create an API key and use it, Anthropic requires a payment method on file. This isn't a subscription — you only pay for what you use, and usage for personal tasks is very low cost. But they need the card details before activating API access.
+
+Go to the Billing section of the console and add your card. You won't be charged anything just for adding it.
+
+## Step 3: Set a Spending Limit
+
+This is an important step that a lot of people skip, and then wonder later why they got a bill they weren't expecting.
+
+In the Billing section, look for monthly spending limits or usage limits. Set a hard cap — a maximum amount you're willing to spend in any given month. A reasonable starting limit for personal use is $10 or $20. Once you hit that limit, the API stops responding until the month resets.
+
+This means there's a ceiling on what you can ever be charged. Even if something goes wrong — a runaway automation, an accidental loop — you're protected. Set the limit before you do anything else with your key.
+
+## Step 4: Create Your API Key
+
+Navigate to the **API Keys** section of the console. Click the button to create a new key. You'll be asked to give it a name — something like "OpenClaw" or "Personal Assistant" is fine. The name is just for your reference.
+
+Once you click create, the key will appear on your screen. It'll look like a long random string of characters starting with `sk-ant-`.
+
+**Copy it immediately and save it somewhere safe.** Anthropic only shows you the key once. After you close or navigate away from that screen, you can never see the key again. If you lose it, you'll need to delete it and create a new one. A password manager is a good place to store it, or any secure note-taking tool.
+
+## Step 5: Add the Key to OpenClaw
+
+Open your OpenClaw dashboard at `http://127.0.0.1:18789` (or your VPS URL if you're running on a server). Navigate to the settings or integrations section and look for the Anthropic or Claude option. Paste your API key into the field provided and save.
+
+OpenClaw will usually verify the key is working by making a small test connection. If it confirms the connection is successful, you're done. Claude is now available as a model inside your assistant.
+
+## What Not to Do With Your API Key
+
+This is worth being direct about, because these mistakes happen more often than you'd think.
+
+Don't paste your API key into a chat message, a forum post, a support ticket, or anywhere public. Don't include it in a file you push to GitHub or any other code repository. Don't share it with someone who offers to "help you set things up" unless you genuinely trust them and understand what you're sharing.
+
+If you ever suspect your key has been exposed, go back to [console.anthropic.com](https://console.anthropic.com), find the key in the API Keys section, and delete it. Then create a new one and update OpenClaw with the new key. The whole process takes two minutes and fully revokes the old key.
+
+## Keeping an Eye on Usage
+
+The Anthropic console shows you a usage dashboard with charts of how many tokens you've used and what it's cost you. It's worth checking in on this occasionally, especially in the first few weeks when you're still getting a feel for how much you're using your assistant.
+
+Most people are pleasantly surprised. Normal personal use — a few conversations a day, some summaries and drafts — typically comes to a few dollars a month with Claude Haiku. The spending limit you set earlier is a backstop, but in practice you'll rarely approach it.
+
+## What's Next
+
+With your API key added, OpenClaw has an AI brain. The next step is connecting your first messaging integration so you can actually talk to your assistant. We recommend starting with Telegram — the next section of the course covers exactly how to set that up using BotFather.

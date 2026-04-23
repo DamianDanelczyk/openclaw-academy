@@ -1,0 +1,44 @@
+---
+title: Automate Your Competitor Watch Report
+description: Set up a weekly report that automatically monitors your competitors and delivers a digest of what they've been up to.
+---
+
+Keeping tabs on competitors is one of those things every business owner knows they should do but rarely does consistently. It takes time, it's easy to forget, and after a while it just doesn't happen. This project fixes that permanently. You'll set up a weekly job that does the monitoring for you and drops a summary in your Telegram every Monday morning — without you lifting a finger.
+
+## What This Project Combines
+
+This is a cron job and the web browsing skill working together. The cron job handles the scheduling, the web browsing skill gives your agent the ability to actually go and find current information, and you write one clear instruction that ties them together. If you haven't installed the web browsing skill yet, do that first through ClawHub in your dashboard at [http://127.0.0.1:18789](http://127.0.0.1:18789).
+
+## Writing the Instruction
+
+The instruction you write is the heart of this project. Here's an example you can adapt for your own competitors:
+
+"Every Monday at 8am, search for recent news about [Competitor A], [Competitor B], and [Competitor C]. Look specifically for product launches, pricing changes, new features, partnerships, and press coverage from the past seven days. For each competitor, write two or three sentences summarising the most relevant developments. If there's nothing significant to report for a competitor, say so briefly rather than padding it out. Send the full summary to me on Telegram."
+
+Take a moment to think about what "relevant" means for your business specifically. If you're a SaaS company, you probably care about feature releases and pricing. If you're a consultancy, you might care more about who they're hiring and what events they're speaking at. If you're in retail, you'd want to know about promotions, stock changes, and new product lines. Tailor the instruction to match what actually matters to you.
+
+## Testing Before You Schedule
+
+Don't set the cron schedule until you've tested the instruction manually. Paste it into a regular conversation in your dashboard (leave out the "Every Monday at 8am" part when testing), and see what comes back.
+
+A few things to check: Are the competitors being searched correctly? Is the output the right length — concise but not so brief it's useless? Is it finding genuinely recent news, or pulling in old articles? Does the format feel right for a Monday morning read?
+
+If something's off, adjust the instruction and test again. The most common issues are outputs that are too long (fix: add "keep each section to a maximum of three bullet points") or outputs that miss the point (fix: be more specific about what kinds of developments matter to you).
+
+Once the output looks good in a test conversation, then add it to the cron scheduler. Set it for Monday at 8am, or whatever time and day suits your working rhythm. Save it and you're done.
+
+## Refining Over Time
+
+The first few reports might not be perfect. That's normal and expected. Maybe the summaries are longer than you wanted. Maybe one competitor isn't being found reliably. Maybe the format isn't quite right for how you like to read things first thing in the morning.
+
+Each time you notice something, go back to the instruction and tweak it. Think of the first month as a calibration period. By week four or five, you'll have an instruction that reliably produces exactly what you want.
+
+One refinement that many people find useful: ask your agent to flag anything that seems urgent or that might require action from you. Something like "if any of the news suggests a significant competitive threat or an opportunity worth considering, add a note at the top of the summary flagging it." This turns the report from passive reading into something that can prompt a real decision.
+
+## What You End Up With
+
+After a few weeks, you'll have a Monday morning habit that requires zero effort on your part. You wake up, check your Telegram, and you're already up to date on what your competitors have been doing. You're more informed than almost any of your peers, and it cost you about twenty minutes to set up.
+
+That's the compounding value of automation — the setup cost is a one-time investment, and the benefit shows up every single week.
+
+> **Want the full technical details?** See the advanced guide: [Cron Jobs](/en/docs/automation/cron-jobs)

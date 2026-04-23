@@ -1,0 +1,52 @@
+---
+title: Making Mission Control Your Own
+description: How to customise your Mission Control dashboard to match how you actually work — not how a template tells you to work.
+---
+
+The Mission Control setup from the course is a starting point. A scaffold to get you standing before you start building. Your job — and honestly, the fun part — is to evolve it based on how you actually live and work.
+
+Some people check email first thing every morning. Others start with a revenue number. Some need to track relationships. Others need to track inventory. No template captures all of that, and a template that tries to cover everyone ends up serving no one particularly well. So after you've got the basics running, the most valuable thing you can do is step back and ask: what do I actually look at every day?
+
+Whatever the answer is, that's what belongs in your Mission Control.
+
+## How Customisation Works
+
+Your Mission Control file is just a text file with headings. Adding a new section is as simple as adding a new heading and a line or two describing what it contains. Once it's there, your agent reads it as context for every conversation.
+
+This is the key insight: because your agent reads this file before every response, whatever you add there becomes part of what it knows. You're not just organising information — you're shaping the working memory your agent operates from. A section called "Waiting On" doesn't just remind you what's blocked. It tells your agent that blocked items are something you care about tracking, and it will surface them when relevant.
+
+## Useful Sections to Consider
+
+A **Waiting On** section is one of the most underrated additions. This is where you track things that are blocked on someone else — a reply from a client, a decision from a partner, a delivery that hasn't arrived. Your agent can reference this when you ask "is anything blocked?" and it can prompt you to follow up when something has been waiting too long.
+
+A **Weekly Wins** section that your agent populates each Friday is a small thing that compounds over time. Ask your agent every Friday to review your completed tasks and add three bullet points to Weekly Wins. Months later, you have a record of what you actually accomplished — genuinely useful when you're writing a performance review, updating a portfolio, or just need a morale boost on a rough day.
+
+A **People to Contact This Week** section is useful if your work involves relationship management. Write in the names of two or three people you want to reach out to before the week is out. Your agent sees this and can draft outreach messages without you needing to re-explain who they are.
+
+A **Current Focus** section — distinct from your full project list — is a single sentence about your most important work right now. Something like: "This month's focus is closing the Nexus contract." Your agent uses this to calibrate priority when you ask for advice. It's a small thing that quietly shapes a lot of responses.
+
+A **Decisions Pending** section is useful if you run a business or work with clients. Track decisions you're waiting to make, or decisions that are waiting on information to come in. Your agent can remind you of these when relevant and help you think through them when you're ready.
+
+## How to Add a Section
+
+Open Canvas in your dashboard at `http://127.0.0.1:18789`. Open your Mission Control file. Add a heading — just a line starting with `##` — and a sentence or two explaining what this section tracks and how you want your agent to use it.
+
+Then tell your agent about it. "I've added a Waiting On section to Mission Control. When I mention that something is blocked on another person, please add it there. When I check in, surface anything that's been waiting more than a week." You're training your agent's behaviour, not just updating a file.
+
+## The Principle Behind This
+
+Your Mission Control is essentially your agent's working memory for your life and work. A well-designed one means your agent is constantly operating with a full picture. A neglected one means your agent is working half-blind, falling back on general reasoning rather than your specific context.
+
+The goal isn't to capture everything. Capture only what's genuinely useful on a daily or weekly basis. If you add a section and you never refer back to it, remove it. Mission Control should feel light and current, not like an archive.
+
+## What Breaks Over Time
+
+The most common breakdown is gradual staleness. You update the file enthusiastically for the first week, then life gets busy and it drifts out of date. Your agent starts giving advice based on priorities that shifted three weeks ago. The fix is simple: spend two minutes every Monday morning reviewing the file and making sure it still reflects your current reality. That's the entire maintenance cost of a well-designed Mission Control.
+
+The second breakdown is over-engineering. When you discover how flexible this is, it's tempting to add sections for everything. Resist that impulse. More sections means more to maintain, and when everything is tracked, the truly important things stop standing out.
+
+## What's Next
+
+With your Mission Control built and customised, the next page covers something that connects directly to it: your SOUL.md file, which shapes not just what your agent knows, but how it thinks and communicates.
+
+> **Want the full technical details?** See the advanced guide: [SOUL.md](/en/docs/core-architecture/soul-md)

@@ -1,0 +1,54 @@
+---
+title: Accessing Mission Control From Your Phone
+description: How to access your OpenClaw dashboard, Telegram assistant, and Mission Control from your phone — and make it feel like a native app.
+---
+
+A personal assistant that lives only on your desktop isn't really a personal assistant. The whole point of having a system like this is that it moves with you — on the train, between meetings, at the end of the day when you think of something you don't want to forget. Your phone is how you stay connected to everything you've built.
+
+The good news: most of the work is already done. If you've been following along and using Telegram to interact with your agent, you've had mobile access the entire time.
+
+## Two Ways to Access on Mobile
+
+The first way — and the one you're probably already using — is Telegram. Your assistant lives there. Open Telegram on your phone, find your OpenClaw bot, and you're in. Ask a question, add a task, request an update — everything works exactly as it does on your desktop. Telegram handles the interface so you don't have to think about it.
+
+The second way is the web dashboard. Your OpenClaw dashboard at `http://127.0.0.1:18789` is a web application — which means it works in a mobile browser too. If you're running OpenClaw on a local machine, this address only works on that machine. But if you're running it on a VPS with Tailscale set up, you can open `http://100.x.x.x:18789` (your Tailscale IP) in your phone's browser and access the full dashboard from anywhere.
+
+## Adding the Dashboard to Your Home Screen
+
+Here's a small trick that makes a real difference: add your dashboard to your phone's home screen. Once you do, it opens in its own window without browser navigation bars, and it looks and feels like a native app.
+
+On iPhone, open the dashboard URL in Safari. Tap the Share button at the bottom of the screen (the square with an arrow pointing up). Scroll down and tap "Add to Home Screen". Give it a name — "OpenClaw" works — and tap Add. You'll now have an icon on your home screen that opens the dashboard directly.
+
+On Android, open the dashboard in Chrome. Tap the three-dot menu in the top right corner. Tap "Add to Home screen" and follow the prompts. Same result: a home screen icon that opens the dashboard as if it were an app.
+
+## Using Tailscale on Your Phone
+
+If you've set up Tailscale on your VPS (covered earlier in this section), installing it on your phone completes the picture. Download the Tailscale app from the App Store or Google Play, sign in with the same account you used on your VPS, and turn it on. Your VPS's private IP is now reachable from your phone, wherever you are.
+
+This means your dashboard, your Canvas files, and any other self-hosted services you run are all accessible privately from your phone. You're not opening public ports. You're not relying on a third-party cloud service. You're just on your own private network that happens to work over the mobile internet.
+
+## Sending Voice Notes
+
+One of the more useful mobile features is something many people don't try until someone tells them about it: voice messages.
+
+Send a voice message to your OpenClaw bot in Telegram. Your assistant transcribes it and responds, just as it would to a text message. This is particularly useful when you're driving, walking, or in a situation where typing is awkward. "Hey, remind me to follow up with Sarah about the contract on Thursday" takes about four seconds to say and your agent handles the rest.
+
+The transcription is generally accurate enough for task logging, quick questions, and short instructions. For anything that requires precision — like dictating a specific number or a name that might be tricky to transcribe — a quick glance at what your agent heard before it acts is a good habit.
+
+## Designing for Mobile
+
+This is the most important thing to internalise: design your automations to deliver output to Telegram, not just to the dashboard.
+
+Your standup message arrives in Telegram — readable on your phone before you get out of bed. Your intelligence digest arrives in Telegram. Alerts, reminders, and task updates — all in Telegram. The dashboard is useful for configuration, for reviewing files in Canvas, and for checking logs. But the day-to-day flow of information should come to you in the place you already are.
+
+When you set up new automations and scheduled tasks, always ask yourself: where will I actually see this output? If the answer is "on the dashboard when I remember to check it", rethink the delivery. Route it to Telegram instead, and it becomes part of your natural rhythm rather than something you have to remember to go look at.
+
+## A Quick Checklist for Mobile Readiness
+
+Before you consider your mobile setup complete, run through these: Telegram is installed on your phone and your agent is responsive. Your dashboard URL opens correctly from your phone's browser. You've added the dashboard to your home screen. If you have Tailscale, it's installed and turned on. You've sent at least one voice message to your agent and confirmed it works.
+
+If all of that is ticked off, you're genuinely set up for anywhere access. Your Mission Control and AI assistant are in your pocket.
+
+## What's Next
+
+You've now built and equipped your entire Mission Control system — from the central file and project organisation, through memory and customisation, to daily standups and mobile access. The next section of the course moves into real projects, where you'll put everything together to build actual automations and workflows for your specific work.

@@ -1,0 +1,74 @@
+---
+title: Financial Tracker
+description: How to set up a simple AI-powered financial tracker that helps you log income, expenses, and get a plain-English summary of your finances.
+---
+
+Most financial tracking tools share a common problem: they require you to go to them. You open the app, you find the right category, you enter the amount, you save it. By the time you've done that three times in a row, the habit dies and the tool collects dust.
+
+The OpenClaw approach flips this. You tell your assistant what happened, and it updates the records. You never open a spreadsheet. The conversation is the interface.
+
+## What This Tracker Is
+
+To be clear: this isn't accounting software. It won't replace your accountant or handle complex tax situations. What it will do is give you a clear, up-to-date picture of your money in plain English — where it's coming from, where it's going, and how the month is shaping up. For freelancers, small business owners, and anyone who wants to stay financially aware without spreadsheet maintenance, that's genuinely useful.
+
+The tracker is a simple workspace file in Canvas. Think of it as a running log with columns for the date, a description, the amount, and a category. Your agent reads and writes this file when you tell it about money moving in or out.
+
+## Setting It Up
+
+Open Canvas in your dashboard at `http://127.0.0.1:18789`. Create a new file — call it `finances.md` or something equally clear. Inside it, create two sections: Income and Expenses.
+
+Under each section, you'll build up a running list as your agent logs entries. You don't need to set up columns or formatting in advance — just tell your agent how you want entries to look. Something like: "I've created a finances file in Canvas. When I report income or expenses, log each entry as: Date | Description | Amount | Category. Income and expenses go in separate sections."
+
+That's the setup. From now on, logging a transaction is a single message.
+
+## Logging Transactions
+
+The interface is whatever you'd say naturally. A few examples:
+
+"Log $500 income from Client X today — consulting fee."
+
+"I spent $120 on software subscriptions this month — SaaS."
+
+"Add an expense: $45 lunch with the Nexus team today — client entertainment."
+
+"Income: received $2,400 from Acme Corp — project milestone."
+
+Your agent adds each entry to the right section in the file with a timestamp, confirms what it's written, and moves on. No friction, no navigation, no forgetting to log it because the app was too annoying to open.
+
+If you're using Telegram — which most people are for their day-to-day agent interaction — you can log expenses on your phone the moment they happen. Bought a business book at the airport? Log it before you board.
+
+## Asking for Summaries
+
+The other half of the workflow is querying what you've logged. Your agent can answer questions like:
+
+"How much did I spend on software this month?" It reads the Expenses section, filters for the SaaS category, and tells you.
+
+"What's my income versus expenses for April?" It reads both sections, totals them up, and gives you a plain-English summary.
+
+"What were my top three expense categories last month?" It analyses the entries and ranks them for you.
+
+"Am I on track to hit my income goal of $5,000 this month?" It checks your income to date and does the maths.
+
+None of these require you to build pivot tables or navigate a dashboard. You just ask. Your agent does the arithmetic and explains what it found.
+
+## Adding Categories
+
+Categories are how you make the summaries meaningful. If every expense is just labelled "misc", your summaries won't tell you much. A simple set of categories covers most situations: Software, Client Entertainment, Marketing, Travel, Office Supplies, and Contractor Payments cover most freelance and small business spending. Income categories might be: Consulting, Projects, Retainers, and Other.
+
+Tell your agent the categories you want to use: "Use these categories for my expenses: [list]. If I don't specify a category, ask me which one applies." Your agent will prompt you when needed and apply your categories consistently.
+
+## What to Do at Month End
+
+At the end of each month, ask your agent for a closing summary: "Give me a complete income and expenses summary for [month]. Include totals by category and flag anything unusual." Your agent reads the full file for that period and produces a clean summary you can use for your own records, for your accountant, or just for personal clarity.
+
+You can also ask it to save that summary as a separate file: "Save this month's summary as a separate file called finances-april-2026.md in Canvas." That way you have a running archive of monthly summaries alongside the main log.
+
+## Common Mistakes
+
+The most common one is inconsistent logging. The tracker is only as useful as the data in it. Missing two weeks of entries means your summaries are wrong, and wrong summaries are worse than no summaries. Set a quick intention: log expenses the same day they happen. It takes ten seconds per transaction.
+
+The other mistake is vague descriptions. "Misc expense $200" tells your future self nothing. "Freelance design tools subscription — Figma" is useful in six months when you're reviewing your spending. A little description effort now pays off later.
+
+## What's Next
+
+With your finances tracked and your projects organised, the next page covers your daily standup — a structured morning message that brings all of this context together into a focused start to each day.

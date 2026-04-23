@@ -1,0 +1,52 @@
+---
+title: Build Your Second AI Brain with Obsidian
+description: How to connect OpenClaw to Obsidian so your AI assistant can read, write, and search your personal knowledge base.
+---
+
+There's a version of an AI assistant that knows about AI in general, and there's a version that knows about you specifically — your projects, your ideas, your meeting notes, your half-formed thoughts from Tuesday afternoon. The second version is far more useful. Connecting OpenClaw to Obsidian gets you there.
+
+## What Obsidian Is and Why It Works So Well Here
+
+Obsidian is a free note-taking app with one unusual property: it stores everything as plain text files on your own computer. No proprietary format, no cloud lock-in. Just folders full of `.md` files sitting on your hard drive.
+
+That simplicity is exactly what makes it perfect for OpenClaw. Your agent can read plain text files. Your agent can write plain text files. If your notes are plain text files in a folder, your agent can work with your entire knowledge base — reading, writing, searching, and connecting ideas — without any complicated integration.
+
+## Setting It Up
+
+The setup is straightforward. In your OpenClaw dashboard at [http://127.0.0.1:18789](http://127.0.0.1:18789), point your workspace folder at your Obsidian vault, or at a specific subfolder within it.
+
+If your whole Obsidian vault contains thousands of personal notes going back years, you might prefer to create a dedicated subfolder — something like `AI-workspace` or `OpenClaw` — and point OpenClaw there. You can then drop notes into that folder whenever you want them to be accessible to your agent. This gives you control over what your agent can see without restructuring your entire note-taking system.
+
+If your vault is more focused or you're comfortable with your agent having full access, pointing it at the root of the vault works just as well. Your agent will be able to read and search everything.
+
+Once the workspace folder is set, create a quick test note in Obsidian, save it, and then ask your agent "what do I have in my notes about [topic]?" If it finds the note, you're connected.
+
+## What You Can Do Once It's Working
+
+The use cases open up quickly once you start thinking of your agent as someone who has read all your notes.
+
+"Find my notes on the Johnson project and give me a summary of where things stood last time I wrote about it." Your agent reads through whatever you've written and pulls out the key points — useful before a call you haven't thought about in three weeks.
+
+"Add a note about today's meeting with Sarah from Acme. Key points: they want to expand the retainer, budget decision in Q3, send updated proposal by the 15th." Your agent creates a new note in your vault. It's there when you open Obsidian, already formatted and filed.
+
+"What have I written about productivity in the past few months?" Your agent searches across your notes and finds relevant passages — connections you might not have remembered yourself.
+
+"I'm preparing a talk on [topic]. What ideas have I already captured that might be relevant?" Your agent scans your knowledge base and surfaces the raw material. You've already done some of the thinking. Your agent helps you find it.
+
+This last use case is one of the most powerful. A lot of people write notes that they never revisit because finding them is too much effort. Your agent changes that. It makes your past thinking searchable and accessible in seconds.
+
+## A Few Things to Know
+
+Your agent can only work with files in the folder you've pointed it at. If a note is in a different part of your vault, it won't be visible. Keep that in mind as you decide what to include.
+
+The files need to be saved and accessible on your local machine. If Obsidian is syncing to a cloud service, there may be a brief delay between when you save a note and when it's visible to your agent. In practice this is rarely a problem, but worth knowing.
+
+Obsidian's linking features — the `[[wikilinks]]` that connect notes to each other — are readable by your agent as plain text, but your agent won't navigate those links automatically. If you ask about a topic, it will search the text of your notes, not follow every link in the way Obsidian's graph view would. For most practical tasks this is fine.
+
+## Why This Feels Different
+
+Every other AI tool you've used forgets you when you close the tab. Your knowledge, your context, your history — gone. Connecting OpenClaw to Obsidian means your agent has a growing, permanent record of your thinking. Every note you write adds to the knowledge base it can draw on.
+
+Over time, the connection between your note-taking practice and your AI assistant becomes genuinely self-reinforcing. You take better notes because you know your agent will use them. Your agent gives better answers because it has your actual notes to draw from. The two systems feed each other.
+
+That's the closest thing to a true second brain that most people will find — not a database someone else built, but your own knowledge, made searchable and usable with the help of an agent that knows how to find what you need.

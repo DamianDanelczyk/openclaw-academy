@@ -1,0 +1,52 @@
+---
+title: Connecting Telegram
+description: How to create a Telegram bot, get your bot token, and connect it to OpenClaw so you can chat with your assistant from your phone.
+---
+
+Of all the ways you can talk to your OpenClaw agent, Telegram is the one we recommend starting with. It's private, it's free, it works on every device you own, and OpenClaw's Telegram integration is by far the most polished and reliable of all the channel options. Once it's set up, you can message your agent from your phone while you're on the train, from your laptop at your desk, or from a tablet on the sofa — all in the same conversation thread. It's genuinely one of the best parts of having a personal AI assistant.
+
+## What Is BotFather?
+
+Before we get into the steps, a quick explanation. Telegram has a concept of bots — automated accounts that can send and receive messages just like a regular user. To create a bot, you go through an official Telegram bot called BotFather. Yes, a bot that creates bots. Telegram built this system so anyone can set up a bot without needing access to backend systems. BotFather is entirely official — it's run by the Telegram team themselves, not a third party.
+
+When you create a bot through BotFather, it gives you a token. A token is just a long string of characters that acts like a password — it proves to Telegram that you're the owner of that bot and allows OpenClaw to send and receive messages on its behalf. Keep this token private, the same way you'd keep a password private.
+
+## Creating Your Bot Step by Step
+
+Open Telegram on whichever device is convenient — phone, desktop, or web all work. In the search bar at the top, search for **@BotFather**. You're looking for the verified one with a blue checkmark next to its name. Tap or click to open the conversation.
+
+Send the command `/newbot` to BotFather. It will ask you for two things in sequence.
+
+First, it asks for a **name** — this is the display name that appears at the top of the chat. It can be anything you like. Something like "My Assistant" or your own chosen name works fine. This name can have spaces and can be changed later.
+
+Second, it asks for a **username** — this is the technical identifier for your bot and it must end in `bot`. So if your display name is "My Assistant", your username might be `myassistant_bot` or `myai_bot`. Usernames have to be unique across all of Telegram, so your first choice might already be taken. If that happens, just try a variation.
+
+Once you've chosen a valid username, BotFather will send you a congratulations message containing your **bot token**. It looks something like `7412853901:AAF3kLmNpQ...` — a number, a colon, then a long string of letters and numbers. Copy this entire string carefully. Don't add any spaces or line breaks.
+
+## Connecting Your Bot to OpenClaw
+
+Now switch over to your OpenClaw dashboard. Head to the **Channels** section and look for the Telegram option. Click to add it and you'll see a field asking for your bot token. Paste the token you copied from BotFather.
+
+Save the channel. OpenClaw will attempt to verify the token by making a quick call to Telegram's API. If the verification succeeds, your Telegram channel will show as connected. If it fails, the most common reason is a typo in the token — go back to the BotFather conversation, copy the token again, and try once more.
+
+## Sending Your First Message
+
+Here's the moment of truth. Go back to Telegram and search for your bot by its username (the one ending in `bot`). Open that conversation — not the BotFather conversation, your actual new bot. Send it a message. Something like "Hello, are you there?" works perfectly.
+
+If everything is connected correctly, your OpenClaw agent will respond within a few seconds. That's your agent, running through OpenClaw, talking back to you through Telegram. Take a moment to appreciate that — it's a genuinely impressive thing to have set up.
+
+## The Most Common Mistake
+
+Almost everyone does this at least once: they send their test message to BotFather instead of to their new bot. BotFather will respond, because it always does, but it'll respond with bot-management commands rather than with your agent's voice. If your "first message" gets a strange reply about creating bots, you're talking to the wrong conversation. Search for your bot's actual username and start the conversation there.
+
+The second common slip is copying only part of the token. The token starts with a string of digits, then a colon, then a much longer alphanumeric string. Both parts are essential — make sure you've got the whole thing.
+
+## A Note on Dedicated Accounts
+
+As we covered in the security page, it's good practice to connect OpenClaw to a dedicated Telegram account rather than your personal one. This means creating a second Telegram account and using that account's bot for your OpenClaw integration. If you're doing this for personal use and you're comfortable with the tradeoffs, using your main account is fine for now. But for any business or shared use, a dedicated account is the right call.
+
+## What's Next
+
+Your agent is now reachable from Telegram — which means you can actually use it in your day-to-day life. Before you go deeper, it's worth understanding how the AI API costs work so you're not surprised by a bill at the end of the month.
+
+> **Want the full technical details?** See the advanced guide: [Telegram Channel](/en/docs/core-architecture/channels/telegram)

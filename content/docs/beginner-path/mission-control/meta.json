@@ -1,0 +1,13 @@
+{
+  "title": "Mission Control",
+  "pages": [
+    "mission-control-dashboard",
+    "task-board-calendar",
+    "projects-and-documents",
+    "memories-team-office",
+    "customising-mission-control",
+    "financial-tracker",
+    "daily-standup",
+    "mobile-access"
+  ]
+}

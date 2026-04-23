@@ -1,0 +1,42 @@
+---
+title: Set Up Your Daily Intelligence Digest
+description: Build a personalised morning briefing that pulls together everything you need to know before starting your day.
+---
+
+This is the project that most students say changes their mornings. A daily intelligence digest is a personalised briefing that lands in your Telegram before you sit down to work — covering your priorities, your industry, and anything else you've told your agent matters to you. You set it up once, and from that point forward, your day starts with clarity instead of inbox chaos.
+
+## What Goes Into a Good Digest
+
+The best digests are specific and brief. A common mistake is asking for too much and getting back a wall of text that takes longer to read than it would to just check things yourself. The goal is a two-minute read that leaves you knowing exactly what to focus on.
+
+A good structure to start with: your top three priorities for the day, a quick industry news scan, any time-sensitive items from your task list or workspace files, and one short productivity or motivational prompt to close it out. Some people add weather if they need to plan travel. Some include a look-ahead at the week so Monday mornings feel less surprising.
+
+Keep each section short. Three to five bullet points per section is a good ceiling. If something needs more than five bullets, it probably deserves its own dedicated report rather than a slot in your morning digest.
+
+## Writing the Instruction
+
+Here's a sample instruction you can adapt:
+
+"Every day at 7am, send me my morning briefing. Start with my top three priorities for today — check my workspace file called daily-priorities.txt if I've updated it, otherwise remind me of my current quarterly goals. Then search for two or three news items from the past 24 hours that are relevant to [your industry]. Keep each news item to one sentence. After that, check if there's anything in my task list that is flagged as urgent. Close the briefing with one short piece of practical advice for staying focused during a busy workday. Format everything with clear section headers and keep the whole thing to under 200 words."
+
+The key phrases there are "keep each news item to one sentence," "under 200 words," and the instruction to check a specific workspace file. Constraints like these are what separate a tight, useful digest from a rambling report.
+
+If you don't have a daily-priorities.txt file yet, this is a good reason to create one. Keep it in your workspace folder and update it each evening or each morning — just a quick list of the two or three things that actually matter today. Your agent will check it and include it in your briefing.
+
+## Setting Up the Schedule
+
+Head to your dashboard at [http://127.0.0.1:18789](http://127.0.0.1:18789) and open the cron job editor. Paste in your instruction, set the schedule for 7am daily (or whatever time works for you — some people prefer 6:30am before the house wakes up, others prefer 8:45am once they're at their desk with coffee). Save it and test it manually first by running the instruction in a regular conversation to make sure the output looks right.
+
+Most people find that on weekends they don't want a full business briefing. You can either set the cron job to run only on weekdays, or write a lighter version of the instruction for Saturdays and Sundays that skips the task list and news scan and just sends a short reflection prompt.
+
+## How It Looks When It Arrives
+
+Your Telegram message will arrive as a formatted text block with clear sections. It won't look like a beautifully designed newsletter — this is a utility message, not a visual experience. Clear headers, tight bullet points, short sentences. Exactly what you need to scan in two minutes while you're making coffee.
+
+## Tweaking It Over Time
+
+The first version of your digest probably won't be perfect. Maybe the news items feel off-topic. Maybe the priorities section isn't pulling the right information. Maybe 200 words is still too long for you in the morning.
+
+Each time something feels off, update the instruction. After a couple of weeks of small adjustments, most people land on a version that genuinely works for them and wouldn't change it for anything.
+
+> **Want the full technical details?** See the advanced guide: [Cron Jobs](/en/docs/automation/cron-jobs)

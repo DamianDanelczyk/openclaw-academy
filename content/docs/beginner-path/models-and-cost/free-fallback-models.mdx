@@ -1,0 +1,56 @@
+---
+title: Free Fallback Models (Kimi & Ollama)
+description: How to use Kimi's free tier and Ollama's local models as zero-cost fallbacks when you want to save on API credits.
+---
+
+Not every conversation needs to cost money. Two options let you offload a significant chunk of your assistant's workload to free models — Kimi's cloud-based free tier and Ollama's locally-run models. Neither is a replacement for Claude Sonnet on a hard task, but for everyday use, they're surprisingly capable and completely free.
+
+## Kimi: Free Cloud AI
+
+Kimi is an AI assistant made by Moonshot AI. Their free tier is generous — you get a solid number of messages per day without paying anything. The quality is good for general conversation, answering questions, summarising content, and simple writing tasks.
+
+To add Kimi to OpenClaw, go to the Models section in your dashboard at `http://127.0.0.1:18789`, find Kimi in the provider list, and add your API key. Getting a Kimi key is free — you create an account on their website, generate a key, and paste it in. The free tier is applied automatically.
+
+Kimi handles itself well on most routine assistant tasks. If you're asking your assistant to summarise a web article, draft a quick reply, or look something up, Kimi can handle that without touching your paid API credits at all. When you hit the free tier limit for the day, OpenClaw simply routes to your paid models as a fallback.
+
+The honest caveat: Kimi's quality on complex tasks doesn't match Claude Sonnet. For nuanced writing, detailed analysis, or multi-step reasoning, you'll notice the difference. Use it for simple things and save your paid models for work that deserves them.
+
+## Ollama: AI That Runs on Your Computer
+
+Ollama is a tool that lets you run AI models entirely on your own machine. No internet connection needed, no API key, no cost per message — ever. The model runs locally, so your data never leaves your computer.
+
+Installing Ollama is a single step. Visit [ollama.com](https://ollama.com) and download the installer for your operating system. Once it's running, you pull a model with a command like:
+
+```
+ollama pull llama3
+```
+
+This downloads the model to your machine. It's a big download — anywhere from 4GB to 20GB depending on the model — so make sure you have space. Once it's downloaded, you run it instantly without any ongoing costs.
+
+To connect Ollama to OpenClaw, go to the Models section in your dashboard, find the Ollama entry, and point it to your local instance (it runs on `http://localhost:11434` by default). OpenClaw will detect the models you've pulled and make them available for routing.
+
+## When to Use Each
+
+**Use Kimi when** you want to save API credits on internet-connected tasks — summarising a page, chatting about a general topic, asking questions that don't require deep reasoning. Kimi is cloud-based, so it needs an internet connection, and it's subject to their free tier limits.
+
+**Use Ollama when** you're working with anything sensitive and don't want it leaving your machine — personal notes, private documents, anything you'd rather keep offline. Also useful when you're travelling without reliable internet, or when you simply want zero ongoing costs and don't mind the slower response time.
+
+**Be honest about the tradeoffs.** Local Ollama models are slower than cloud models — a response that takes one second from Claude Haiku might take five to thirty seconds from a local model, depending on your computer's specs. And both Kimi and Ollama are noticeably less capable than Claude Sonnet on anything complex. They're great for simple tasks and a poor fit for anything that needs real intelligence.
+
+## A Practical Setup
+
+A common and sensible routing order looks like this: try Ollama first for anything simple and private, use Kimi for general internet-connected tasks within its free limit, then fall back to Claude Haiku (paid but cheap) when neither is appropriate, and escalate to Sonnet only for demanding tasks.
+
+This approach means your actual API spend is minimal — you're really only paying for tasks that genuinely need it.
+
+## Common Mistakes
+
+Expecting Ollama to match cloud model quality is the main disappointment people run into. Adjust your expectations and it becomes a genuinely useful tool. Expect it to compete with Sonnet and you'll be frustrated.
+
+On the Ollama side, not checking whether your computer can handle the model is a real issue. You need a reasonably modern machine with at least 8GB of RAM to run smaller models comfortably, and 16GB or more for the better ones. If your computer struggles, responses will be painfully slow.
+
+## What's Next
+
+With free and cheap models in place, the next page ties it all together — practical strategies to run your entire OpenClaw setup for under $5 a month, or even free.
+
+> **Want the full technical details?** See the advanced guide: [Cost Optimization](/en/docs/advanced/cost-optimization)

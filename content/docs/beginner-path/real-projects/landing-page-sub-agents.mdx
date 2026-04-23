@@ -1,0 +1,46 @@
+---
+title: Build a Landing Page with Sub-Agents
+description: A hands-on project where your assistant designs and writes a complete landing page using multiple sub-agents working together.
+---
+
+This project is probably the most impressive thing you can do in the first week of using OpenClaw — not because it's technically difficult, but because of how much work happens with a single instruction. You're going to ask your assistant to build you a complete landing page, and you're going to watch it spin up multiple sub-agents to get it done.
+
+## What You'll Ask Your Agent
+
+The instruction you give is the whole project. No setup, no file configuration, no multi-step process. You type something like this into your dashboard at [http://127.0.0.1:18789](http://127.0.0.1:18789):
+
+"Build me a landing page for my business. First, research three of my closest competitors to understand how they position themselves and what their pages look like. Then write compelling copy for my page — a headline, a short intro, three key benefits, and a call to action. Finally, produce a complete HTML file with the copy embedded in a clean, simple layout. Send me the file when it's done."
+
+If your business description is already in your workspace files, your agent already knows what you do, who your customers are, and what makes you different. If it isn't, add a sentence or two about your business to the instruction, or better yet, set that up in your workspace files first — you'll use it again and again.
+
+## What Happens After You Hit Send
+
+This is where it gets interesting. Your agent reads your request, realises it needs to do several things in parallel, and starts spinning up sub-agents.
+
+One sub-agent gets sent out to research competitor one. Another looks at competitor two. A third handles competitor three. They all work simultaneously, browsing the web and pulling back information about positioning, messaging, and page structure. While that's happening, your main agent is already thinking about how to structure your landing page.
+
+When the research sub-agents report back, your main agent synthesises their findings — what your competitors are emphasising, what angles they're using, where there might be a gap you can own — and uses that to shape the copy it writes for you.
+
+The final step is generating the HTML. Your agent takes the copy it's written, wraps it in a clean HTML structure, and delivers it to your Telegram or saves it to a file, depending on how you've set things up.
+
+In your dashboard logs, you'll see the whole process unfold. Multiple agents initialising, tasks being assigned, results coming back, the main agent weaving it all together. It can feel a little like watching an orchestra tune up and then suddenly launch into a full piece.
+
+## What to Expect from the Output
+
+The landing page you get back will be functional and coherent. The copy will be reasonably good — sometimes surprisingly good, especially if your workspace files give the agent a clear picture of your business and your voice. The HTML will be clean and valid, something you can open in a browser and actually look at.
+
+What it won't be is production-ready. The styling will be minimal. The layout will be simple. There may be a placeholder image or two. You'll probably want to tweak the copy to sound more like you, and you'll almost certainly want a designer to polish the visual side before you put it live.
+
+But think about what you've got: a first draft — with competitive research baked in — that would have taken a human copywriter and web developer a combined three or four hours to produce. You got it in twenty minutes. Even if you change 40% of it, you've saved a huge amount of time and you're starting from something real rather than a blank page.
+
+## Refining the Result
+
+If the output isn't quite what you wanted, the fix is almost always in the instruction. Too generic? Add more detail about your target customer. Copy doesn't sound like you? Add a note about your brand voice, or give the agent a sample of writing you like. Page structure missing something? Be explicit about what sections you want.
+
+Run it again with the updated instruction. Each iteration should get closer. After two or three rounds, most people have something they're genuinely happy with.
+
+## What's Next
+
+This project shows what's possible when you combine web browsing, sub-agents, and a clear instruction. The next step is applying that same thinking to your business more broadly — building a persistent intelligence layer that knows your company and can help you make better decisions.
+
+> **Want the full technical details?** See the advanced guide: [Sub-Agents](/en/docs/advanced/sub-agents)

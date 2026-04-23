@@ -1,0 +1,42 @@
+---
+title: Browsing the Web & Sub-Agents
+description: How to give your assistant the ability to search the web, and how sub-agents let it break big tasks into parallel workstreams.
+---
+
+Out of the box, your OpenClaw agent is smart but blind. It knows a lot from its training, but it can't look anything up. It can't check today's news, find a competitor's pricing page, or verify whether a product still exists. The web browsing skill changes all of that — and when you combine it with sub-agents, you unlock a way of working that feels genuinely different from anything you've used before.
+
+## Installing the Web Browsing Skill
+
+Skills are add-ons that extend what your agent can do. The web browsing skill lives in ClawHub, which you can access from your dashboard at [http://127.0.0.1:18789](http://127.0.0.1:18789). Find it, install it, and your agent gains the ability to search the web and pull real information from live pages.
+
+Once it's installed, requests like "find the latest news about OpenAI" or "check what pricing SparkMail is currently showing on their homepage" become possible. Your agent will search, read, and summarise — just like a human assistant would if you asked them to do a quick Google.
+
+A few things to know about web browsing: your agent is reading publicly accessible web pages. It can't log into sites on your behalf, and it can't access pages that require authentication. For most research and monitoring tasks, that's not a limitation at all. For private or password-protected content, you'd need a different approach.
+
+## What Sub-Agents Are
+
+This is one of those concepts that sounds technical but is actually very natural once you see it in action.
+
+When you give your agent a big task — something that involves multiple parallel threads of work — it can create smaller helper agents to tackle different parts of it at the same time. These helpers are called sub-agents. Your main agent acts as the coordinator, breaks the task into pieces, assigns each piece to a sub-agent, waits for the results to come back, and then synthesises everything into a final answer for you.
+
+The crucial thing to understand is that you don't set this up yourself. You don't configure sub-agents or tell your agent when to use them. You just give your agent a task that's big enough to warrant it, and it makes that decision on its own. The golden rule of OpenClaw applies perfectly here: tell the agent what you want, not how to do it.
+
+## Seeing Sub-Agents in Action
+
+A classic example is competitive research. Say you want a summary of what five of your competitors have been doing recently. If you ask your agent to research all five, it might spin up five sub-agents simultaneously — one per competitor — each doing its own web searches and gathering its own information. They all work in parallel, and when they're done, your main agent pulls everything together into a single coherent report.
+
+Compare that to a human doing the same task. They'd research company one, then company two, then company three — sequentially, one at a time. Five sub-agents working in parallel cuts that time dramatically.
+
+You'll see this happening in the logs section of your dashboard. You'll notice multiple agents spinning up, each with their own task, each returning results. At first it looks busy and complicated, but once you know what you're looking at, it's quite satisfying to watch.
+
+## What Sub-Agents Can't Do (Yet)
+
+Sub-agents are powerful, but they're not magic. Each sub-agent is essentially a fresh agent working on a focused slice of a problem. They share the knowledge from your SOUL.md and workspace files, but they don't share memory with each other in real time. Your main agent is responsible for synthesising their results into something coherent.
+
+This means very nuanced or deeply interconnected tasks sometimes come out a little fragmented — the sub-agents do their individual jobs well but the connections between their findings aren't always perfect. If you notice this, the fix is usually to give your main agent better instructions about how the final output should be structured.
+
+## A Good Pairing
+
+Web browsing and sub-agents work especially well together. A sub-agent that can also browse the web is a research unit that can go find real information, not just reason from memory. When you combine the two, your agent goes from being a smart responder to being an active researcher. That opens up a whole category of projects we'll be building in the pages ahead.
+
+> **Want the full technical details?** See the advanced guide: [Sub-Agents](/en/docs/advanced/sub-agents)

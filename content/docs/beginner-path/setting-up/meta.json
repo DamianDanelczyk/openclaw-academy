@@ -1,0 +1,19 @@
+{
+  "title": "Setting Up",
+  "pages": [
+    "where-to-run-openclaw",
+    "why-security-matters",
+    "installing-on-vps",
+    "installing-locally",
+    "local-ai-models",
+    "free-and-paid-models",
+    "anthropic-api-key",
+    "docker-and-dashboard",
+    "first-launch",
+    "hardening-security",
+    "connecting-telegram",
+    "understanding-api-costs",
+    "gateway-dashboard",
+    "updates-and-recovery"
+  ]
+}

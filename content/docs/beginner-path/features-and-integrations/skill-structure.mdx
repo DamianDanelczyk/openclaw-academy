@@ -1,0 +1,52 @@
+---
+title: Understanding Skill Structure
+description: A look inside how OpenClaw Skills work — so you can understand what they're doing and evaluate whether to trust them.
+---
+
+You don't need to be a developer to evaluate whether a skill is safe to install. Understanding the basic structure of how skills work gives you enough to read a ClawHub listing and make a confident decision — without opening a single file of code.
+
+## What a Skill Is Made Of
+
+Every skill has three core components, and all three are visible to you in the ClawHub listing before you install anything.
+
+The first is the **name and description** — a plain-English summary of what the skill does. "Browse the web and retrieve content from URLs." "Read and send Gmail messages." "Search your local file system." This is the skill's claim about itself. Your job is to check whether the rest of what you see supports that claim.
+
+The second is the **list of actions** the skill can take. This is more specific than the description — it's an itemised list of the actual things the skill is capable of doing. Fetch a URL. Read a file at a given path. Create a calendar event. Send an email. These are the building blocks of what the skill does. A well-designed skill has a short, focused list of actions that obviously relate to its stated purpose.
+
+The third is the **permissions it requests** — what access it needs from your system to do those actions. Access to outbound HTTP requests. Read access to a specific folder. Read/write access to your calendar. These are the credentials and capabilities it needs to function. If the permissions match the actions, and the actions match the description, the skill is coherent.
+
+## The Question That Matters
+
+Before installing any skill, ask yourself one question: does everything line up?
+
+The description says "web search". The actions say "fetch URL, extract page content, return text". The permissions say "outbound HTTP requests". That all lines up perfectly — this skill does what it says and needs exactly what it claims to need.
+
+Now imagine the same skill — advertised as a web search tool — but the permissions include "read files from the home directory". That does not line up. There is no reason a web search tool needs access to your file system. That mismatch is a signal to stop and ask why.
+
+## Reading a ClawHub Listing
+
+When you open a skill's page in ClawHub, you'll see a structured breakdown of all three components: what it does, what actions it performs, and what permissions it requires. The permissions section is the most important thing to read carefully. Everything else in the listing describes intent — permissions describe capability.
+
+Pay attention to the scope of permissions. "Read-only access to Gmail" is very different from "read and write access to all email accounts". "Access to the folder you specify" is different from "access to your entire file system". Narrower is almost always safer, and a well-designed skill will ask for the minimum it needs.
+
+You can also see the version history and any recent changes in the listing. If a skill added a significant new permission in a recent update without an obvious explanation, that's worth noticing.
+
+## What to Do When You're Unsure
+
+If you read through a skill's listing and something feels off — the permissions seem wider than necessary, the description is vague, the action list is unusually long — just skip it. There are almost always other skills that do the same job with a cleaner, more legible setup.
+
+Well-rated, frequently-installed skills from the OpenClaw team or established contributors tend to have the cleanest permission structures. They've been through review, and many people have already checked them. That's not a guarantee, but it's a reasonable starting point.
+
+If a skill is new with few installs and you're not sure about it, wait. Give it a few weeks. If it's a good skill, reviews will accumulate and any issues will surface. The cost of waiting is low. The cost of installing something that behaves badly can be higher.
+
+## The Bigger Picture
+
+Understanding skill structure isn't about being suspicious of everything — most skills in ClawHub are exactly what they say they are. It's about having a mental framework so that when something doesn't look right, you recognise it.
+
+The combination of name, actions, and permissions tells you the full story of what a skill does. Once you've looked at a few listings, pattern-matching the coherent ones from the incoherent ones becomes quick and intuitive. You get better at it fast.
+
+## What's Next
+
+With a solid understanding of skills, the next pages put them to work. First up: installing and configuring the Google Workspace integration, one of the most powerful things you can add to your assistant.
+
+> **Want the full technical details?** See the advanced guide: [Skills & ClawHub](/en/docs/core-architecture/skills-clawhub)

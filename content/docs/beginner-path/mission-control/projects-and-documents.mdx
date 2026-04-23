@@ -1,0 +1,58 @@
+---
+title: Projects & Documents
+description: How to organise your active projects in OpenClaw's workspace so your assistant always has the context it needs to help you move forward.
+---
+
+Your Mission Control file gives your agent a high-level view of what you're working on. But when you want to actually do work on a specific project — drafting a proposal, preparing for a client meeting, figuring out the next step — you need more depth than a one-line status update.
+
+That's what project files are for. Each active project gets its own dedicated file in your workspace, and your agent reads the right one whenever you're working on that project. Think of Mission Control as the map, and your project files as the detailed street views.
+
+## What Goes in a Project File
+
+A good project file contains everything your agent would need to understand the project and help you move it forward. In practice, that means five things.
+
+The **project name and a one-paragraph description** of what it is and why it matters. Not a novel — just enough to orient anyone (or any AI) coming in fresh.
+
+The **current status**: where things stand right now. Not where they should be, where they actually are. This is the thing you update as the project moves.
+
+The **next action**: the single most important thing that needs to happen next to move this project forward. One thing. Your agent will reference this when you ask what to do.
+
+The **key contacts**: the two or three people most relevant to this project. Their names, their roles, maybe a note about the relationship. Your agent uses this when helping you draft communications.
+
+The **relevant links**: links to important documents, the client's website, a shared folder, a Notion page — whatever reference material exists. Your agent can visit these if you ask it to research something.
+
+That's it. You don't need to capture the entire history of the project. You need enough context for your agent to be genuinely useful today.
+
+## Creating Your First Project File
+
+Open Canvas in your dashboard at `http://127.0.0.1:18789`. Create a new file. Name it clearly — `project-website-redesign.md` or `project-acme-proposal.md`. Clear names mean you and your agent can both refer to the file unambiguously.
+
+Write the five sections above. Be honest about the status and the next action — the value of the file is that it reflects reality, not aspiration. Save it, and you're done.
+
+You can also have your agent build it with you. Tell it: "I want to create a project file for [project name]. Ask me the key questions and build the file as we talk." It'll walk you through it conversationally and write the file when you're done.
+
+## Using Project Files in Practice
+
+The real payoff comes when you're actually working. Say you've been away from a project for a week and need to get back up to speed. Instead of digging through old emails or trying to remember where you left off, you just tell your agent: "What's the status of the website project?" It reads the file and gives you a clear answer in seconds.
+
+When something changes, update the file by chatting: "Update the website project — we've agreed on the design, the next step is development starting Monday." Your agent updates the file, confirms what it's written, and now the project record reflects the current reality.
+
+If you need to draft an email to the project's client, you don't need to re-explain who they are. Your agent already knows from the project file. "Draft an email to the client on the website project — let them know we're moving into development" is all you need to say.
+
+## Keeping Documents Organised
+
+For longer-form documents — proposals, reports, meeting notes, contracts — create a separate file per document rather than stuffing everything into the project file. Your Canvas can hold as many files as you need.
+
+A sensible structure is to have a folder per project (Canvas supports folders), with the main project file at the top and supporting documents inside. Your agent can navigate this structure and find what it needs when you ask.
+
+Meeting notes are particularly useful to store here. After a client call, tell your agent: "We just finished the Acme call. Key decisions: [list them]. Action items: [list them]. Add this to the meeting notes file in the Acme project folder." Your agent creates or updates the file. You now have a searchable record without any manual writing.
+
+## Common Mistakes
+
+The most common mistake is creating project files and then never updating them. An outdated status is worse than no status at all — it actively misleads your agent. Build a habit of updating the status and next action whenever something significant changes. It takes thirty seconds.
+
+The other common mistake is creating project files for everything, including things that aren't really projects. A project file makes sense for something with multiple moving parts that spans more than a week. A one-off task is just a task. Not everything needs a file.
+
+## What's Next
+
+You now have Mission Control for the overview, a task board for individual to-dos, and project files for the detail. The next page covers memory — how your agent retains what it learns about you over time, beyond just the files you've created.

@@ -1,0 +1,50 @@
+---
+title: Understanding Docker & Your Dashboard
+description: What Docker is, why OpenClaw uses it on a VPS, and how to navigate your OpenClaw dashboard for the first time.
+---
+
+If you've set up OpenClaw on a VPS, you may have noticed the word "Docker" come up during the process. Before your eyes glaze over, I promise this is not something you need to become an expert in. One sentence is all you need: Docker is a way of packaging software so it runs the same way on any computer. That's it. Whether you're running OpenClaw on a tiny VPS in Amsterdam or a beefy server in Singapore, Docker makes sure OpenClaw behaves identically on both.
+
+The reason OpenClaw uses Docker is mostly practical. Servers are unpredictable — different operating system versions, different libraries, different configurations. Docker sidesteps all of that by wrapping everything OpenClaw needs into a neat, self-contained box. You don't have to manage any of that yourself. If you're on Hostinger, their control panel handles the Docker setup for you, so you can treat it like a black box and move on.
+
+## Opening Your Dashboard
+
+Once OpenClaw is running, your control centre is the dashboard. If you're running locally, you'll find it at **http://127.0.0.1:18789** in your browser. If you're on a VPS, your host should have given you a URL — it looks similar but uses your server's IP address instead.
+
+The first time you open it, there's a decent chance your brain will short-circuit a little. There are panels and menus and numbers everywhere. That reaction is completely normal. Most software dashboards look intimidating on day one. By the end of this section, you'll know exactly what each part does and you'll only be paying attention to four or five of them on any regular basis.
+
+## The Main Sections at a Glance
+
+Let's walk through what you're actually looking at.
+
+**Agents** is where your AI assistants live. Think of each agent as a separate personality — one might be your personal assistant, another might handle customer queries if you're running a business. For now, you probably just have one. This is where you give it a name, set its instructions, and shape how it behaves.
+
+**Channels** is how your agent talks to the outside world. This is where you'll connect Telegram, a web chat widget, or any other platform you want to communicate through. Without at least one channel set up, your agent is basically sitting in a room with no door.
+
+**Memory** is fascinating once you start using it seriously. This is where OpenClaw stores things your agent has learned or been told to remember. You can think of it like the notes your agent keeps between conversations. It's what lets your assistant remember that you prefer short answers, or that your meeting is always on Tuesdays.
+
+**Logs** is the section you'll love when something goes wrong — and mildly ignore when everything is working fine. Every message sent and received, every action taken, every error encountered gets recorded here. When you're troubleshooting, this is the first place to look.
+
+**Settings** covers the broader configuration of your OpenClaw instance — things like passwords, API keys, and which features are enabled.
+
+## Don't Skip the Tour
+
+When you log in for the first time, take five minutes to just click around. Don't change anything yet — just get familiar with where things live. Notice that the Agents section has its own sub-navigation. Notice how Channels shows you a list of possible integrations. Notice that Logs has filters so you can narrow down what you're looking at.
+
+Getting comfortable with the layout now will save you a lot of frustration later when you're following a guide and it says "go to Channels and click the Telegram card" — you'll know exactly where that is.
+
+## A Word on the Docker Containers
+
+If you're on a VPS and you ever peek into your hosting panel, you might see containers with names like `openclaw-gateway`, `openclaw-worker`, or similar. These are the individual Docker containers that make up OpenClaw. You don't need to interact with them directly in most cases. If something seems wrong, the right tool to reach for is `openclaw doctor --fix` in your terminal rather than poking around in Docker manually. More on that in the Updates & Recovery page.
+
+## Common First-Day Mistakes
+
+The most common thing people do on day one is start clicking through settings and changing things before they understand what they do. Try to resist that urge. The defaults are sensible. Get your first agent running and your first channel connected before you start customising.
+
+The second most common mistake is confusing the local URL with the VPS URL. If you have both a local install and a VPS running, make sure you know which dashboard you're looking at. The local one is always at `127.0.0.1:18789`. Your VPS one will be a different address entirely.
+
+## What's Next
+
+Now that you've got your bearings, it's time to actually launch OpenClaw and go through the onboarding process. The next page walks you through your first launch step by step — including what to do if something doesn't start up properly.
+
+> **Want the full technical details?** See the advanced guide: [Docker Architecture & VPS Setup](/en/docs/advanced/docker-architecture)

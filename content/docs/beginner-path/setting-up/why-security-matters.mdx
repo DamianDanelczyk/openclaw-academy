@@ -1,0 +1,50 @@
+---
+title: Why Security Matters
+description: Before you install anything, understand why keeping your OpenClaw setup private is important — and how easy it is to do right.
+---
+
+Security isn't the most exciting topic, but it's worth understanding before you set anything up. A five-minute read now can save you from a genuinely unpleasant situation later.
+
+The short version: OpenClaw is a personal AI assistant, and that means it can have access to some sensitive parts of your life. Your files. Your email. Your calendar. Your messaging accounts. That's exactly what makes it powerful — and it's also why you want to make sure only you can reach it.
+
+## What You're Actually Protecting
+
+Think about what an AI assistant can do. It can read your emails, write and send messages on your behalf, access documents, and interact with the services you connect to it. Now imagine someone else had access to that same assistant. They'd be able to do all of those things too, just by talking to your OpenClaw instance.
+
+This isn't a hypothetical scare story. It's just a straightforward consequence of building something powerful. The more capable your assistant becomes, the more important it is to keep it private.
+
+The good news is that keeping it secure doesn't require any technical expertise. It mostly comes down to a handful of habits, and none of them are complicated.
+
+## Your Dashboard URL Is Private
+
+When OpenClaw is running locally, your dashboard lives at `http://127.0.0.1:18789`. That address is only accessible from your own computer — no one else on the internet can reach it. That's naturally secure.
+
+When you run OpenClaw on a VPS, the situation is a bit different. Your dashboard becomes reachable over the internet, which is what makes it convenient to access from your phone or from anywhere. But that convenience also means you need to be intentional about who can reach it.
+
+Never share your dashboard URL publicly. Don't paste it in a Discord server, a Reddit post, or a support ticket. Treat it like the address to your house — you'd give it to people you trust, not broadcast it to strangers.
+
+The course covers a practical way to keep your dashboard completely off the public internet using Tailscale, a tool that creates a private network between your devices. It means your dashboard is accessible to you from anywhere without being exposed to the wider internet at all. We'll walk through that in a later section.
+
+## Use Dedicated Accounts for Everything
+
+This one is important and often overlooked. When you connect a service to OpenClaw — like Gmail, Telegram, or anything else — create a dedicated account for it rather than using your personal one.
+
+What that means in practice: if you want OpenClaw to manage emails, set up a new Gmail address specifically for that purpose. If you're connecting a Telegram bot, the bot itself is already its own account, which is great. The principle is the same across the board: keep your AI assistant's access separate from your personal accounts.
+
+Why? Because if something goes wrong — a misconfiguration, an accidental action, anything — the impact is contained. Your personal inbox isn't affected. And if you ever want to revoke access or start fresh, you can just delete the dedicated account without losing anything important.
+
+## Strong Passwords and API Keys
+
+When you set up integrations, you'll sometimes be working with API keys — secret codes that let OpenClaw talk to other services on your behalf. Think of them like passwords, except they're usually long random strings of characters.
+
+Treat them exactly like passwords. Don't share them. Don't paste them into chat windows. Don't commit them to GitHub. If you ever think one has been exposed, the right move is to immediately revoke it and generate a new one — most services make this easy.
+
+We cover the specifics of handling your Anthropic API key (the key that lets OpenClaw use Claude) on the [Getting Your Anthropic API Key](/en/docs/beginner-path/setting-up/anthropic-api-key) page, including how to set a spending limit so you're never surprised by a bill.
+
+## It's Really Not Complicated
+
+None of this requires technical expertise. Keep your dashboard URL private. Use dedicated accounts. Don't share API keys. Follow the Tailscale setup in the course if you're running on a VPS. That's most of it.
+
+The security practices in this course aren't about being paranoid. They're just sensible habits that take barely any extra effort and make your setup much more robust. Build them in from the start and you won't have to think about them again.
+
+> **Want the full technical details?** See the advanced guide: [Security Checklist](/en/docs/security/checklist)

@@ -1,0 +1,61 @@
+---
+title: Task Board & Calendar
+description: How to use OpenClaw to manage your tasks and calendar through simple Telegram conversations — no special app needed.
+---
+
+There's a version of productivity that requires you to maintain a system. You open the app, you pick the right project, you select a due date, you add the right tags, you close the app. By the time you've finished logging the task, you've lost the mental thread that made you want to log it. It feels productive but it isn't.
+
+The OpenClaw approach is different. You just tell your assistant what needs to happen. It updates the files. You never open a task manager.
+
+## Your Workspace File Is Your Task Board
+
+Your task board isn't a separate app — it's a section in your workspace, ideally inside or alongside your Mission Control file. Think of it as a simple list with three columns: to-do, in progress, and done. Your agent reads and writes this list on your behalf.
+
+The interaction looks like this. You're in Telegram and you remember you need to send an invoice. You type: "Add a task: send invoice to Client X, due Friday." Your agent adds it to the task board in your workspace. Later that day you ask: "What do I have due this week?" It reads the file and tells you — not from memory, from the actual file it maintains.
+
+This is powerful because the file is persistent. Your agent doesn't forget tasks between conversations. And because it's just a text file, you can read and edit it directly in Canvas any time you want. No lock-in, no proprietary format.
+
+## How to Set Up Your Task Section
+
+In Canvas, open your Mission Control file (or create a dedicated `tasks.md` file if you prefer to keep things separate). Add a section called Tasks with three sub-sections: To Do, In Progress, and Done. You don't need to write anything in them yet.
+
+Tell your agent: "I've added a Tasks section to my workspace. When I ask you to add a task or mark something complete, please update that section. Always include the due date when I give one." That's the setup. Your agent will handle the rest conversationally.
+
+For more complex projects with lots of tasks, you can create a dedicated file per project — but for most people, a single tasks file is more than enough.
+
+## Checking In During the Day
+
+This is where the workflow really clicks. You can ask your agent things like:
+
+- "What's on my task list today?"
+- "What's overdue?"
+- "Mark the client invoice as done."
+- "Move the website review task to In Progress."
+
+Each of these is a natural sentence. Your agent reads the file, does the update, and confirms back to you. You're never navigating menus or clicking checkboxes. You're just having a conversation while your agent does the admin.
+
+## Calendar Integration
+
+If you've connected Google Calendar via the GOG skill in your OpenClaw settings, your agent can interact with your calendar conversationally as well. You can say things like "create a meeting with Sarah on Thursday at 2pm — call it Website Review" and your agent creates the event. Ask "what do I have this week?" and it reads your calendar and gives you a summary.
+
+If you haven't set up the Google Calendar integration yet, don't worry — it's covered in the integrations section of the course. Your task board works perfectly without it.
+
+The integration becomes especially useful when you want your agent to reason across both tasks and calendar at once. "I need to find two hours this week to work on the proposal — when does my calendar have space?" is the kind of question your agent can answer when it has access to both.
+
+## Keeping Things from Getting Cluttered
+
+One thing to stay on top of: move completed tasks to Done regularly and then archive them. If your task file grows to hundreds of items, your agent's context window fills up reading through them. A lean, current list is better than a comprehensive historical one.
+
+A good habit is asking your agent at the end of each week: "Archive everything in the Done section and give me a summary of what I completed this week." You get a nice sense of progress, and your task board resets for the coming week.
+
+## Common Mistakes
+
+Trying to track everything is the most common one. If a task takes two minutes, just do it rather than logging it. Your task board is for things that need to be tracked across days or weeks — not every micro-action.
+
+The other mistake is forgetting to give due dates. Tasks without due dates tend to drift. When you add a task, include a deadline, even a rough one. Your agent can then surface overdue items and help you prioritise.
+
+## What's Next
+
+With your tasks and calendar in hand, the next page covers how to organise your active projects in more depth — giving each project its own file so your agent has the context it needs when you dive into the detail.
+
+> **Want the full technical details?** See the advanced guide: [Canvas](/en/docs/core-architecture/canvas)

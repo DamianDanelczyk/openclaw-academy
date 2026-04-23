@@ -1,0 +1,48 @@
+---
+title: Understanding Skills & Staying Safe
+description: What OpenClaw Skills are, how they extend your assistant's abilities, and how to use them without putting your setup at risk.
+---
+
+Out of the box, your OpenClaw assistant is already useful. It can hold conversations, follow instructions, remember context, and respond intelligently to questions. But it can't browse the internet, read your emails, or search files on your computer. That's where Skills come in.
+
+Skills are add-ons that give your agent new abilities. They're the difference between an assistant that can only talk and one that can actually do things in the world.
+
+## What Skills Actually Are
+
+A Skill is a packaged capability that you install into your OpenClaw setup. Once installed, your agent gains access to new actions it couldn't take before. A web browsing skill lets your agent look up real-time information. A file search skill lets it find things on your computer. An email skill lets it read and send messages through a connected email account. An API skill lets it talk to external services.
+
+Skills are installed from ClawHub, which is OpenClaw's skill marketplace. Think of it like an app store — a library of available skills made by the OpenClaw team and trusted contributors, each with a description of what it does and what permissions it needs.
+
+## The Permission Question
+
+Every skill, when you install it, asks for specific permissions. These are the exact things it's allowed to do inside your setup. A web browsing skill needs permission to make outbound requests to URLs. An email skill needs permission to access a specific email account. A file skill needs access to particular folders.
+
+This permission system is the main thing you should pay attention to when installing a skill. Before you click confirm, read through the list. Ask yourself: do these permissions match what this skill claims to do?
+
+Red flags are easy to spot once you know what you're looking for. If a skill claims to be a simple weather checker but requests access to your file system, that's a mismatch. If a skill that does web searches also wants permission to send messages on your behalf, ask why. Legitimate skills have permissions that map directly to their stated purpose.
+
+Green flags are equally clear. A Gmail integration that requests access to your Gmail account and nothing else — that makes sense. A calendar skill that needs read/write access to calendar events — that's exactly what you'd expect.
+
+## How to Stay Safe
+
+Install skills only from ClawHub. The official marketplace has a review process, and skills there have been checked for safety. Third-party skills from random sources don't have that guarantee.
+
+Check the permissions before installing, not after. Once a skill is installed and you've granted it permissions, it has them. Take thirty seconds to read the list before you click confirm.
+
+Look at ratings and reviews. A skill that has been installed by thousands of people and has good ratings is a reasonable sign it works as advertised. A brand-new skill with no reviews at all is a bit more of an unknown — not necessarily bad, but worth more scrutiny.
+
+Use the "confirm before executing" setting for any skill that takes actions in the world — sending messages, creating files, making API calls. This setting means your agent will describe what it's about to do and ask you to approve before it does it. It adds a small amount of friction to your workflow and a significant amount of safety. You can always turn it off for specific skills once you trust them.
+
+## A Useful Mental Model
+
+Think of installing a skill the same way you think about installing an app on your phone. Most apps are completely fine. Some apps ask for permissions that seem excessive for what they do. Occasionally something slips through that behaves badly.
+
+Your defence is the same in both cases: install from trusted sources, read the permissions, and pay attention to anything that seems like more access than the app actually needs to do its job.
+
+Skills make OpenClaw dramatically more capable. Used thoughtfully, they're safe and enormously useful. The goal isn't to be fearful about installing them — it's to be a few seconds more deliberate than you'd be otherwise.
+
+## What's Next
+
+The next page goes one level deeper — looking at the structure of a skill so you can understand exactly what it's doing and evaluate it confidently, even without reading any code.
+
+> **Want the full technical details?** See the advanced guide: [Skills & ClawHub](/en/docs/core-architecture/skills-clawhub)

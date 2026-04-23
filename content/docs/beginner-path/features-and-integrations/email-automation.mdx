@@ -1,0 +1,80 @@
+---
+title: "Mini Project: Email Automation"
+description: A complete walkthrough of building your first real automation — a daily email digest that your assistant delivers to Telegram every morning.
+---
+
+This is the page where things get real. Up to now, you've been setting things up and learning how pieces fit together. Now you're going to build something that actually runs every morning without you doing anything — your assistant checks your inbox, figures out what matters, and sends you a clean summary before you've had your first coffee.
+
+By the end of this page, that system will be running.
+
+## What You're Building
+
+Every day at 8am, OpenClaw will check the Gmail inbox connected through your GOG integration. It will read through anything new, identify what's genuinely worth your attention — not newsletters, not automated notifications, not promotional emails — and send you a concise summary to your Telegram.
+
+You'll be able to glance at it on your phone and know exactly what needs a response, what can wait, and what's just noise. No opening Gmail, no scanning subject lines, no context-switching before you're ready.
+
+## Before You Start
+
+Make sure two things are in place. GOG (Google Workspace) should be installed and connected — the previous page walked you through this. Your Telegram bot should also be connected and working. If you can send a message to your assistant in Telegram and get a reply, you're good.
+
+If either of those isn't ready, get them set up first and then come back here.
+
+## Building the Automation
+
+Open your dashboard at `http://127.0.0.1:18789` and go to the Cron Jobs section. Click to create a new job.
+
+You'll see a few fields to fill in. The schedule field is where you set when it runs. For an 8am daily digest, use cron syntax `0 8 * * *` — that means "at 8:00, every day". If you'd prefer a different time, just adjust the hour number.
+
+The instruction field is where you tell your assistant what to do. This is the most important part, and the golden rule applies here: tell it **what** you want, not **how** to do it. You don't need to instruct it to check the inbox, then loop through messages, then filter by criteria — just say what the outcome should be.
+
+A good instruction looks like this:
+
+> Check my inbox and send me a summary of any emails that need my attention. Group them by urgency if there are more than a few. Ignore newsletters, promotional emails, and automated notifications. Keep the summary concise — I want to know what each email is about and whether it needs a reply.
+
+That's it. Your assistant understands the intent and will figure out how to execute it.
+
+For the "send to" field, pick your Telegram channel and, if you've set up topics, select your Reports topic. That way the digest arrives cleanly in its own section rather than mixed in with your conversations.
+
+Save the job. It's now scheduled.
+
+## Testing It Right Now
+
+Don't wait until 8am tomorrow to find out if it works. In the Cron Jobs section, find your new job and click the "Run Now" button. This triggers the job immediately, exactly as it would on schedule.
+
+Watch your Telegram. Within a few seconds to a minute, you should receive a message from your assistant. Read through it. Does it capture what you'd want to know? Did it correctly ignore the junk and surface the important stuff?
+
+If the digest looks good, you're done. If it's not quite right, adjust the instruction and test again.
+
+## What a Good Digest Looks Like
+
+A well-structured digest is brief and actionable. It might look something like:
+
+**3 emails worth your attention:**
+
+- **Sarah (your team)** — asking if you're available for a call Thursday afternoon. Needs a reply.
+- **Invoice from [Vendor]** — payment due in 5 days.
+- **Newsletter from [Publication]** — skipped, not urgent.
+
+That's the kind of output you want. Enough context to know what each item is, a clear signal about what needs action, and nothing padding it out.
+
+## Adjusting the Instruction
+
+If the digest is capturing too much, tighten the instruction. Add something like "only include emails where a human sent the message directly to me — skip anything automated or mass-sent." If it's missing things you care about, loosen it a bit — remove any exclusion that's too aggressive.
+
+The instruction is just plain English text, so adjusting it is easy. Change a word or two, save, hit Run Now, and see if the output changes the way you wanted. You'll get the tone of it right within a couple of tries.
+
+This is the core skill of working with an AI assistant: clear instructions, test the output, refine until it's right. It applies to everything, not just this automation.
+
+## What to Do if Nothing Arrives
+
+If you hit Run Now and nothing appears in Telegram after a minute, check a few things. Is your Telegram bot actually connected and responding to messages? Is the GOG integration showing as active in your dashboard? Open the job's log in the Cron Jobs section — it will show you what happened during the last run, including any errors.
+
+Most issues are either a disconnected integration or a permission problem with the connected Google account. Both are easy to resolve once you know where to look.
+
+## What's Next
+
+You've built your first real automation. That's a meaningful milestone — you now have a system that does useful work for you every day without any effort on your part. From here, the pattern repeats: pick something repetitive or time-consuming, write a plain-English instruction, schedule it or trigger it, and refine until it's right.
+
+The rest of the beginner path expands on that foundation with more integrations, more automation patterns, and eventually more complex projects.
+
+> **Want the full technical details?** See the advanced guide: [Cron Jobs](/en/docs/automation/cron-jobs)

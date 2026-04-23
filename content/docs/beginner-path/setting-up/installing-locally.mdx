@@ -1,0 +1,86 @@
+---
+title: Installing Locally (Mac, Linux, Windows)
+description: How to install OpenClaw on your own computer using npm — explained for people who have never used a terminal before.
+---
+
+Installing OpenClaw on your own computer is the fastest way to get started. From the moment you begin to having a working dashboard takes around ten minutes, and you don't need any prior experience with developer tools. This page explains every step in plain English.
+
+## First: What Is npm?
+
+Before we run any commands, it helps to understand what npm actually is. npm stands for Node Package Manager, but that name isn't very helpful if you don't already know what it means.
+
+The simple version: npm is a tool that downloads and installs software packages. Think of it like an app store, but for developer tools — instead of clicking "Install" on a website, you type a short command and npm handles everything for you. It downloads the software, puts it in the right place on your computer, and makes it available to use immediately.
+
+npm comes bundled with Node.js, which is a runtime environment for JavaScript. You'll need Node.js installed before you can use npm. If you don't have it yet, go to [nodejs.org](https://nodejs.org) and download the LTS version — LTS stands for Long-Term Support, meaning it's the stable, recommended version. Run the installer like any other program, and npm will be available when it's done.
+
+## Opening Your Terminal
+
+The terminal (sometimes called the command prompt or command line) is a text-based window where you type instructions directly to your computer. It sounds intimidating if you've never used one, but for what we're doing here, you'll only need to type a couple of short commands.
+
+Here's how to open it on each operating system:
+
+**Mac:** Press `Command + Space` to open Spotlight, type "Terminal", and press Enter. A window with a blinking cursor will appear.
+
+**Windows:** Press the `Windows` key, type "Command Prompt" or "PowerShell", and press Enter. Either one works for our purposes.
+
+**Linux:** The shortcut varies by distribution, but `Ctrl + Alt + T` opens a terminal on most popular setups. You can also search for "Terminal" in your applications menu.
+
+Once you have a terminal open, you're ready to install.
+
+## Installing OpenClaw
+
+Type the following command into your terminal and press Enter:
+
+```bash
+npm install -g openclaw@latest
+```
+
+What this does: `npm install` tells npm to download and install a package. The `-g` flag means "global" — install it so it's available everywhere on your computer, not just in one specific folder. `openclaw@latest` tells npm exactly which package to get, and `@latest` ensures you're getting the most current version.
+
+You'll see some text scroll by as npm downloads and installs everything. This usually takes under a minute. When the prompt returns (the blinking cursor reappears), the installation is complete.
+
+## Starting OpenClaw
+
+Now type this command and press Enter:
+
+```bash
+openclaw gateway
+```
+
+This starts the OpenClaw gateway — the background process that powers your dashboard and handles all the AI communication. You'll see some startup messages in the terminal. Once you see confirmation that the gateway is running, open your web browser and go to:
+
+```
+http://127.0.0.1:18789
+```
+
+That address is your local dashboard. The `127.0.0.1` part means "this computer" — it's an address that only works from your own machine. The `18789` is the port number OpenClaw listens on. Bookmark it in your browser so you can get back easily.
+
+If the dashboard loads, you've successfully installed OpenClaw.
+
+## The Most Common Mistake: Closing the Terminal
+
+This catches almost everyone at first. When you run `openclaw gateway`, the terminal window needs to stay open. OpenClaw is running inside that window. The moment you close it, OpenClaw stops.
+
+So while you're using your dashboard, keep the terminal running in the background. You can minimise it, push it to the side, or move it to another desktop — just don't close it.
+
+If you do accidentally close it, nothing is broken. Just open a new terminal and run `openclaw gateway` again. Your settings and configuration are saved separately and will still be there.
+
+If you'd prefer not to babysit a terminal window, there are tools that can run OpenClaw as a background process so it starts automatically. That's a slightly more advanced setup and we'll cover it separately, but for now, keeping the terminal open works perfectly well.
+
+## If Something Goes Wrong
+
+If OpenClaw doesn't start, or the dashboard doesn't load, the first thing to try is:
+
+```bash
+openclaw doctor --fix
+```
+
+This command checks your installation, identifies common problems, and attempts to fix them automatically. It handles the vast majority of issues people run into during first-time setup. Run it, read what it says, and follow any instructions it gives you.
+
+If a previous attempt left a stuck process behind, this command will clear that too.
+
+## What's Next
+
+With your dashboard running, the next step is connecting an AI model so OpenClaw has something to power it. Head to the [Free & Paid AI Model Options](/en/docs/beginner-path/setting-up/free-and-paid-models) page to understand your choices, or jump straight to [Getting Your Anthropic API Key](/en/docs/beginner-path/setting-up/anthropic-api-key) if you already know you want to use Claude.
+
+> **Want the full technical details?** See the advanced guide: [Deployment Guide](/en/docs/advanced/deployment)

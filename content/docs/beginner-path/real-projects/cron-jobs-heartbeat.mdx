@@ -1,0 +1,50 @@
+---
+title: Cron Jobs & Heartbeat
+description: How to schedule your assistant to do things automatically at set times — and why you should turn off Heartbeat once you're set up.
+---
+
+One of the most satisfying moments in working with OpenClaw is the first time you wake up to find your assistant has already done something useful while you were asleep. That's what cron jobs are for. They let you schedule tasks to happen automatically — no nudging, no reminders to yourself, no opening the dashboard. You just set it up once and it runs.
+
+## What a Cron Job Actually Is
+
+The word "cron" comes from old Unix scheduling systems, but you don't need to know anything about that. In OpenClaw, a cron job is just an instruction with a schedule attached to it. You write what you want your agent to do, you pick when you want it to happen, and that's it.
+
+The dashboard at [http://127.0.0.1:18789](http://127.0.0.1:18789) has a cron editor built right in. You don't need to type any cryptic scheduling syntax — you can just say "every morning at 7am" or "every Monday" and the system will handle the rest. This is OpenClaw's golden rule in action: tell the agent what you want, not how to do it.
+
+## Practical Examples to Get You Started
+
+The best way to understand cron jobs is to see what people actually use them for. Here are a few that are easy to set up and immediately useful.
+
+"Every morning at 7am, check my task list in my workspace files and send me a summary of my top three priorities for the day." That one alone changes how most people start their mornings.
+
+"Every Sunday at 7pm, send me a short reflection prompt and ask me to think about three things I accomplished this week and three things I want to focus on next week." This turns your agent into a lightweight weekly review system.
+
+"Every Monday morning at 8am, search for recent news about my industry and send me a five-bullet summary." Combine this with the web browsing skill and you've got a personal industry monitor running without any effort on your part.
+
+"Every Friday at 4pm, remind me to send invoices for any work completed this week." Simple, but if you're a freelancer, this kind of nudge pays for itself.
+
+The key to a good cron instruction is specificity. "Send me a summary" is weaker than "send me a summary with no more than five bullet points, each one a single sentence." The more clearly you describe what you want, the better the output will be.
+
+## Testing Before You Schedule
+
+Before you lock a cron job into a weekly schedule, it's worth testing the instruction manually first. Paste it into a regular conversation with your agent and see what comes back. If the output isn't quite right, refine the instruction until you're happy with it, then put it into the scheduler. This saves you from finding out on Monday morning that your weekly report has been summarising the wrong thing.
+
+## A Common Mistake: Heartbeat
+
+When you first install OpenClaw, Heartbeat is turned on. Heartbeat pings your agent every few minutes to keep it responsive and "warm." During your initial setup, this is fine — it means your agent is ready to respond quickly while you're actively exploring and configuring things.
+
+The problem is that Heartbeat keeps running even when you're not using your agent, and every ping costs API credits. For most people, once setup is complete, Heartbeat provides almost no benefit while continuously chipping away at your credit balance.
+
+The rule of thumb is simple: turn Heartbeat off within 24 hours of your initial setup. You'll find the toggle in the dashboard under Settings, then Heartbeat. Disabling it doesn't make your agent slower for cron jobs or for when you actively message it — it just stops the background keep-alive pings that serve no purpose once you're up and running.
+
+## Editing and Pausing Jobs
+
+You can go back and edit any cron job at any time from the dashboard. If something isn't working the way you expected, just update the instruction. You can also pause individual jobs temporarily without deleting them — useful if you're on holiday and don't want your daily digest cluttering your Telegram.
+
+If you want to delete a job entirely, you can do that too. Nothing is permanent. Think of your cron jobs as a living setup that you refine over time as you figure out what's genuinely useful versus what just sounded good when you set it up.
+
+## What's Next
+
+With scheduling in place, the next step is giving your agent access to the web, so it can go out and actually find the information it needs for those reports.
+
+> **Want the full technical details?** See the advanced guide: [Cron Jobs](/en/docs/automation/cron-jobs)

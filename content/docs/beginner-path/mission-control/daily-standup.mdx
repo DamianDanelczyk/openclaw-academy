@@ -1,0 +1,70 @@
+---
+title: Daily Standup Screen
+description: How to create a daily standup view that gives you a focused, distraction-free summary of what matters today.
+---
+
+There's a ritual in software development teams called the daily standup: a short morning meeting where each person answers three questions. What did I accomplish yesterday? What am I doing today? Is anything blocked? It's deliberately brief, deliberately structured, and deliberately focused on moving forward.
+
+The idea works just as well for a solo operator. The difference is you don't need a meeting — you need a morning message.
+
+## What the Daily Standup Is
+
+Your daily standup is a structured message your agent generates each morning at a set time and delivers to a dedicated Telegram topic. Unlike an intelligence digest — which is news, research, and things happening in the world — the standup is strictly operational. It's about your work, your tasks, and your momentum. No news, no general information, just: where did yesterday leave off, what's happening today, and is anything blocked.
+
+It pulls from the workspace files you've already built. Your agent reads your project files to check current statuses. It reads your task board to see what's due today and what's overdue. It checks Mission Control for your stated priorities. From all of that, it produces a focused morning briefing in about thirty seconds.
+
+The format that works best is simple: yesterday's wins in three bullets, today's priorities in three bullets, and blockers — anything waiting on someone else, anything overdue, anything flagged as stuck.
+
+## Setting It Up as a Cron Job
+
+A cron job is a scheduled task — a command that runs automatically at a time you specify. You'll set this up on your VPS so the standup fires at the same time every weekday morning without you having to trigger it.
+
+SSH into your server and open your crontab — the schedule file — with:
+
+```bash
+crontab -e
+```
+
+This opens a text editor. Add a line that tells your server to trigger the standup at a specific time. The format looks like this:
+
+```
+0 8 * * 1-5 /path/to/openclaw-standup-trigger
+```
+
+Breaking that down: `0 8` means at 8:00am. `* *` means every month, every day. `1-5` means Monday through Friday only. The last part is the command that triggers your standup — you'll get the exact command from your OpenClaw agent configuration. If you want it on weekends too, change `1-5` to `*`.
+
+The time you set is in your server's time zone. If your server is in UTC and you're in a different time zone, you'll need to adjust the hour accordingly. You can check your server's time zone by running `timedatectl` on the server.
+
+## Creating a Dedicated Telegram Topic
+
+In your Telegram group with OpenClaw, create a dedicated topic called "Standup" or "Morning Briefing". Configure your standup cron job to deliver to that topic rather than the main chat. This keeps your morning briefing separate from your on-demand conversations — you can read your standup without it getting buried in other messages.
+
+To set this up, you'll need the topic ID from Telegram. The easiest way to find it is to send a message in the topic and check your agent's logs in the dashboard — it will show the chat ID and topic ID of any message it receives.
+
+## Configuring What the Standup Includes
+
+Tell your agent explicitly what you want it to pull from when generating the standup. Something like: "When generating my daily standup, read my mission-control.md, tasks.md, and all project files in Canvas. Summarise yesterday's completed tasks as wins, pull today's due tasks as priorities, and flag anything overdue or in the Waiting On section as blockers."
+
+Your agent will follow these instructions each time the standup is triggered. As your workspace evolves, you can update these instructions to reflect new files or sections you've added.
+
+## What a Good Standup Looks Like
+
+A well-crafted standup message takes about a minute to read. It doesn't try to tell you everything — it tells you exactly what you need to start the day well. Something like:
+
+**Yesterday:** Completed proposal draft for Nexus. Finished onboarding call with Client Y. Sent invoice to Acme.
+
+**Today:** Review and send Nexus proposal. Follow up on outstanding payment from Client Z. Prep for 3pm call.
+
+**Blockers:** Acme invoice still unpaid — chased 5 days ago. Website project waiting on design approval from client since Monday.
+
+That's it. Read it in sixty seconds, know where you are, and start working.
+
+## Common Mistakes
+
+Trying to make the standup too comprehensive is the most common mistake. When you first set it up, it's tempting to include everything — email summaries, news, weather, analytics. Resist that. The standup's value is its focus. Keep it strictly operational.
+
+The other mistake is setting the time wrong and then forgetting about it. If your standup arrives at 6am when you're asleep, or at 11am when you're already deep in work, it loses most of its value. Pick a time that's genuinely the first thing you'd read in the morning, and make sure the server's time zone math adds up.
+
+## What's Next
+
+Your system is almost complete. The final page in this section covers mobile access — how to interact with everything you've built from your phone, so your Mission Control and assistant are always within reach.

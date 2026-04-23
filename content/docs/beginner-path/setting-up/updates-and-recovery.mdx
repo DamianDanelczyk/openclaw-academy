@@ -1,0 +1,90 @@
+---
+title: Updates & Recovery
+description: How to keep OpenClaw up to date, what to do when something breaks, and how to recover from common problems.
+---
+
+Every piece of software breaks sometimes, and OpenClaw is no exception. The good news is that most problems you'll encounter have straightforward solutions, and the OpenClaw team has built some genuinely helpful tools to make recovery as painless as possible. This page is your reference guide for those moments when something stops working.
+
+## Keeping OpenClaw Updated
+
+OpenClaw releases updates fairly regularly — bug fixes, new features, performance improvements, and occasionally security patches. Staying reasonably current is worth the small effort it takes.
+
+To update to the latest version, run:
+
+```bash
+openclaw update
+```
+
+This downloads and installs the latest version of OpenClaw. The command handles everything — downloading, replacing the old version, and migrating any data that needs migrating. You don't need to uninstall anything first. After running it, restart your gateway with `openclaw gateway` as usual.
+
+If you want to check which version you're currently on before or after updating, run:
+
+```bash
+openclaw version
+```
+
+This prints your current version number. It's useful when you're reading release notes and want to know whether a particular change applies to you, or when you're reporting a problem and need to tell someone which version you're running.
+
+## The Main Troubleshooting Command
+
+When something seems wrong and you're not sure where to start, this is the command to reach for first:
+
+```bash
+openclaw doctor --fix
+```
+
+This scans your OpenClaw setup for common problems and automatically fixes what it can. It checks things like whether your configuration file is valid, whether your API keys are correctly formatted, whether required services are reachable, and whether there are any obvious misconfigurations. When it finds something it can fix automatically, it fixes it. When it finds something that needs your attention, it tells you clearly what the issue is and what to do about it.
+
+Think of `openclaw doctor --fix` as the first thing you try, not the last resort. Running it takes about ten seconds and fixes a surprising number of common issues on its own. If you've just updated and something seems off, or if your agent has stopped responding and you're not sure why, start here.
+
+## When the Gateway Gets Stuck
+
+Occasionally the OpenClaw gateway process gets into a bad state — it's running but not actually working properly, or it's in the process of shutting down and not completing. This tends to happen after crashes, abrupt system shutdowns, or sometimes just random bad luck.
+
+When this happens, `Ctrl+C` in the terminal might not be enough. The fix is:
+
+```bash
+openclaw gateway --force
+```
+
+This forcefully kills any stuck OpenClaw process and starts fresh. It's a clean slate for the gateway — whatever was stuck gets cleared out, and a new process starts. After running this, your dashboard and agent will come back up as normal. You won't lose any data or configuration.
+
+If you're on a VPS and you don't have direct terminal access, your hosting panel will usually have a way to restart or stop the relevant container. But if you do have terminal access, `openclaw gateway --force` is faster.
+
+## If All Else Fails: Reinstall
+
+There are rare situations where the OpenClaw installation itself gets corrupted — usually after a failed update or an interrupted installation. The solution is a clean reinstall:
+
+```bash
+npm install -g openclaw@latest
+```
+
+This is the same command you used to install OpenClaw in the first place. Running it again downloads and installs the latest version fresh, replacing whatever is there now.
+
+The important thing to know is that reinstalling does not delete your data or configuration. Your config file lives in a completely separate location from the OpenClaw software itself, and a reinstall doesn't touch it. So your agents, your memory, your channel connections — all of that is safe.
+
+## Where Your Configuration Lives
+
+Your config file is the persistent record of your OpenClaw setup. It's what gets read every time the gateway starts. On Mac and Linux, you'll find it at:
+
+```
+~/.openclaw/openclaw.json
+```
+
+On Windows, look here:
+
+```
+%USERPROFILE%\.openclaw\openclaw.json
+```
+
+If you ever want to back up your OpenClaw setup, copying this file (and the rest of the `.openclaw` directory) is how you do it. If you're moving to a new computer, copying this directory to the same location on the new machine will bring your configuration with you. You still need to install OpenClaw itself on the new machine, but your settings and data come along for free.
+
+## A Recovery Sequence That Covers Most Problems
+
+If your agent is misbehaving and you're not sure what to try, work through this sequence. Start with `openclaw doctor --fix` — it handles the most common issues automatically. If the problem persists, try stopping and restarting the gateway with `openclaw gateway --force`. If you're still stuck, check the Logs section of your dashboard for error messages, which will usually point to the specific issue. If something looks wrong with your configuration, the config file location above is where you'd look.
+
+And if none of that works — if the installation itself seems broken — a fresh `npm install -g openclaw@latest` followed by `openclaw gateway` will get you back to a clean working state without losing anything you've set up.
+
+## What's Next
+
+You've made it through the entire Setting Up section. At this point you have a running agent, a secure setup, a connected Telegram channel, an understanding of how costs work, and you know how to keep things running smoothly over time. The next section of the course goes deeper into configuring your agent's behaviour and getting more out of your setup.

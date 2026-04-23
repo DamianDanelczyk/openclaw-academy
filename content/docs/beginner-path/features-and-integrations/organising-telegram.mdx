@@ -1,0 +1,57 @@
+---
+title: Organising Telegram with Groups
+description: How to set up Telegram groups and topics to keep your conversations with OpenClaw organised as you add more automations.
+---
+
+When you first connect OpenClaw to Telegram, everything is simple — one bot, one chat, you ask questions and get answers. That simplicity is wonderful for about a week. Then you add a daily report, then an alert for something important, then a reminder system, and suddenly your single chat is a chaotic stream of everything mixed together. Your morning summary appears between a weather alert and a random note you asked your assistant to save. It's a mess.
+
+The fix is straightforward and takes about ten minutes to set up properly: Telegram groups with topics.
+
+## Why Groups Instead of a Single Chat
+
+A Telegram group lets you create a space with multiple organised sections — called Topics — inside a single conversation. Think of it like a Slack workspace with channels, but all inside Telegram. Instead of everything arriving in one undifferentiated stream, different types of messages go to their own area.
+
+Your morning email digest goes to the Reports topic. An urgent alert about something that needs your attention goes to Alerts. When you want to chat with your assistant, you go to the Chat topic. Everything stays in one app, but nothing gets mixed up.
+
+## Setting It Up
+
+Start by creating a new Telegram group. Give it a name you'll recognise — something like "My Assistant" or "OpenClaw". Add your OpenClaw bot to the group as a member.
+
+Next, open the group settings and find the Topics option. Enable it. Once topics are on, you'll see a default General topic appear. You can rename that and add more. A practical starting set of topics:
+
+- **Chat** — for your day-to-day conversations with your assistant
+- **Reports** — for scheduled summaries, digests, and regular updates
+- **Alerts** — for anything time-sensitive or that needs your attention now
+- **Notes** — for things your assistant saves or logs on your behalf
+
+You can add or remove topics any time, so don't overthink the initial setup. Start simple and adjust as you understand how you actually use your assistant.
+
+## Telling OpenClaw Where to Send Things
+
+Once your topics exist, you need to tell OpenClaw which topic to use for which kind of message. In the dashboard at `http://127.0.0.1:18789`, go to your Telegram channel settings. You'll see a field where you can specify a default topic for that channel.
+
+For anything more granular — like sending cron job results to Reports automatically — you set the destination topic when you create the automation. In the Cron Jobs section of the dashboard, each job has a "send to" field where you pick the Telegram topic.
+
+The key principle is: anything automated and scheduled goes to a non-chat topic. That way your Chat topic stays clean for actual back-and-forth with your assistant, and automated messages don't interrupt your flow.
+
+## A Practical Setup That Works Well
+
+Most people find this arrangement works well as a starting point. Keep the Chat topic as your main conversational interface — this is where you type to your assistant and where it replies to you. Send all cron job outputs (daily reports, weekly summaries, check-ins) to the Reports topic. Send any alerts or time-sensitive notifications to Alerts, so you know that if something appears there it deserves attention.
+
+The beauty of this is that you can ignore the Reports topic until you want to read it. Your morning digest accumulates there quietly, and you glance at it when you're ready — not when it interrupts a conversation you're having in Chat.
+
+## A Note on Getting Started with Telegram
+
+If you haven't connected your Telegram bot yet, that step comes before any of this. You create a bot through BotFather in Telegram, copy the token it gives you, and paste it into OpenClaw's channel settings in the dashboard. Telegram is the first integration most people set up, and it's the foundation that everything else builds on.
+
+## Common Mistakes
+
+The most common mistake is not enabling Topics in the group settings before trying to configure anything in OpenClaw. If Topics aren't enabled in Telegram, the topic fields in the dashboard don't do anything useful.
+
+Another one: forgetting to add the bot as a member of the group with appropriate permissions. The bot needs to be able to send messages in each topic. If messages aren't arriving, check that the bot is a member and that it has message permissions in the group.
+
+## What's Next
+
+With your Telegram setup organised, the next page covers something a lot of people want once they get comfortable with their assistant: using voice instead of typing.
+
+> **Want the full technical details?** See the advanced guide: [Telegram Channel](/en/docs/core-architecture/channels/telegram)

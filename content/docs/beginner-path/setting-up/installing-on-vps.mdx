@@ -1,0 +1,48 @@
+---
+title: Installing on a VPS (Hostinger)
+description: Step-by-step guide to installing OpenClaw on a Hostinger VPS using their Docker Manager — no terminal required.
+---
+
+If you decided to run OpenClaw on a VPS, you made a great choice. This setup takes a bit more time than installing locally, but the payoff is significant: your assistant runs 24/7, you can reach it from your phone, and it keeps working even when your laptop is off. This page walks you through the whole process on Hostinger.
+
+## What a VPS Actually Is
+
+A VPS — Virtual Private Server — is a computer that lives in a data centre and runs continuously. You don't own it, but you rent exclusive access to it. It has its own operating system, its own storage, and its own internet connection. From OpenClaw's perspective, it's just a computer to run on — except this one never sleeps.
+
+Hostinger is one of the most popular providers for this kind of setup, and we specifically recommend them here because their interface makes the Docker installation process much more approachable than most other providers. You don't need to be comfortable with Linux or command-line tools to get started.
+
+## What Is Docker and Why Does It Matter Here?
+
+Docker is a tool that packages software into neat, self-contained units called containers. Think of a container like a lunchbox: everything OpenClaw needs to run is packed inside it, and it works the same way regardless of what kind of computer it's sitting on.
+
+Hostinger has a built-in Docker Manager in their web panel. That means you can install and manage OpenClaw through a graphical interface — no typing commands into a terminal. For most students, this is the easiest path to a working VPS installation.
+
+## Getting Set Up on Hostinger
+
+Start by creating a Hostinger account if you don't already have one, then purchase a VPS plan. A basic plan is more than sufficient for running OpenClaw as a personal assistant. Once your VPS is provisioned (this usually takes a few minutes), you'll land in Hostinger's control panel.
+
+From there, navigate to the Docker Manager section of your VPS dashboard. This is where you'll deploy OpenClaw as a container. The course video walks through each click in detail, but the overall flow looks like this: you pull the OpenClaw Docker image, configure the container settings, and start it. Hostinger's Docker Manager handles all the underlying complexity.
+
+## Ports and Your Dashboard URL
+
+This part trips some people up, so it's worth explaining clearly. When OpenClaw runs locally, the dashboard is always at `http://127.0.0.1:18789`. On a VPS, the port situation is a little different.
+
+Hostinger maps your Docker container's internal port to an external port through their panel. The dashboard won't be accessible on port 18789 directly from the outside — Hostinger assigns its own port number. When you configure your container, you'll see what external port it's mapped to. Your dashboard URL will then be something like `http://your-vps-ip:XXXXX`, where `XXXXX` is the port Hostinger assigned.
+
+Make a note of that URL. That's how you'll reach your dashboard from anywhere in the world.
+
+## The Big Advantage: It Keeps Running
+
+Here's the thing that makes this setup genuinely worth the extra effort. Once your container is running in Hostinger's Docker Manager, it stays running. You can close your browser, shut your laptop, go on holiday — OpenClaw keeps working. Tasks you've set up will continue running in the background. Messages you're waiting for will still arrive. Your assistant doesn't take breaks just because you do.
+
+This is the experience that local installations can't give you, and it's why most serious users eventually move to a VPS.
+
+## A Note on Security
+
+Because your dashboard is now accessible over the internet (rather than only from your own machine), security becomes a bit more important. Read through the [Why Security Matters](/en/docs/beginner-path/setting-up/why-security-matters) page if you haven't already, and follow the Tailscale guidance in the course to keep your dashboard off the public internet. It's a straightforward setup that removes a lot of exposure.
+
+## What Comes Next
+
+Once your container is running and you can reach your dashboard, you're ready to move on. The next steps are connecting your first AI model and then setting up your Telegram bot — both covered in the upcoming pages.
+
+> **Want the full technical details?** See the advanced guide: [Deployment Guide](/en/docs/advanced/deployment)

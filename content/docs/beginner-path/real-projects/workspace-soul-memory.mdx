@@ -1,0 +1,55 @@
+---
+title: Workspace Files, Soul & Memory
+description: How to use workspace files, SOUL.md, and memory to give your assistant a persistent personality and long-term knowledge about you and your work.
+---
+
+Your assistant doesn't have to start from zero every time you talk to it. OpenClaw gives you three powerful tools to make your agent feel less like a blank chatbot and more like a colleague who actually knows you — SOUL.md, workspace files, and memory. Each one serves a different purpose, and once you understand how they work together, you'll wonder how you ever used AI without them.
+
+## The Three Ways Your Agent "Knows Things"
+
+Think of it this way. When you hire a new assistant, you give them a job description, some background documents to read, and over time they pick up your habits and preferences. OpenClaw does the same thing — just more deliberately.
+
+**SOUL.md** is the job description. It's a plain-text file written in everyday English that tells your agent who it is, how it should behave, what it knows, and what you expect from it. It gets loaded every single time your agent starts up, so everything you write in it becomes part of how your agent thinks and talks.
+
+**Workspace files** are the background documents. You can drop any text file into your workspace folder — a company FAQ, a list of your clients, your product pricing, your personal preferences — and your agent will reference them when it needs to.
+
+**Memory** is the habit-picking-up. As you have conversations with your agent, it can remember things you tell it. Say "remember that I prefer bullet points over long paragraphs" once, and it will carry that preference forward into every future response.
+
+## Writing a Good SOUL.md
+
+You can edit your SOUL.md directly from the dashboard at [http://127.0.0.1:18789](http://127.0.0.1:18789). Look for the Soul section and you'll find a text editor right there in the browser.
+
+A SOUL.md file is just a document you write in plain English. There's no special format to follow. You're just telling your agent things about itself and about you.
+
+Here are the kinds of things worth including:
+
+- Who you are and what you do ("You are a personal assistant for a freelance graphic designer based in London")
+- How the agent should communicate ("Always be concise. Use bullet points when listing more than three items. Never use corporate buzzwords")
+- Things the agent should always know ("My main client is Acme Corp. My hourly rate is £85. I use Figma and Framer for design work")
+- Personality and tone ("Be warm and direct. A little humour is welcome. Don't be overly formal")
+
+The difference between a personal assistant SOUL.md and a business assistant SOUL.md is mostly about scope. A personal one might include your daily routines, your goals, your family context. A business one would focus on your products, your clients, your brand voice, and your workflow. Neither is right or wrong — write what's actually useful for the kind of tasks you want help with.
+
+A common mistake is writing SOUL.md as if it's for a human reader. It isn't. Write it for an AI that will take your instructions quite literally. If you want it to always sign off emails with your name, say so explicitly. If you want it to ask a clarifying question before writing anything longer than 500 words, say that too.
+
+## Using Workspace Files
+
+Workspace files live in a folder on your computer that OpenClaw monitors. Anything you put in there becomes available to your agent as reference material.
+
+The most useful things to keep in your workspace folder are documents that you'd normally have to explain from scratch every time. A one-page description of your business is a great start. Your service list and pricing. A client roster with brief notes about each one. Your brand voice guidelines if you have them. Even a "things I hate" document — seriously, telling your agent what not to do is just as valuable as telling it what to do.
+
+Once these files are in place, you can stop prefacing every request with a three-paragraph explanation of who you are. Your agent already knows.
+
+## Memory — The Living Layer
+
+Memory is the most dynamic of the three. While SOUL.md is something you write yourself up front, memory grows from your actual conversations.
+
+You can trigger memory deliberately. Say something like "remember that my newsletter goes out on Thursdays" or "remember that I'm vegetarian when you're suggesting lunch spots." Your agent will store that and use it going forward. You can also review and edit your agent's memories from the dashboard if something is no longer accurate.
+
+The practical benefit is that over time, your agent starts to feel genuinely personalised. It knows your quirks, your preferences, and your context without you having to repeat yourself. That's the real goal — not just a capable agent, but one that actually knows you.
+
+## What's Next
+
+Once your SOUL.md is set up and your workspace files are in place, you're ready to start scheduling your agent to do things automatically. That's where cron jobs come in.
+
+> **Want the full technical details?** See the advanced guide: [SOUL.md](/en/docs/core-architecture/soul-md)

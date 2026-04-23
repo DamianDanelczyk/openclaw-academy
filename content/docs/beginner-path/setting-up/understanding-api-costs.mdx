@@ -1,0 +1,54 @@
+---
+title: Understanding API Costs
+description: A plain-English explanation of how AI API costs work, what you can expect to pay, and how to make sure you never get a surprise bill.
+---
+
+One of the most common sources of anxiety for people setting up their own AI assistant is the billing. Unlike a subscription with a flat monthly fee, AI APIs charge based on how much you use them — and that can feel unpredictable if you don't understand how it works. The good news is that for typical personal use, the costs are genuinely tiny. Let's make sure you understand exactly what you're paying for.
+
+## What a Token Is
+
+AI providers charge by the token. A token isn't precisely one word — it's more like one word or one word-fragment, depending on how common the word is. For practical purposes, you can think of roughly 750 words as about 1,000 tokens. So a medium-length email is maybe 200-300 tokens. A long, detailed conversation might be a few thousand.
+
+There are two types of tokens to know about: input tokens (what you send to the AI, including the conversation history and system prompt) and output tokens (what the AI writes back to you). Reading typically costs less than writing — providers charge more for output tokens than input tokens because generating text is more computationally intensive than processing it.
+
+## What a Typical Conversation Costs
+
+For a casual back-and-forth exchange — maybe five or six messages each — you're looking at roughly a few hundred to a thousand tokens total. At current Anthropic pricing, that's fractions of a cent. Fractions. A hundred conversations like that in a month would still cost less than a cup of coffee.
+
+For most people running OpenClaw as a personal assistant — a few conversations a day, some task automation, occasional document processing — a monthly AI bill in the range of $2–10 is typical. Heavy users doing a lot of document analysis or running many automated tasks might see $20–30. These are rough figures and depend on which model you're using, but they give you a realistic ballpark.
+
+## Setting a Hard Spending Limit
+
+The best way to guarantee no surprises is to set a hard monthly spending cap in the Anthropic console (or whichever AI provider you're using). A hard limit means the API simply stops working once you've hit the cap — your agent will return an error rather than keep spending. It's a bit blunt, but it's the safest option if you're worried about runaway costs.
+
+Log into your provider's console and look for billing settings or usage limits. Set a monthly cap at an amount you're completely comfortable losing — think of it like a prepaid limit. $10 is a reasonable starting point for personal use. You can always raise it later once you've seen how your actual usage looks over a few weeks.
+
+## Setting Budget Alerts in OpenClaw
+
+Beyond the hard cap at the provider level, OpenClaw has its own budget alert system in Settings. You can set a monthly token budget and choose to be notified — or to have requests paused — when you approach it. This gives you an early warning before you hit your hard cap.
+
+Setting both a provider-level hard limit and an OpenClaw-level alert is the belt-and-suspenders approach. The alert warns you early. The hard cap is the backstop. Together they make surprise bills essentially impossible.
+
+## The Main Thing That Burns Credits Unexpectedly
+
+If you only remember one thing from this page, make it this: **Heartbeat is the most common cause of unexpected API charges**. As we covered in the security page, Heartbeat periodically pings your agent to keep it responsive. Each ping is a real API call. If you leave Heartbeat running and don't actively use your agent, it's still generating charges in the background — quietly, continuously, while you're not paying attention.
+
+Disable Heartbeat once your setup is confirmed working. Your agent doesn't need it to respond to your messages — it just needs the gateway to be running. Go to Settings in your dashboard and turn it off.
+
+## Cron Jobs and Scheduled Tasks
+
+The other common surprise is cron jobs — scheduled tasks that run automatically on a timer. If you set up automation that calls your AI agent every five minutes to check something, that's 288 API calls per day, 8,640 per month. Even at fractions of a cent each, that adds up to a real number quickly.
+
+Before you set up any scheduled automation, do the maths on how often it will run and what it will cost per run. If the task doesn't need to run every five minutes, set it to every hour instead. If it doesn't need the full AI model, see if a lighter approach would work. The OpenClaw advanced cost guide covers specific optimisation techniques, but the basic principle is simple: less frequent, lighter tasks cost less.
+
+## What You Actually Pay For Your Current Setup
+
+Right now, with a freshly set-up agent and Heartbeat disabled, your cost is essentially zero until you send a message. Every time you have a conversation, you're spending a small number of tokens. The moment you start adding scheduled tasks or high-frequency automations is when you need to start paying more attention to the numbers.
+
+Check your usage dashboard at your AI provider every couple of days for the first month. Once you understand your own usage patterns, you'll know immediately if something seems off.
+
+## What's Next
+
+With a clear picture of costs, you're ready to take a proper tour of the dashboard. The next page walks through every section — what each one does and when you'll actually use it.
+
+> **Want the full technical details?** See the advanced guide: [Cost Optimization](/en/docs/advanced/cost-optimization)

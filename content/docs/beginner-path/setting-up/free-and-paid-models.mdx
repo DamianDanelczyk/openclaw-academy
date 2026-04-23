@@ -1,0 +1,48 @@
+---
+title: Free & Paid AI Model Options
+description: A plain-English guide to which AI models you can use with OpenClaw, what they cost, and which ones are worth paying for.
+---
+
+One of the first things people worry about when setting up an AI assistant is cost. Will this get expensive? Should I just use the free options? The good news is that the range of models available through OpenClaw gives you real flexibility, and the paid options are far cheaper than most people assume.
+
+This page gives you a clear picture of what's available, what things actually cost, and where we recommend starting.
+
+## The Landscape: Cloud vs. Local
+
+Before getting into specific models, it helps to understand the two broad categories.
+
+**Cloud models** run on someone else's servers and you access them over the internet. You typically pay per use — meaning you pay for the amount of text you send and receive. The big names here are Claude (made by Anthropic), GPT-4 (OpenAI), and Gemini (Google). These models are powerful, fast, and capable of handling complex tasks well.
+
+**Local models** run directly on your computer using tools like Ollama. They're free to use (aside from the hardware you already own), work offline, and keep everything private. The trade-off is that they're generally less capable, and performance depends heavily on your hardware. We covered these in more detail on the [Local AI Models](/en/docs/beginner-path/setting-up/local-ai-models) page.
+
+## Free Options Worth Knowing About
+
+**Ollama** is the main free option for local models. You install it on your computer, download whichever open-source model you want to use, and it runs completely offline with no usage costs. This is a great choice for private tasks or for students who want to experiment without spending anything. The setup takes a bit more effort, but the course covers it.
+
+**Kimi** offers a free tier that lets you use their cloud model without paying. The free tier has limits on how much you can send per day, but for light use it can be a useful starting point. If you find yourself hitting those limits regularly, it's a good sign that you're getting real value from your assistant and it's worth moving to a paid model.
+
+## Paid Cloud Models: What You're Actually Paying For
+
+When you use a paid cloud model, you pay based on how much text is processed — measured in "tokens," which you can roughly think of as pieces of words. A typical conversation might use a few thousand tokens. At cloud AI prices, that's a fraction of a cent.
+
+The best way to ground this is with a real estimate. If you use OpenClaw for normal personal assistant tasks — a few conversations a day, some summaries, some drafting — you can expect to spend somewhere between **$2 and $5 per month** using Claude Haiku. That's the cost of one coffee, once a month.
+
+## The Models We Recommend
+
+**Claude Haiku** is the model we recommend starting with for most everyday tasks. It's fast, inexpensive, and more capable than you might expect. Summarising content, answering questions, drafting emails, organising information — Haiku handles all of this well. It's made by Anthropic and you access it through your Anthropic API key.
+
+**Claude Sonnet** is the step up. It's noticeably more capable at complex reasoning, nuanced writing, and tasks that require understanding a lot of context at once. It costs more than Haiku, but it's still very reasonable for personal use. Reserve it for tasks where quality really matters — important emails, research summaries, anything you'd spend real time on yourself.
+
+**A word on the expensive options:** Models like GPT-4o and Claude Opus are genuinely impressive, but they're also significantly more expensive than Haiku or Sonnet. For personal AI assistant use, they're almost never necessary. The jump in capability doesn't match the jump in cost for the kinds of tasks most people use their assistant for. Start with Haiku. Move to Sonnet when a task genuinely needs it. You're unlikely to need anything beyond that for a long time.
+
+## How to Think About Cost
+
+The way most people go wrong with AI costs is by leaving it running without thinking about it, or by defaulting to the most powerful (and expensive) model for every single task. Neither makes sense.
+
+A healthy approach: use Haiku as your default, switch to Sonnet when the task warrants it, and keep an eye on your usage dashboard in the Anthropic console. You can also set a monthly spending cap, which the [Getting Your Anthropic API Key](/en/docs/beginner-path/setting-up/anthropic-api-key) page covers in detail. With a spending limit in place, there's no way to get a surprise bill — the model simply stops responding if you hit your cap for the month.
+
+## What's Next
+
+Once you've decided which model you want to start with, the next step is getting your API key and adding it to OpenClaw. That's exactly what the next page covers.
+
+> **Want the full technical details?** See the advanced guide: [Cost Optimization](/en/docs/advanced/cost-optimization)

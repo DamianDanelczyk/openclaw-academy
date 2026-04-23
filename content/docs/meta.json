@@ -1,6 +1,7 @@
 {
   "title": "OpenClaw Academy",
   "pages": [
+    "beginner-path",
     "getting-started",
     "core-architecture",
     "automation",

@@ -1,0 +1,8 @@
+{
+  "title": "Advanced Security",
+  "pages": [
+    "ssh-into-server",
+    "tailscale-vpn",
+    "prompt-injection"
+  ]
+}

@@ -1,0 +1,58 @@
+---
+title: Running OpenClaw for Free or Cheap
+description: The practical strategies to run OpenClaw as a personal assistant for under $5 a month — or even free.
+---
+
+One of the first questions people ask when they start with OpenClaw is: what is this actually going to cost me? The answer is: probably much less than you think. With a few sensible choices, you can run a capable personal assistant for a couple of dollars a month — or, if you're willing to accept some limitations, completely free.
+
+## The Fully Free Setup
+
+If you want to run OpenClaw without spending a single dollar on AI credits, it's possible. You combine two things: Ollama running models locally on your computer, and Kimi's free tier for tasks that need an internet connection.
+
+Ollama gives you unlimited local AI — slow by cloud standards, but free forever. Kimi's free tier handles your cloud-based tasks up to their daily limit. Between the two, most personal assistant needs are covered: answering questions, drafting messages, summarising content, setting reminders.
+
+The honest tradeoff is quality and speed. Free models are less capable than Claude Haiku, let alone Sonnet. If you're fine with that for everyday tasks, this setup works well. If you find yourself frustrated by the quality, that's a sign you're ready to spend a few dollars a month for a noticeably better experience.
+
+## The Near-Free Setup
+
+If you add a small amount of paid API access, the experience improves dramatically. The key is using Claude Haiku as your paid default and being disciplined about two specific cost killers.
+
+First: **disable Heartbeat after initial setup**. Heartbeat is a feature that lets your agent proactively check in and stay aware of things — but if it's running constantly, it makes API calls in the background continuously. That adds up. Turn it off once you're past the setup phase, and only re-enable it if you have a specific reason.
+
+Second: **be careful with cron jobs**. Cron jobs are scheduled automations — they run on a timer and can call your AI model every time they run. A cron job that calls Haiku every five minutes is making 288 API calls a day just to run. Keep your scheduled tasks to a reasonable frequency. Daily is almost always sufficient for personal assistant work.
+
+With Heartbeat disabled and cron jobs running at sensible intervals, Claude Haiku at personal use volumes costs almost nothing.
+
+## The Practical $5/Month Setup
+
+This is where most people end up, and it's the sweet spot. Claude Haiku handles everything by default. Once a week — or for specific tasks you care about — you escalate to Claude Sonnet. Everything else stays on Haiku or free models.
+
+For context on the math: Claude Haiku is priced at a fraction of a cent per thousand tokens. A typical message — question plus answer — is roughly 500 to 1,000 tokens. Even if you're having ten conversations a day with your assistant, that's maybe 300,000 tokens a month. At Haiku prices, that's well under $1. You'd need to be sending thousands of messages every single day to approach $10 in Haiku costs for personal use.
+
+The $5 figure in practice comes from a mix: Haiku for daily use, a handful of Sonnet calls for weekly reports or more demanding tasks, and occasional escalations when you need something more capable.
+
+## What Actually Eats Your Budget
+
+The cost killers are not what most people expect. It's rarely the conversations. The things that actually drive up costs are:
+
+Heartbeat running constantly in the background, making API calls to check on things you never asked it to check.
+
+Cron jobs set to run every few minutes instead of once a day.
+
+Using Opus or GPT-4 as your default model when Haiku would do the job identically well.
+
+Long system prompts that add hundreds of tokens to every single request. Keep your instructions concise.
+
+Avoid these four things and your monthly bill for personal use will almost certainly stay under $10 without any real effort.
+
+## A Quick Sanity Check
+
+At the end of your first month, look at your API provider's usage dashboard. Most providers show you a breakdown by model and by day. If a number surprises you, it's almost always one of the cost killers above — a background process running more than you expected, or a model routing that isn't what you thought it was.
+
+One check per month takes two minutes and keeps you in control of your costs without any anxiety.
+
+## What's Next
+
+Now that you have a clear picture of models and costs, the next section moves into features and integrations — starting with how to keep your Telegram setup organised as your automations grow.
+
+> **Want the full technical details?** See the advanced guide: [Cost Optimization](/en/docs/advanced/cost-optimization)

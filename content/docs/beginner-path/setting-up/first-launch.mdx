@@ -1,0 +1,64 @@
+---
+title: First Launch & Onboarding
+description: What to expect the first time you start OpenClaw and how to complete the initial setup.
+---
+
+There's something quietly exciting about starting a piece of software for the very first time. It's all potential at that point — nothing is broken yet, nothing has gone wrong. Let's make sure your first launch lives up to that feeling.
+
+## Starting OpenClaw
+
+To get OpenClaw running locally, open your terminal and type:
+
+```bash
+openclaw gateway
+```
+
+This command starts the OpenClaw server on your computer. Think of it like flipping the power switch — everything that makes OpenClaw tick (the AI connections, the dashboard, the message routing) begins running the moment you enter this command. Your terminal will show some startup output, which is normal. You'll see lines about services starting up, connections being established, and eventually a message telling you the gateway is ready.
+
+Once you see that ready message, open your browser and go to **http://127.0.0.1:18789**. That's your dashboard. If you're on a VPS, your host will have given you a specific URL to use instead — but the experience from here is the same.
+
+Leave the terminal window open while you're working with OpenClaw. If you close it, the server shuts down. Some people run it in a separate terminal tab so it's out of the way but still running.
+
+## The Onboarding Wizard
+
+The first time you open the dashboard, you'll be greeted by an onboarding wizard. This is a short guided setup process that collects the basics before you can start using your agent. Don't skip it — it only takes a few minutes and it sets up things you'd have to configure manually otherwise.
+
+The wizard will ask you to set a password for the dashboard. Pick something real here, not "password123". You'll also be prompted to enter your AI provider API key — this is the key you got from Anthropic (or whichever provider you're using) that lets OpenClaw actually call the AI. If you haven't got that yet, now is the time to pause and grab it from your provider's console.
+
+## Setting Your Agent's Name
+
+One of the early steps asks you to name your agent. This might feel trivial but it actually matters more than you'd think. The name shows up in conversations, in the dashboard, and in logs. If you end up with multiple agents later, clear names make your life easier. Something like "Personal Assistant" or your own chosen name works perfectly. You can always change it later, so don't agonise over it.
+
+You'll also get to set an initial system prompt — this is a short description of how you want your agent to behave. Something like "You are a helpful personal assistant. Keep responses concise and friendly." is a perfectly good starting point. Again, you can refine this over time. The goal right now is just to get something running.
+
+## Your First Conversation
+
+Once you've finished the wizard, you'll land on the main dashboard. At this point your agent exists, but you haven't connected any external channels yet. The dashboard itself has a built-in web chat you can use to test things immediately — look for a chat icon or a "Test" button near your agent.
+
+Type a simple message. "Hello, what can you do?" is a classic opening. If your agent responds, congratulations — OpenClaw is working. The whole stack is functioning: your computer is running the server, the server is talking to the AI API, and the response is coming back to you. That's genuinely the hardest part done.
+
+## What to Do If Nothing Happens
+
+Sometimes the first launch doesn't go smoothly. Here are the most common situations and how to handle them.
+
+If the dashboard doesn't load at all, go back to your terminal and check that `openclaw gateway` is still running. If the terminal shows an error message, read it — it usually tells you exactly what went wrong. A common culprit is an incorrect API key. Double-check that you copied it correctly with no extra spaces.
+
+If your terminal seems frozen and nothing is responding, the process may have gotten stuck. This can happen occasionally, especially on first launch. The fix is to stop what you're doing, open a new terminal window, and run:
+
+```bash
+openclaw gateway --force
+```
+
+This forcefully kills any stuck OpenClaw process and starts fresh. It's a bit like holding down the power button when your computer freezes — not the elegant solution, but effective. After running it, try starting normally again with `openclaw gateway`.
+
+If your agent loads but doesn't respond to messages, the most likely issue is an API key problem. Head to Settings in the dashboard and double-check that your key is entered correctly and that your AI provider account has credit available.
+
+## Keeping the Terminal Tidy
+
+One small quality-of-life tip: if you're going to use OpenClaw regularly, consider running `openclaw gateway` in a dedicated terminal window that you minimise rather than closing. That way you always know it's running, and you're not hunting through tabs wondering why the dashboard stopped working.
+
+## What's Next
+
+Your agent is alive, you've had your first conversation, and you know how to restart things if they go sideways. The next step is making sure your setup is actually secure before you start connecting real accounts and real data to it.
+
+> **Want the full technical details?** See the advanced guide: [Gateway Configuration](/en/docs/advanced/gateway-configuration)

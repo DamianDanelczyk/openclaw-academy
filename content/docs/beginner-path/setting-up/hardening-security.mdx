@@ -1,0 +1,54 @@
+---
+title: Hardening Your Agent's Security
+description: The simple steps to make your OpenClaw setup secure before you start connecting it to your real accounts and data.
+---
+
+Before you start wiring your agent up to your email, your files, or your business tools, take twenty minutes to go through this page. It's tempting to skip the security stuff and get straight to the fun parts — but once your agent has access to real data, the cost of a gap in your setup becomes real too. None of what follows is complicated. It's mostly a matter of knowing what to change and where to find it.
+
+## Change the Default Dashboard Password
+
+If you let the onboarding wizard set a password, that's a good start. But if you rushed through it or used something simple, go change it now. The dashboard is your control centre — it can see every message your agent sends and receives, every piece of memory it stores, and all your API credentials. Treat the password with the same seriousness you'd give your email account.
+
+You'll find the password setting under Settings in the dashboard. While you're there, make sure you're using something unique — not a password you use anywhere else. A password manager makes this easy.
+
+## Restrict Which Networks Can Access Your Dashboard
+
+If you're running OpenClaw on a VPS, your dashboard might be accessible from anywhere on the internet by default. That's more exposure than you need. Most hosting panels let you add a network restriction (sometimes called an IP allowlist or firewall rule) so that only your IP address can reach the dashboard port.
+
+If you're on a home connection with a static IP, this is straightforward. If your IP changes regularly, you can still set this up — you'll just need to update the rule when your IP changes, or use a VPN with a fixed exit IP. Either way, locking down dashboard access is one of the highest-value security steps you can take.
+
+## Understand Sandboxing
+
+Sandboxing is a concept worth understanding before your agent starts doing anything consequential. An agent that can freely execute actions — deleting files, sending messages, calling APIs — without checking in with you is powerful, but it's also a liability if it misunderstands an instruction or gets a malformed input.
+
+OpenClaw lets you enable a "confirm before executing" mode for actions that touch files or external services. With this on, your agent will pause before taking any significant action and ask you to approve it. It's a small friction cost that prevents a large class of "oops" moments.
+
+You'll find this option in your agent's settings under the Execution or Permissions section. For most people in the early days of using their agent, turning this on is the right call. You can always loosen it later once you've built trust in how your agent interprets your instructions.
+
+## Disable Heartbeat After Setup
+
+This one surprises people, so it's worth explaining properly. Heartbeat is a feature that periodically pings your agent to keep it "warm" and responsive. During initial setup, it's useful — it helps confirm your agent is alive and reachable. Once you've confirmed everything works, though, you should disable it.
+
+The reason is straightforward: every ping involves an API call, and every API call costs tokens. If you're not actively using your agent, Heartbeat is silently draining your API credit in the background while you sleep. Over a week or a month, that adds up. You don't need Heartbeat for your agent to respond quickly when you actually message it.
+
+Turn it off in Settings under the Heartbeat or Health Check section. Your agent will still respond instantly when you contact it — the only difference is it won't keep tapping the AI on the shoulder when nobody's home.
+
+## Always Use Dedicated Accounts
+
+This is less about a dashboard toggle and more about a habit. When you connect OpenClaw to external services — email, calendars, social platforms — always create a dedicated account for the integration rather than using your personal account.
+
+The reasoning is simple. If something goes wrong, a dedicated account limits the blast radius. You can revoke access to the dedicated account without locking yourself out of your personal one. And if your agent accidentally sends a message or takes an action you didn't intend, it happened through a secondary account, not your main identity. This applies to Telegram bots, email integrations, API keys — anything you're handing to your agent.
+
+## A Quick Run-Through
+
+To summarise what to check before you connect anything important:
+
+Your dashboard has a strong, unique password that you didn't use elsewhere. If you're on a VPS, network access to the dashboard is restricted to your IP. Your agent has "confirm before executing" enabled for file and external service actions. Heartbeat is disabled now that your initial setup is confirmed working. Any accounts you're connecting are dedicated ones, not your personal accounts.
+
+None of these steps are difficult. Together they make the difference between a setup you can trust and one that keeps you up at night.
+
+## What's Next
+
+With your setup secured, you're ready to connect your first communication channel. We're starting with Telegram — it's the most polished integration OpenClaw has and the best place to experience what your agent can actually do.
+
+> **Want the full technical details?** See the advanced guide: [Security Checklist](/en/docs/security/checklist)

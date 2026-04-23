@@ -1,0 +1,9 @@
+{
+  "title": "Models & Cost Control",
+  "pages": [
+    "model-tiers-and-costs",
+    "api-keys-and-routing",
+    "free-fallback-models",
+    "running-for-free-or-cheap"
+  ]
+}
