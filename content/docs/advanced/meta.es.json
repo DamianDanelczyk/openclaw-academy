@@ -1,0 +1,10 @@
+{
+  "title": "Avanzado",
+  "pages": [
+    "sub-agents",
+    "deployment",
+    "cost-optimization",
+    "openclaw-vs-claude-code",
+    "troubleshooting"
+  ]
+}

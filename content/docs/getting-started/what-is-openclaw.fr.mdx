@@ -1,0 +1,179 @@
+---
+title: "Qu'est-ce qu'OpenClaw ?"
+description: "Une introduction aux principes fondamentaux de la plateforme d'assistant IA OpenClaw, son architecture et a qui elle s'adresse."
+---
+
+# Qu'est-ce qu'OpenClaw ?
+
+Laissons de cote le jargon marketing. Vous etes ici parce que vous avez entendu parler des assistants IA et vous voulez savoir ce qu'OpenClaw *est* vraiment, ce qu'il *fait*, et si cela vaut votre temps. C'est tout a fait legitime. Commencons depuis le debut.
+
+## Le probleme qu'OpenClaw resout
+
+Vous avez probablement utilise ChatGPT, Claude ou l'un des dizaines d'outils IA disponibles. Ils sont impressionnants. Ils sont aussi isoles. Chaque conversation repart de zero. Chaque outil vit dans son propre silo. Vous faites des copier-coller entre eux. Vous vous repetez. Vous perdez le contexte. Vous passez plus de temps a *gerer* l'IA qu'a l'*utiliser*.
+
+OpenClaw adopte une approche differente. Au lieu de vous donner un chatbot, il vous offre une **plateforme** pour creer des assistants IA qui connaissent reellement votre entreprise, se souviennent de vos preferences, se connectent a vos outils et fonctionnent sur tous les canaux ou vos clients (ou votre equipe) sont deja presents.
+
+Voyez les choses ainsi : ChatGPT est une calculatrice. OpenClaw est un tableur. Les deux font des calculs, mais l'un vous permet de construire des systemes.
+
+## L'architecture principale
+
+OpenClaw comporte quatre couches. Chaque fonctionnalite, chaque integration, chaque workflow se rapporte a ces quatre concepts. Une fois que vous les comprenez, tout le reste s'eclaire.
+
+```
+┌─────────────────────────────────────────────┐
+│                  GATEWAY                     │
+│         (Your front door to OpenClaw)        │
+├──────────┬──────────┬──────────┬────────────┤
+│  WebChat │  Slack   │  Email   │  WhatsApp  │
+│          │          │          │            │
+│          │ CHANNELS │          │            │
+│          │(Where conversations happen)      │
+├──────────┴──────────┴──────────┴────────────┤
+│                  AGENTS                      │
+│    (The brains — your AI personalities)      │
+│                                              │
+│  ┌────────────┐  ┌────────────┐             │
+│  │ Sales Bot  │  │ Support Bot│  ...        │
+│  └────────────┘  └────────────┘             │
+├──────────────────────────────────────────────┤
+│                  MEMORY                      │
+│   (Long-term knowledge, context, history)    │
+└──────────────────────────────────────────────┘
+```
+
+Passons en revue chaque couche.
+
+### Gateway
+
+Le Gateway est le point d'entree unique pour tout. Quand un message arrive — qu'il provienne d'un client sur votre site web, d'un collegue sur Slack ou d'un declencheur automatise via un cron job — il passe d'abord par le Gateway. Le Gateway gere l'authentification, la limitation de debit et le routage. Vous le configurez une fois et vous l'oubliez.
+
+Votre Gateway s'execute localement pendant le developpement a l'adresse `localhost:18789` et peut etre deploye chez n'importe quel fournisseur cloud quand vous etes pret pour la production.
+
+### Channels (Canaux)
+
+Les Channels sont l'endroit *ou* les conversations ont lieu. OpenClaw prend en charge nativement :
+
+- **WebChat** — Un widget integrable pour votre site web
+- **Slack** — Integration directe avec les espaces de travail Slack
+- **Email** — Gestion des e-mails entrants et sortants
+- **WhatsApp** — Via l'API WhatsApp Business
+- **Discord** — Integration complete de bot
+- **API** — Une API REST/WebSocket brute pour les integrations personnalisees
+
+La beaute des Channels est que votre Agent ne se soucie pas du canal d'origine du message. Un client peut commencer une conversation sur votre site web, faire un suivi par e-mail et verifier sur WhatsApp — et l'Agent voit tout cela comme un seul fil de discussion continu.
+
+### Agents
+
+Les Agents sont les personnalites IA que vous creez. Chaque Agent possede un fichier **SOUL.md** (nous y reviendrons plus tard) qui definit sa personnalite, ses limites de connaissances, son ton et ses regles de comportement. Vous pouvez avoir autant d'Agents que vous le souhaitez :
+
+- Un assistant commercial qui qualifie les prospects
+- Un agent de support qui resout les problemes courants
+- Un bot interne qui repond aux questions RH
+- Un assistant de contenu qui aide a rediger des articles de blog
+
+Chaque Agent peut utiliser differents modeles d'IA en arriere-plan. Vous voulez que votre bot commercial utilise GPT-4o pour la creativite et votre bot de support utilise Claude pour la precision ? Pas de probleme. OpenClaw est agnostique en matiere de modele.
+
+### Memory (Memoire)
+
+La Memory est ce qui rend OpenClaw fondamentalement different d'un chatbot. Elle se decline en trois types :
+
+- **Conversation Memory** — Le contexte a court terme de la conversation en cours. C'est ce que fait tout chatbot.
+- **User Memory** — Les informations a long terme sur chaque utilisateur. "Ce client est sur le plan Pro." "Il prefere qu'on l'appelle Mike, pas Michael." "Il a pose des questions sur la tarification trois fois ce mois-ci."
+- **Knowledge Memory** — Les donnees de votre entreprise. Documentation produit, FAQ, grilles tarifaires, politiques. Vous les integrez sous forme de fichiers ou connectez une source de donnees, et vos Agents peuvent les rechercher et les citer.
+
+La Memory est stockee localement par defaut avec SQLite, mais vous pouvez utiliser PostgreSQL, Redis ou toute base de donnees vectorielle pour les charges de production.
+
+## A qui s'adresse OpenClaw ?
+
+OpenClaw a ete concu pour etre utile a un large eventail de niveaux d'experience et de cas d'utilisation. Voici ou les differents profils se situent generalement :
+
+### Solopreneurs
+
+Vous dirigez une entreprise en solo et vous devez faire le travail de cinq personnes. OpenClaw vous permet de mettre en place des assistants IA qui repondent aux questions des clients, qualifient les prospects et redigent des reponses — tout cela pendant que vous vous concentrez sur le travail qui compte vraiment. Vous n'avez pas besoin d'ecrire du code. Le fichier SOUL.md est en anglais simple, et le canal WebChat fonctionne immediatement.
+
+### Agences
+
+Vous gerez plusieurs clients, et chaque client a besoin d'un branding different, de bases de connaissances differentes et de styles de reponse differents. L'architecture multi-tenant d'OpenClaw vous permet de creer des environnements isoles pour chaque client. Un seul tableau de bord. Plusieurs Agents. Une separation nette.
+
+### Developpeurs
+
+Vous voulez un controle total. OpenClaw vous offre un CLI, un workflow de configuration-as-code, un systeme de plugins et une API REST. Tout est open source. Vous pouvez le forker, l'etendre ou l'integrer dans votre propre produit SaaS. Le SDK Agent vous permet d'ecrire des outils personnalises en Python ou TypeScript.
+
+### Petites et moyennes entreprises
+
+Vous avez besoin d'une IA orientee client qui connait vos produits, respecte les directives de votre marque et n'invente pas votre politique de retour. Le systeme Knowledge Memory et les garde-fous d'OpenClaw vous donnent cette confiance sans avoir besoin d'une equipe IA dediee.
+
+## Qu'est-ce qui differencie OpenClaw ?
+
+Il existe beaucoup de plateformes IA. Voici ou OpenClaw se demarque :
+
+**C'est local-first.** Vos donnees restent sur votre machine pendant le developpement. Pas besoin d'envoyer les conversations clients a une plateforme tierce juste pour tester une modification de prompt.
+
+**C'est du config-as-code.** Toute la configuration de votre assistant — personnalite, canaux, sources de memoire, cron jobs — vit dans des fichiers versiones. Vous pouvez revoir les changements dans une pull request, revenir en arriere apres un mauvais deploiement et reproduire votre configuration dans differents environnements.
+
+**C'est agnostique en modele.** Passez d'OpenAI a Anthropic, Mistral, Ollama ou tout endpoint compatible OpenAI. Un simple changement de configuration :
+
+```yaml
+# openclaw.config.yaml
+agents:
+  sales-bot:
+    model: openai/gpt-4o
+  support-bot:
+    model: anthropic/claude-sonnet
+  internal-bot:
+    model: ollama/llama3
+```
+
+**C'est agnostique en canal.** Ecrivez la logique de votre Agent une seule fois. Deployez-la partout. Pas besoin de reecrire les prompts pour chaque plateforme.
+
+**C'est open source.** La plateforme principale est sous licence MIT. Vous pouvez l'heberger vous-meme, auditer le code et contribuer en retour. Il existe une offre cloud geree si vous ne voulez pas gerer l'infrastructure, mais c'est entierement optionnel.
+
+## Un apercu rapide
+
+Voici a quoi ressemble un projet OpenClaw minimal sur le disque :
+
+```
+my-project/
+├── openclaw.config.yaml    # Main configuration
+├── agents/
+│   └── assistant/
+│       ├── SOUL.md          # Agent personality & rules
+│       └── tools/           # Custom tools (optional)
+├── knowledge/
+│   └── faq.md               # Knowledge base files
+└── .env                     # API keys (never commit this)
+```
+
+Et voici un `openclaw.config.yaml` minimal :
+
+```yaml
+project: my-first-project
+version: 1
+
+gateway:
+  port: 18789
+
+agents:
+  assistant:
+    model: openai/gpt-4o
+    soul: ./agents/assistant/SOUL.md
+    memory:
+      conversation: true
+      user: true
+      knowledge:
+        sources:
+          - ./knowledge/
+
+channels:
+  webchat:
+    enabled: true
+    agent: assistant
+```
+
+C'est tout. C'est un projet OpenClaw fonctionnel. Lancez `openclaw dev` et vous avez un assistant IA operationnel a `localhost:18789` qui connait votre FAQ et se souvient de ses interlocuteurs.
+
+## Et ensuite ?
+
+Maintenant que vous avez le modele mental, la prochaine etape est de determiner si OpenClaw correspond a votre situation specifique. Tous les outils ne conviennent pas a tous les usages, et nous preferons que vous le sachiez en amont plutot que de le decouvrir apres trois heures de configuration.
+
+Rendez-vous sur **OpenClaw est-il fait pour vous ?** pour parcourir une auto-evaluation rapide.

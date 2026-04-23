@@ -1,0 +1,17 @@
+{
+  "title": "Architektura podstawowa",
+  "pages": [
+    "gateway",
+    "channels",
+    "agents",
+    "sessions",
+    "soul-md",
+    "user-md",
+    "memory",
+    "skills-clawhub",
+    "nodes",
+    "voice",
+    "canvas",
+    "lobster"
+  ]
+}

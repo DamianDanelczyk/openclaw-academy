@@ -1,0 +1,13 @@
+{
+  "title": "Canaux",
+  "pages": [
+    "overview",
+    "imessage",
+    "telegram",
+    "slack",
+    "discord",
+    "whatsapp",
+    "signal",
+    "webchat"
+  ]
+}

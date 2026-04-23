@@ -1,0 +1,10 @@
+{
+  "title": "Securite",
+  "pages": [
+    "checklist",
+    "sandboxing",
+    "api-keys",
+    "tool-policies",
+    "network-security"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Automatisation",
+  "pages": [
+    "cron-jobs",
+    "webhooks",
+    "first-automation"
+  ]
+}

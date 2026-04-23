@@ -21,10 +21,18 @@ function PoweredByBadge() {
   );
 }
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default async function Layout({
+  params,
+  children,
+}: {
+  params: Promise<{ lang: string }>;
+  children: ReactNode;
+}) {
+  const { lang } = await params;
+
   return (
     <DocsLayout
-      tree={source.getPageTree()}
+      tree={source.getPageTree(lang)}
       nav={{
         title: (
           <div className="flex items-center gap-2.5">
