@@ -1,0 +1,308 @@
+---
+title: Canal de Discord
+description: Configura un bot de Discord para OpenClaw con intents de gateway, comandos de barra diagonal y manejo de mensajes para servidores y DMs.
+---
+
+# Canal de Discord
+
+Discord es donde las comunidades se reúnen — grupos de gaming, proyectos de código abierto, grupos de estudio, fandoms de creadores. Si tu audiencia ya está en un servidor de Discord, llevar tu asistente de OpenClaw allí significa encontrarte con ellos donde están. No hay aplicación adicional que instalar, ni nueva interfaz que aprender. Solo escriben un mensaje o ejecutan un comando de barra diagonal y el asistente responde.
+
+Esta guía cubre todo, desde crear el bot hasta ajustar cómo se comporta en diferentes canales del servidor.
+
+## Paso 1: Crear una Aplicación de Discord
+
+Ve al [Portal de Desarrolladores de Discord](https://discord.com/developers/applications) y haz clic en **New Application**. Dale un nombre — este es el nombre de la aplicación, no el nombre de visualización del bot (puedes configurarlo por separado).
+
+Una vez creada, ve a la pestaña **Bot** y haz clic en **Add Bot**. Ahora configura algunas cosas:
+
+1. **Username** — Este es el nombre que las personas ven en el chat. Elige algo reconocible como "OpenClaw" o el nombre de tu asistente.
+2. **Icon** — Sube una foto de perfil para el bot.
+3. **Public Bot** — Desactívalo si solo quieres el bot en tus propios servidores. Actívalo si quieres que otros puedan invitarlo.
+4. **Token** — Haz clic en **Reset Token** para generar un token de bot. Cópialo inmediatamente — no podrás verlo de nuevo.
+
+```bash title=".env"
+DISCORD_BOT_TOKEN=YOUR_DISCORD_BOT_TOKEN_HERE
+DISCORD_CLIENT_ID=123456789012345678
+```
+
+## Paso 2: Configurar los Intents de Gateway
+
+Discord requiere que declares a qué tipos de eventos necesita acceso tu bot. Estos se llaman **Gateway Intents**, y algunos requieren aprobación explícita.
+
+En el Portal de Desarrolladores, ve a **Bot > Privileged Gateway Intents** y habilita:
+
+- **Message Content Intent** — Requerido para que el bot lea el texto de los mensajes (no solo metadatos). Sin esto, tu bot puede ver que se envió un mensaje pero no puede leer lo que dice.
+- **Server Members Intent** — Opcional, pero útil si tu asistente necesita buscar información de usuarios.
+- **Presence Intent** — Por lo general no es necesario para un asistente de IA. Déjalo desactivado.
+
+> **Nota:** El Message Content Intent se considera privilegiado. Para bots en menos de 100 servidores, se aprueba automáticamente. Para bots más grandes (75+ servidores), debes solicitar verificación a través de Discord.
+
+## Paso 3: Invitar el Bot a Tu Servidor
+
+Crea una URL de invitación con los permisos adecuados. La forma más fácil es ir a **OAuth2 > URL Generator** en el Portal de Desarrolladores:
+
+1. En **Scopes**, selecciona `bot` y `applications.commands`.
+2. En **Bot Permissions**, selecciona:
+   - Send Messages
+   - Send Messages in Threads
+   - Embed Links
+   - Attach Files
+   - Read Message History
+   - Use Slash Commands
+   - Add Reactions
+
+El portal genera una URL. Ábrela en tu navegador, selecciona tu servidor y autoriza.
+
+También puedes construir la URL manualmente:
+
+```
+https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=277025770560&scope=bot%20applications.commands
+```
+
+## Paso 4: Configurar OpenClaw
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    discord: {
+      enabled: true,
+      token: process.env.DISCORD_BOT_TOKEN,
+      clientId: process.env.DISCORD_CLIENT_ID,
+
+      // Gateway intents the bot needs
+      intents: [
+        'Guilds',
+        'GuildMessages',
+        'DirectMessages',
+        'MessageContent',
+        'GuildMessageReactions',
+      ],
+
+      // How the bot appears
+      presence: {
+        status: 'online',          // 'online' | 'idle' | 'dnd' | 'invisible'
+        activity: {
+          type: 'Listening',       // 'Playing' | 'Listening' | 'Watching' | 'Competing'
+          name: 'your questions',
+        },
+      },
+    },
+  },
+});
+```
+
+Inicia OpenClaw y deberías ver:
+
+```
+[discord] Logging in...
+[discord] Bot ready as OpenClaw#1234
+[discord] Connected to 1 guild(s)
+[discord] Registering slash commands...
+[discord] Channel ready
+```
+
+## Comandos de Barra Diagonal
+
+El sistema de comandos de barra diagonal de Discord proporciona una experiencia de usuario pulida — los usuarios escriben `/` y ven un menú de comandos disponibles con descripciones y sugerencias de parámetros. OpenClaw los registra automáticamente:
+
+```typescript
+discord: {
+  slashCommands: {
+    ask: {
+      description: 'Ask the AI assistant a question',
+      options: [
+        {
+          name: 'question',
+          description: 'Your question',
+          type: 'String',
+          required: true,
+        },
+      ],
+    },
+    reset: {
+      description: 'Clear your conversation history',
+    },
+    help: {
+      description: 'Show what the assistant can do',
+    },
+    persona: {
+      description: 'Switch the assistant personality',
+      options: [
+        {
+          name: 'name',
+          description: 'Persona name',
+          type: 'String',
+          required: true,
+          choices: [
+            { name: 'Default', value: 'default' },
+            { name: 'Technical', value: 'technical' },
+            { name: 'Creative', value: 'creative' },
+          ],
+        },
+      ],
+    },
+  },
+},
+```
+
+Los comandos de barra diagonal se registran globalmente de forma predeterminada (disponibles en todos los servidores en los que está el bot). Para un desarrollo más rápido, puedes registrarlos por servidor:
+
+```typescript
+discord: {
+  slashCommands: {
+    registrationType: 'guild',  // 'global' | 'guild'
+    guildId: '123456789012345678', // Your test server
+    // ... commands
+  },
+},
+```
+
+Los comandos con alcance de servidor se actualizan al instante. Los comandos globales pueden tardar hasta una hora en propagarse.
+
+## Manejo de Mensajes
+
+Más allá de los comandos de barra diagonal, el bot puede responder a mensajes normales. Tú controlas cuándo y cómo:
+
+```typescript
+discord: {
+  messages: {
+    // When to respond in server channels
+    serverTrigger: 'mention',   // 'mention' | 'prefix' | 'all' | 'none'
+    prefix: '!ask',             // Used when serverTrigger is 'prefix'
+
+    // When to respond in DMs
+    dmTrigger: 'all',           // Almost always 'all' for DMs
+
+    // Typing indicator
+    showTyping: true,           // Show "OpenClaw is typing..." while generating
+
+    // Response behavior
+    replyStyle: 'reply',        // 'reply' (threaded reply) | 'send' (new message)
+    splitLongMessages: true,    // Split messages exceeding Discord's 2000-char limit
+  },
+},
+```
+
+El disparador `mention` significa que el bot solo responde cuando alguien lo menciona con `@OpenClaw`. Este es el valor predeterminado más seguro para los canales del servidor — nadie quiere un bot respondiendo a cada mensaje en #general.
+
+### Cómo Funciona la División de Mensajes
+
+Discord tiene un límite estricto de 2.000 caracteres por mensaje. Cuando el asistente genera una respuesta más larga (común con ejemplos de código o explicaciones detalladas), OpenClaw la divide de forma inteligente:
+
+- Primero intenta dividir en los límites de párrafo.
+- Si un párrafo es demasiado largo, divide en los límites de oración.
+- Los bloques de código nunca se dividen a la mitad — obtienen su propio mensaje si es necesario.
+- Cada fragmento se envía con un pequeño retraso para mantener el orden de lectura.
+
+## Configuración de Canales del Servidor
+
+Al igual que con Slack, puedes configurar el bot de manera diferente para distintos canales de Discord:
+
+```typescript
+discord: {
+  channelRules: {
+    default: {
+      respondTo: 'mention',
+    },
+    overrides: {
+      '1111111111111111111': {  // #ask-the-bot channel ID
+        respondTo: 'all',
+        systemPromptAppend: 'This is a help channel. Be thorough and friendly.',
+      },
+      '2222222222222222222': {  // #code-review channel ID
+        respondTo: 'mention',
+        systemPromptAppend: 'Focus on code quality, security, and best practices.',
+      },
+      '3333333333333333333': {  // #memes channel ID
+        enabled: false,          // Bot ignores this channel entirely
+      },
+    },
+  },
+},
+```
+
+Para obtener el ID de un canal, habilita el Modo de Desarrollador en la configuración de Discord (en Avanzado), luego haz clic derecho en cualquier canal y selecciona **Copy Channel ID**.
+
+## Embeds y Respuestas Enriquecidas
+
+Discord admite **embeds** — tarjetas con formato enriquecido con colores, campos, miniaturas y pies de página. OpenClaw puede formatear automáticamente ciertas respuestas como embeds:
+
+```typescript
+discord: {
+  formatting: {
+    useEmbeds: true,
+    embedColor: '#5865F2',    // Discord blurple, or your brand color
+    embedFooter: 'Powered by OpenClaw',
+    codeBlockSyntaxHighlight: true,
+  },
+},
+```
+
+Cuando `useEmbeds` está habilitado, las respuestas más largas se envuelven en un embed limpio con una barra lateral de color. Las respuestas conversacionales cortas permanecen como texto simple para sentirse naturales.
+
+## Retroalimentación mediante Reacciones
+
+Similar al canal de Slack, puedes usar las reacciones de Discord como mecanismo de retroalimentación:
+
+```typescript
+discord: {
+  reactions: {
+    processingEmoji: '🔍',     // React while processing
+    removeOnComplete: true,    // Remove the processing reaction when done
+    feedbackEmojis: {
+      '👍': 'positive',
+      '👎': 'negative',
+    },
+  },
+},
+```
+
+## Permisos y Seguridad
+
+Discord tiene un sistema de permisos por capas. Aquí están las prácticas recomendadas:
+
+1. **Usa el principio de mínimo privilegio.** Solo solicita los permisos de bot que realmente necesitas.
+2. **Restringe por rol.** Puedes configurar OpenClaw para que solo responda a usuarios con roles específicos de Discord:
+
+```typescript
+discord: {
+  access: {
+    allowedRoles: ['AI Users', 'Premium'],   // Role names
+    blockedUsers: ['999999999999999999'],     // User IDs to ignore
+    dmAccess: 'everyone',                     // 'everyone' | 'server-members' | 'none'
+  },
+},
+```
+
+3. **Permisos de canal.** Incluso si el bot tiene permisos amplios a nivel de servidor, los permisos individuales de canal los anulan. Si el bot no puede ver un canal, no puede leer ni publicar allí.
+
+## Manejo de Canales de Voz (Experimental)
+
+OpenClaw tiene soporte experimental para los canales de voz de Discord. Cuando está habilitado, el bot puede unirse a un canal de voz, escuchar el habla (a través de reconocimiento de voz) y responder con audio sintetizado:
+
+```typescript
+discord: {
+  voice: {
+    enabled: false,           // Experimental — set true to try it
+    sttProvider: 'whisper',   // Speech-to-text engine
+    ttsProvider: 'elevenlabs', // Text-to-speech engine
+    autoLeaveTimeout: 300000, // Leave after 5 minutes of silence
+  },
+},
+```
+
+Esta función requiere dependencias adicionales y aún no se recomienda para uso en producción, pero es una forma divertida de demostrar tu asistente.
+
+## Solución de Problemas
+
+| Problema | Causa Probable | Solución |
+|---------|-------------|-----|
+| El bot aparece sin conexión | Token inválido o intents mal configurados | Regenera el token, verifica los intents en el Portal de Desarrolladores |
+| El bot no responde a mensajes | Message Content Intent no habilitado | Habilítalo en Portal de Desarrolladores > Bot > Privileged Intents |
+| Los comandos de barra diagonal no aparecen | Comandos registrados globalmente (tarda hasta 1 hora) | Cambia al registro por servidor para actualizaciones más rápidas |
+| Errores de "Missing Permissions" | El rol del bot está por debajo de los canales a los que intenta acceder | Mueve el rol del bot más arriba en Configuración del Servidor > Roles |
+| Respuestas duplicadas | El bot se está ejecutando en múltiples instancias | Asegúrate de que solo una instancia se conecte por token de bot |
+
+La combinación de texto, voz, comandos de barra diagonal y embeds enriquecidos de Discord hace que sea uno de los canales más versátiles para OpenClaw. Ya sea que estés construyendo un ayudante comunitario, un compañero de estudio o un asistente interno de equipo, Discord tiene las funciones para soportarlo.

@@ -1,0 +1,391 @@
+---
+title: Tu Primera Automatización
+description: Construye tres automatizaciones completas de OpenClaw desde cero con instrucciones paso a paso y ejemplos de configuración completos.
+---
+
+# Tu Primera Automatización
+
+Leer sobre automatizaciones es una cosa. Construirlas es donde ocurre el aprendizaje real. En esta guía, crearás tres automatizaciones completas de principio a fin. Cada una se basa en la anterior, así que al final tendrás una sólida comprensión de cómo funcionan las automatizaciones de OpenClaw en la práctica.
+
+No se requiere experiencia previa. Cada paso se muestra, cada configuración está incluida y cada decisión se explica.
+
+## Automatización 1: El Resumen Matutino Diario
+
+Esta es la automatización clásica para empezar. Cada día laborable a las 7:30 AM, OpenClaw compilará un resumen de los eventos de tu calendario, el pronóstico del tiempo y los titulares de noticias principales, y luego te lo entregará como un único mensaje.
+
+### Paso 1: Definir el Archivo de Automatización
+
+Crea un nuevo archivo en `automations/morning-briefing.yaml`:
+
+```yaml
+name: "morning-briefing"
+description: "Delivers a personalized morning summary on weekdays"
+version: 1
+
+trigger:
+  type: "cron"
+  cron: "30 7 * * 1-5"
+  timezone: "America/New_York"
+
+steps:
+  - id: "fetch-calendar"
+    action: "calendar.get_events"
+    params:
+      date: "today"
+      max_results: 10
+    output: "calendar_events"
+
+  - id: "fetch-weather"
+    action: "weather.get_forecast"
+    params:
+      location: "auto"
+      period: "today"
+    output: "weather"
+
+  - id: "fetch-news"
+    action: "news.get_headlines"
+    params:
+      categories: ["technology", "business"]
+      max_results: 5
+    output: "headlines"
+
+  - id: "compile-and-send"
+    action: "assistant.send_message"
+    params:
+      template: |
+        Good morning! Here is your briefing for {{ today | date_format }}.
+
+        ☀️ Weather: {{ weather.summary }}, {{ weather.high }}° / {{ weather.low }}°
+
+        📅 Calendar ({{ calendar_events | length }} events):
+        {% for event in calendar_events %}
+        • {{ event.time }} — {{ event.title }}
+        {% endfor %}
+
+        📰 Headlines:
+        {% for article in headlines %}
+        • {{ article.title }} ({{ article.source }})
+        {% endfor %}
+
+        Have a great day!
+```
+
+### Paso 2: Registrarla
+
+```bash
+openclaw automation add automations/morning-briefing.yaml
+```
+
+```
+✓ Automation "morning-briefing" registered
+  Next run: Mon Apr 27 07:30 (America/New_York)
+```
+
+### Paso 3: Probarla Ahora Mismo
+
+No tienes que esperar hasta mañana por la mañana:
+
+```bash
+openclaw automation run "morning-briefing" --now
+```
+
+Esto activa los cuatro pasos inmediatamente. Verás una salida como esta:
+
+```
+[Step 1/4] fetch-calendar ............ ✓ (3 events found)
+[Step 2/4] fetch-weather ............. ✓ (Partly cloudy, 72°/58°)
+[Step 3/4] fetch-news ................ ✓ (5 headlines fetched)
+[Step 4/4] compile-and-send .......... ✓ (Message delivered)
+
+Automation "morning-briefing" completed in 2.4s
+```
+
+### Paso 4: Personalizarla
+
+¿Quieres agregar un paso? Insértalo en cualquier lugar de la lista `steps`. Por ejemplo, para incluir tu lista de tareas:
+
+```yaml
+  - id: "fetch-tasks"
+    action: "tasks.get_due"
+    params:
+      date: "today"
+    output: "due_tasks"
+```
+
+Luego referencia `{{ due_tasks }}` en tu plantilla. El motor de automatización ejecuta los pasos en orden, y la salida de cada paso está disponible para todos los pasos posteriores.
+
+---
+
+## Automatización 2: Respondedor Inteligente de Correo Electrónico
+
+Esta automatización observa los correos entrantes que coinciden con ciertos criterios y redacta una respuesta. No enviará automáticamente -- aprobarás cada borrador antes de que salga.
+
+### Paso 1: Crear el Archivo de Automatización
+
+Crea `automations/email-responder.yaml`:
+
+```yaml
+name: "email-responder"
+description: "Drafts replies for specific incoming emails"
+version: 1
+
+trigger:
+  type: "webhook"
+  path: "/hooks/incoming-email"
+  secret: "${EMAIL_WEBHOOK_SECRET}"
+  signature_header: "X-Mailgun-Signature"
+  signature_algorithm: "sha256"
+
+filter:
+  conditions:
+    - field: "payload.sender"
+      operator: "ends_with"
+      value: "@clients.example.com"
+    - field: "payload.subject"
+      operator: "not_contains"
+      value: "URGENT"
+
+steps:
+  - id: "analyze-email"
+    action: "assistant.analyze"
+    params:
+      input: "{{ payload.body }}"
+      instructions: "Classify this email as one of: question, feedback, scheduling, other"
+    output: "analysis"
+
+  - id: "draft-reply"
+    action: "assistant.compose"
+    params:
+      context:
+        original_email: "{{ payload.body }}"
+        sender: "{{ payload.sender }}"
+        category: "{{ analysis.category }}"
+      instructions: |
+        Draft a professional, friendly reply to this email.
+        Keep it concise. If it is a scheduling request, suggest
+        three available time slots from my calendar.
+      tone: "professional"
+    output: "draft"
+
+  - id: "save-draft"
+    action: "email.save_draft"
+    params:
+      to: "{{ payload.sender }}"
+      subject: "Re: {{ payload.subject }}"
+      body: "{{ draft.text }}"
+      in_reply_to: "{{ payload.message_id }}"
+    output: "saved_draft"
+
+  - id: "notify-me"
+    action: "assistant.send_message"
+    params:
+      template: |
+        New draft reply ready for review.
+
+        From: {{ payload.sender }}
+        Subject: {{ payload.subject }}
+        Category: {{ analysis.category }}
+
+        Draft preview: {{ draft.text | truncate(200) }}
+
+        👉 Review and send: {{ saved_draft.review_url }}
+```
+
+### Paso 2: Configurar el Secreto del Webhook
+
+Agrega el secreto a tu archivo `.env`:
+
+```bash
+# .env
+EMAIL_WEBHOOK_SECRET=whsec_em_4f8a2c6d9e1b3f5a7c
+```
+
+### Paso 3: Registrar y Conectar
+
+```bash
+openclaw automation add automations/email-responder.yaml
+openclaw config reload
+```
+
+Ahora configura tu proveedor de correo electrónico (Mailgun, SendGrid, etc.) para reenviar los correos entrantes a:
+
+```
+https://your-instance.openclaw.app/hooks/incoming-email
+```
+
+### Paso 4: Probar con un Correo Simulado
+
+```bash
+openclaw automation run "email-responder" --now --payload '{
+  "sender": "alice@clients.example.com",
+  "subject": "Meeting next week?",
+  "body": "Hi, could we schedule a call sometime next week to discuss the project? Tuesday or Wednesday would work best for me.",
+  "message_id": "msg-test-001"
+}'
+```
+
+```
+[Step 1/4] analyze-email ............ ✓ (category: scheduling)
+[Step 2/4] draft-reply .............. ✓ (247 words)
+[Step 3/4] save-draft ............... ✓ (draft saved)
+[Step 4/4] notify-me ................ ✓ (notification sent)
+```
+
+El bloque de filtro mantiene las cosas enfocadas: solo los correos de `@clients.example.com` que *no* están marcados como URGENTE activan esta automatización. Todo lo demás se ignora.
+
+---
+
+## Automatización 3: Monitor de Salud del Proyecto
+
+Esta automatización se ejecuta cada cuatro horas durante los días laborables. Comprueba varias métricas sobre un proyecto -- problemas abiertos, estado de compilación, tiempo de actividad -- y envía una alerta solo si algo parece mal. Sin alerta significa que todo está bien.
+
+### Paso 1: Crear el Archivo de Automatización
+
+Crea `automations/project-monitor.yaml`:
+
+```yaml
+name: "project-monitor"
+description: "Checks project health metrics and alerts on problems"
+version: 1
+
+trigger:
+  type: "cron"
+  cron: "0 8,12,16,20 * * 1-5"
+  timezone: "UTC"
+
+config:
+  project_repo: "your-org/main-project"
+  uptime_url: "https://api.example.com/health"
+  alert_channel: "slack"
+
+steps:
+  - id: "check-issues"
+    action: "github.get_issues"
+    params:
+      repo: "{{ config.project_repo }}"
+      state: "open"
+      labels: ["bug", "critical"]
+    output: "critical_issues"
+
+  - id: "check-build"
+    action: "github.get_workflow_status"
+    params:
+      repo: "{{ config.project_repo }}"
+      workflow: "ci.yml"
+      branch: "main"
+    output: "build_status"
+
+  - id: "check-uptime"
+    action: "http.get"
+    params:
+      url: "{{ config.uptime_url }}"
+      timeout: 10
+    output: "uptime_check"
+
+  - id: "evaluate-health"
+    action: "assistant.analyze"
+    params:
+      input:
+        critical_issues: "{{ critical_issues }}"
+        build: "{{ build_status }}"
+        uptime: "{{ uptime_check }}"
+      instructions: |
+        Evaluate the project health based on these inputs.
+        Flag as "unhealthy" if any of these are true:
+        - More than 3 critical/bug issues are open
+        - The latest CI build failed
+        - The uptime check returned a non-200 status
+        Otherwise, flag as "healthy".
+    output: "health_report"
+
+  - id: "alert-if-needed"
+    action: "assistant.send_message"
+    condition: "health_report.status == 'unhealthy'"
+    params:
+      channel: "{{ config.alert_channel }}"
+      template: |
+        ⚠️ Project Health Alert — {{ now | date_format }}
+
+        Status: {{ health_report.status | upper }}
+
+        {% if critical_issues | length > 3 %}
+        🐛 {{ critical_issues | length }} critical issues open (threshold: 3)
+        {% endif %}
+
+        {% if build_status.conclusion != 'success' %}
+        🔴 Latest CI build: {{ build_status.conclusion }}
+           Run: {{ build_status.html_url }}
+        {% endif %}
+
+        {% if uptime_check.status_code != 200 %}
+        🌐 Uptime check failed (HTTP {{ uptime_check.status_code }})
+        {% endif %}
+
+        {{ health_report.summary }}
+```
+
+### Paso 2: Registrarla
+
+```bash
+openclaw automation add automations/project-monitor.yaml
+```
+
+### Paso 3: Verificar Todas las Conexiones
+
+```bash
+openclaw automation check "project-monitor"
+```
+
+```
+Checking automation "project-monitor"...
+  ✓ GitHub token valid (repo: your-org/main-project)
+  ✓ HTTP endpoint reachable (https://api.example.com/health)
+  ✓ Slack channel connected
+  ✓ Cron schedule valid (next: Today 16:00 UTC)
+
+All checks passed.
+```
+
+### Paso 4: Hacer una Ejecución de Prueba
+
+```bash
+openclaw automation run "project-monitor" --now --dry-run
+```
+
+El indicador `--dry-run` ejecuta todos los pasos pero en realidad no envía la alerta. Te muestra lo que *habría* ocurrido:
+
+```
+[Step 1/5] check-issues ............. ✓ (2 critical issues)
+[Step 2/5] check-build .............. ✓ (conclusion: success)
+[Step 3/5] check-uptime ............. ✓ (HTTP 200)
+[Step 4/5] evaluate-health .......... ✓ (status: healthy)
+[Step 5/5] alert-if-needed .......... ⏭ SKIPPED (condition not met)
+
+DRY RUN: No messages sent. Project is healthy.
+```
+
+Observa el campo `condition` en el último paso. La alerta solo se activa cuando las cosas no están en buen estado. Esto significa que no recibirás spam de mensajes "todo está bien" cuatro veces al día.
+
+---
+
+## Lo Que Has Aprendido
+
+A través de estas tres automatizaciones, has usado:
+
+- **Disparadores cron** para programación basada en tiempo
+- **Disparadores webhook** para respuestas impulsadas por eventos
+- **Flujos de trabajo de varios pasos** con datos pasados entre pasos
+- **Lógica condicional** para enviar alertas solo cuando sea necesario
+- **Filtros** para precisar qué eventos activan la automatización
+- **Plantillas** para salidas dinámicas y legibles
+- **Ejecuciones de prueba** y comandos de prueba para un desarrollo seguro
+
+Cada automatización en OpenClaw sigue esta misma estructura: disparador, filtro opcional, pasos, condiciones opcionales. Una vez que te sientas cómodo con estos bloques de construcción, puedes combinarlos para manejar prácticamente cualquier flujo de trabajo que puedas imaginar.
+
+## Próximos Pasos
+
+- Explora la referencia de [Cron Jobs](/docs/automation/cron-jobs) para más patrones de programación.
+- Lee [Webhooks](/docs/automation/webhooks) para mayor seguridad y depuración de webhooks.
+- Consulta la página de [Políticas de Herramientas](/docs/security/tool-policies) para controlar qué acciones pueden usar tus automatizaciones.
+
+<CTACard variant="community" />

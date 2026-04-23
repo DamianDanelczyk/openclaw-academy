@@ -1,0 +1,381 @@
+---
+title: Politiques d'Outils
+description: Configurez le contrôle d'accès pour les outils et actions OpenClaw, avec des politiques recommandées pour les cas d'usage courants.
+---
+
+# Politiques d'Outils
+
+Votre assistant OpenClaw a accès à une large gamme d'outils -- lire des fichiers, envoyer des e-mails, appeler des APIs, gérer des bases de données, et plus encore. Les politiques d'outils vous permettent de décider lesquels de ces outils votre assistant est réellement autorisé à utiliser, et dans quelles conditions.
+
+Considérez les politiques d'outils comme un système de permissions. Tout comme vous ne donneriez pas à chaque employé un passe-partout pour chaque pièce du bâtiment, vous ne devriez pas donner à votre assistant un accès illimité à tous les outils. Le principe est simple : accordez l'accès à ce qui est nécessaire, restreignez tout le reste.
+
+## Comment Fonctionnent les Politiques d'Outils
+
+Chaque outil dans OpenClaw a un nom, organisé en hiérarchie séparée par des points :
+
+```
+calendar.get_events
+calendar.create_event
+calendar.delete_event
+email.read
+email.send
+email.delete
+system.backup
+system.delete_files
+system.execute_command
+github.get_issues
+github.create_pull_request
+```
+
+Les politiques d'outils attribuent l'un des trois niveaux d'accès à chaque outil ou groupe d'outils :
+
+| Politique | Ce qu'elle fait |
+|--------|-------------|
+| `allow` | L'outil s'exécute immédiatement sans demander |
+| `ask` | OpenClaw fait une pause et demande votre approbation avant de s'exécuter |
+| `deny` | L'outil est entièrement bloqué. L'assistant ne peut pas l'utiliser. |
+
+## Configuration de Base
+
+Les politiques d'outils se trouvent dans votre `openclaw.config.yaml` sous la section `security` :
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      - tools: ["calendar.*"]
+        policy: "allow"
+      - tools: ["email.read"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+      - tools: ["email.delete"]
+        policy: "deny"
+```
+
+Lisons cette configuration à voix haute :
+
+- **Par défaut : refuser.** Si un outil n'est mentionné dans aucune règle, il est bloqué.
+- **Tous les outils de calendrier sont autorisés.** L'assistant peut librement lire, créer et modifier des événements de calendrier.
+- **La lecture des e-mails est autorisée.** L'assistant peut vérifier votre boîte de réception sans demander.
+- **L'envoi d'e-mail nécessite une approbation.** L'assistant vous montrera le brouillon et attendra votre OK.
+- **La suppression d'e-mails est bloquée.** L'assistant ne peut pas supprimer des e-mails, point final.
+
+### L'Importance du Refus par Défaut
+
+Il est fortement recommandé de définir `default: "deny"`. Cela signifie que chaque nouvel outil ajouté à OpenClaw commence bloqué jusqu'à ce que vous l'autorisiez explicitement. C'est bien plus sûr que `default: "allow"`, où chaque nouvel outil est automatiquement accessible.
+
+```yaml
+# Sécurisé : les nouveaux outils sont bloqués par défaut
+security:
+  tool_policies:
+    default: "deny"
+
+# Risqué : les nouveaux outils sont accessibles par défaut
+security:
+  tool_policies:
+    default: "allow"
+```
+
+## Motifs de Jokers
+
+Vous pouvez utiliser `*` comme joker pour correspondre à des groupes d'outils :
+
+| Motif | Correspond à |
+|---------|---------|
+| `calendar.*` | Tous les outils de calendrier |
+| `email.*` | Tous les outils d'e-mail |
+| `system.*` | Tous les outils système |
+| `*.read` | Tout outil se terminant par `.read` |
+| `*` | Tout |
+
+Vous pouvez aussi lister plusieurs outils spécifiques dans une règle :
+
+```yaml
+- tools: ["weather.get_forecast", "news.get_headlines", "calendar.get_events"]
+  policy: "allow"
+```
+
+## Politiques Conditionnelles
+
+Parfois vous voulez qu'un outil soit autorisé dans certaines circonstances et bloqué dans d'autres. Les politiques conditionnelles vous permettent d'ajouter du contexte à vos règles :
+
+### Restrictions Basées sur l'Heure
+
+```yaml
+rules:
+  - tools: ["email.send"]
+    policy: "allow"
+    conditions:
+      time_window:
+        start: "09:00"
+        end: "18:00"
+        timezone: "America/New_York"
+        days: ["mon", "tue", "wed", "thu", "fri"]
+    fallback_policy: "deny"
+```
+
+Cela permet à l'assistant d'envoyer des e-mails pendant les heures de bureau mais le bloque en dehors de ces heures. Utile pour éviter les e-mails accidentels à 3h du matin.
+
+### Restrictions Basées sur la Source
+
+```yaml
+rules:
+  - tools: ["system.execute_command"]
+    policy: "allow"
+    conditions:
+      triggered_by: ["automation:code-review"]
+    fallback_policy: "deny"
+```
+
+Cela n'autorise `system.execute_command` que lorsqu'il est déclenché par l'automatisation `code-review`. Si autre chose essaie de l'utiliser, c'est refusé.
+
+### Restrictions Basées sur les Arguments
+
+```yaml
+rules:
+  - tools: ["github.create_pull_request"]
+    policy: "allow"
+    conditions:
+      arguments:
+        repo:
+          pattern: "my-org/*"
+    fallback_policy: "ask"
+```
+
+L'assistant peut créer des PRs dans les dépôts sous `my-org` sans demander, mais demandera une approbation pour tout autre dépôt.
+
+## Politiques Recommandées par Cas d'Usage
+
+Voici des configurations de politique complètes pour les scénarios courants. Copiez celle qui correspond à votre situation et ajustez selon vos besoins.
+
+### Assistant Personnel
+
+Pour un assistant polyvalent qui gère votre calendrier, vos e-mails, vos notes et vos recherches d'information :
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Récupération d'informations — sûr à autoriser librement
+      - tools: ["calendar.get_events", "weather.*", "news.*", "search.*"]
+        policy: "allow"
+
+      # Création de contenu — autoriser avec une certaine supervision
+      - tools: ["calendar.create_event", "calendar.update_event"]
+        policy: "allow"
+      - tools: ["notes.create", "notes.update"]
+        policy: "allow"
+
+      # Communication — nécessite une approbation
+      - tools: ["email.read"]
+        policy: "allow"
+      - tools: ["email.send", "email.reply"]
+        policy: "ask"
+      - tools: ["slack.send_message"]
+        policy: "ask"
+
+      # Actions destructives — bloquer entièrement
+      - tools: ["*.delete*", "system.*"]
+        policy: "deny"
+```
+
+### Assistant de Développement
+
+Pour un assistant de codage qui aide avec la revue de code, les tests et la gestion de projet :
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Lecture et analyse de code
+      - tools: ["filesystem.read", "filesystem.list", "filesystem.search"]
+        policy: "allow"
+
+      # Écriture de code — autoriser dans les répertoires de projet
+      - tools: ["filesystem.write", "filesystem.create"]
+        policy: "allow"
+        conditions:
+          arguments:
+            path:
+              pattern: "/home/user/projects/*"
+        fallback_policy: "ask"
+
+      # Outils de développement
+      - tools: ["git.*", "github.get_*", "github.list_*"]
+        policy: "allow"
+      - tools: ["github.create_pull_request", "github.create_issue"]
+        policy: "ask"
+      - tools: ["system.execute_command"]
+        policy: "ask"
+
+      # Gestion des packages
+      - tools: ["npm.install", "pip.install"]
+        policy: "ask"
+
+      # Opérations dangereuses
+      - tools: ["git.force_push", "git.reset_hard", "system.delete_*"]
+        policy: "deny"
+```
+
+### Bot de Support Client
+
+Pour un assistant gérant les demandes clients avec accès à une base de connaissances et un système de tickets :
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Base de connaissances — lecture seule
+      - tools: ["kb.search", "kb.get_article"]
+        policy: "allow"
+
+      # Tickets
+      - tools: ["tickets.get", "tickets.list", "tickets.search"]
+        policy: "allow"
+      - tools: ["tickets.create", "tickets.update", "tickets.add_comment"]
+        policy: "allow"
+      - tools: ["tickets.close", "tickets.assign"]
+        policy: "ask"
+      - tools: ["tickets.delete"]
+        policy: "deny"
+
+      # Données clients — lecture avec restrictions
+      - tools: ["customers.get_profile"]
+        policy: "allow"
+      - tools: ["customers.update_profile"]
+        policy: "ask"
+      - tools: ["customers.delete_account"]
+        policy: "deny"
+
+      # Communication
+      - tools: ["chat.send_reply"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+```
+
+### Automatisation de Pipeline de Données
+
+Pour un assistant gérant des flux de traitement de données :
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Lecture de données
+      - tools: ["database.query", "database.list_tables"]
+        policy: "allow"
+      - tools: ["filesystem.read"]
+        policy: "allow"
+        conditions:
+          arguments:
+            path:
+              pattern: "/data/*"
+
+      # Écriture de données — contrôlée
+      - tools: ["database.insert", "database.update"]
+        policy: "ask"
+      - tools: ["filesystem.write"]
+        policy: "ask"
+        conditions:
+          arguments:
+            path:
+              pattern: "/data/output/*"
+
+      # Ne jamais autoriser les opérations destructives
+      - tools: ["database.drop_*", "database.truncate", "database.delete"]
+        policy: "deny"
+      - tools: ["filesystem.delete"]
+        policy: "deny"
+
+      # Rapports
+      - tools: ["reports.generate", "reports.export"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+```
+
+## Afficher et Tester les Politiques
+
+### Lister les Politiques Actives
+
+```bash
+openclaw policy list
+```
+
+```
+OUTIL                         POLITIQUE   CONDITION
+calendar.*                    allow       -
+email.read                    allow       -
+email.send                    ask         heures ouvrables seulement
+email.delete                  deny        -
+system.*                      deny        -
+(par défaut)                  deny        -
+```
+
+### Tester un Outil Spécifique
+
+Vérifiez quelle politique s'appliquerait si un outil donné était invoqué :
+
+```bash
+openclaw policy test "email.send"
+```
+
+```
+Outil : email.send
+Politique : ask
+Raison : Règle #4 correspondante (email.send → ask, heures ouvrables seulement)
+Heure actuelle : 14:22 EDT (dans les heures ouvrables)
+Politique effective : ask
+```
+
+### Revoir les Violations de Politique
+
+Voir quels outils ont été bloqués ou ont nécessité une approbation récemment :
+
+```bash
+openclaw audit log --filter "policy.denied,policy.asked" --last 7d
+```
+
+```
+HORODATAGE            OUTIL                    POLITIQUE   ACTION PRISE
+2026-04-21 11:04:22   system.execute_command   deny        bloqué
+2026-04-21 14:33:01   email.send               ask         approuvé par l'utilisateur
+2026-04-22 02:15:44   email.send               ask         refus automatique (hors heures)
+2026-04-22 09:08:11   email.send               ask         approuvé par l'utilisateur
+```
+
+## Priorité des Politiques et Conflits
+
+Quand plusieurs règles correspondent au même outil, OpenClaw utilise ces règles pour résoudre les conflits :
+
+1. **Les règles plus spécifiques l'emportent.** `email.send` bat `email.*` qui bat `*`.
+2. **Le refus explicite l'emporte sur l'autorisation.** Si une règle dit `allow` et une autre dit `deny` pour le même outil, `deny` l'emporte.
+3. **Les règles conditionnelles sont évaluées dans l'ordre.** La première règle conditionnelle correspondante s'applique.
+
+Si vous n'êtes jamais sûr de quelle règle s'appliquerait, utilisez `openclaw policy test` pour vérifier.
+
+## Mettre à Jour les Politiques Sans Interruption
+
+Après avoir édité votre `openclaw.config.yaml`, rechargez les politiques :
+
+```bash
+openclaw policy reload
+```
+
+```
+Politiques rechargées.
+  Règles totales : 12
+  Politique par défaut : deny
+  Outils autorisés : 8
+  Outils nécessitant une approbation : 3
+  Outils refusés : 14
+```
+
+Le rechargement est instantané et n'interrompt pas les automatisations en cours. Les nouvelles règles de politique s'appliquent à la prochaine invocation d'outil.

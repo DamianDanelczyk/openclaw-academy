@@ -1,0 +1,401 @@
+---
+title: Instalacja
+description: Przewodnik instalacji krok po kroku dla macOS, Linux i Windows, wraz z konfiguracją klucza API, weryfikacją i rozwiązywaniem problemów.
+---
+
+# Instalacja
+
+Ten przewodnik pomoże Ci uruchomić OpenClaw na Twoim komputerze. Cały proces zajmuje około 10–15 minut, a po jego zakończeniu będziesz mieć zweryfikowaną, działającą instalację gotową do pierwszego projektu.
+
+## Wymagania Wstępne
+
+Przed rozpoczęciem upewnij się, że masz:
+
+- **Node.js 20 lub nowszy** — sprawdź za pomocą `node --version`
+- **npm 10 lub nowszy** — dołączony do Node.js, sprawdź za pomocą `npm --version`
+- **Git** — sprawdź za pomocą `git --version`
+- **Terminal** — Terminal.app na macOS, dowolny terminal Linux lub PowerShell/Windows Terminal na Windows
+- **Klucz API** od co najmniej jednego dostawcy AI (OpenAI, Anthropic lub Mistral) — skonfigurujemy to w kolejnym kroku
+
+Nie masz jeszcze Node.js? Najprostszą ścieżką jest [nvm](https://github.com/nvm-sh/nvm) na macOS/Linux lub [nvm-windows](https://github.com/coreybutler/nvm-windows) na Windows.
+
+## Instalacja na macOS
+
+### Opcja A: Homebrew (zalecana)
+
+```bash
+# Zainstaluj przez Homebrew
+brew tap openclaw/tap
+brew install openclaw
+```
+
+### Opcja B: Globalna instalacja npm
+
+```bash
+# Zainstaluj globalnie przez npm
+npm install -g @openclaw/cli
+```
+
+### Opcja C: Skrypt powłoki
+
+```bash
+# Skrypt instalacyjny w jednej linii
+curl -fsSL https://get.openclaw.dev | bash
+```
+
+Po instalacji sprawdź, czy działa:
+
+```bash
+openclaw --version
+```
+
+Powinieneś zobaczyć wynik podobny do:
+
+```
+OpenClaw CLI v2.4.1
+Runtime: Node.js v20.11.0
+Platform: darwin-arm64
+```
+
+## Instalacja na Linux
+
+### Opcja A: Globalna instalacja npm
+
+```bash
+# Zainstaluj globalnie przez npm
+npm install -g @openclaw/cli
+```
+
+### Opcja B: Skrypt powłoki
+
+```bash
+# Skrypt instalacyjny w jednej linii
+curl -fsSL https://get.openclaw.dev | bash
+```
+
+### Opcja C: Ze źródła
+
+```bash
+# Sklonuj i zbuduj
+git clone https://github.com/openclaw/openclaw.git
+cd openclaw
+npm install
+npm run build
+npm link
+```
+
+### Uwaga dotycząca Linuksa
+
+Na niektórych dystrybucjach może być konieczne naprawienie uprawnień npm do instalowania pakietów globalnych bez `sudo`:
+
+```bash
+# Utwórz katalog dla pakietów globalnych
+mkdir -p ~/.npm-global
+
+# Skonfiguruj npm, aby go używał
+npm config set prefix '~/.npm-global'
+
+# Dodaj do PATH (dodaj tę linię do ~/.bashrc lub ~/.zshrc)
+export PATH="$HOME/.npm-global/bin:$PATH"
+
+# Przeładuj konfigurację powłoki
+source ~/.bashrc
+```
+
+Teraz uruchom instalację ponownie bez `sudo`:
+
+```bash
+npm install -g @openclaw/cli
+```
+
+## Instalacja na Windows
+
+### Opcja A: Globalna instalacja npm (zalecana)
+
+Otwórz **PowerShell** lub **Windows Terminal** i uruchom:
+
+```powershell
+npm install -g @openclaw/cli
+```
+
+### Opcja B: Instalator Windows
+
+Pobierz instalator `.msi` ze [strony wydań OpenClaw](https://github.com/openclaw/openclaw/releases) i uruchom go. Instalator automatycznie dodaje `openclaw` do Twojego PATH.
+
+### Opcja C: winget
+
+```powershell
+winget install OpenClaw.CLI
+```
+
+### Uwagi dotyczące Windows
+
+- Używaj **PowerShell** lub **Windows Terminal**, a nie wiersza poleceń (cmd.exe). Niektóre funkcje nie działają poprawnie w cmd.
+- Jeśli widzisz błędy polityki wykonania, najpierw uruchom:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+- Ścieżki Windows używają odwrotnych ukośników, ale pliki konfiguracyjne OpenClaw akceptują ukośniki do przodu na wszystkich platformach. Używaj ukośników do przodu w plikach YAML dla przenośności.
+
+## Konfiguracja Klucza API
+
+OpenClaw potrzebuje co najmniej jednego klucza API dostawcy AI, aby działać. Oto jak go skonfigurować.
+
+### Krok 1: Uzyskaj klucz API
+
+Przejdź do panelu swojego dostawcy i utwórz klucz API:
+
+- **OpenAI:** [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- **Anthropic:** [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+- **Mistral:** [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys)
+
+### Krok 2: Skonfiguruj OpenClaw
+
+Masz dwie opcje dostarczenia klucza API. Wybierz tę, którą wolisz.
+
+**Opcja A: Plik środowiskowy (zalecany dla projektów)**
+
+Utwórz plik `.env` w katalogu głównym projektu:
+
+```bash
+# .env
+OPENAI_API_KEY=sk-proj-your-key-here
+# Lub dla Anthropic:
+# ANTHROPIC_API_KEY=sk-ant-your-key-here
+# Lub dla Mistral:
+# MISTRAL_API_KEY=your-key-here
+```
+
+**Opcja B: Konfiguracja globalna**
+
+Przechowaj klucz globalnie, tak aby był dostępny we wszystkich projektach:
+
+```bash
+openclaw config set openai_api_key sk-proj-your-key-here
+```
+
+Zapisuje to do `~/.openclaw/config.yaml` (lub `%USERPROFILE%\.openclaw\config.yaml` na Windows).
+
+### Krok 3: Zweryfikuj, czy klucz działa
+
+```bash
+openclaw doctor
+```
+
+Uruchamia to diagnostykę, która weryfikuje klucz API, testuje krótkie uzupełnienie i zgłasza wszelkie problemy. Powinieneś zobaczyć:
+
+```
+OpenClaw Doctor
+===============
+CLI version:      v2.4.1          ✓
+Node.js:          v20.11.0        ✓
+npm:              v10.2.4         ✓
+Config file:      Found           ✓
+API key (OpenAI): Valid           ✓
+Model access:     gpt-4o          ✓
+Gateway port:     18789 available ✓
+
+All checks passed. You're ready to go.
+```
+
+## Kroki Weryfikacji
+
+Po instalacji przejdź przez tę listę kontrolną, aby upewnić się, że wszystko działa:
+
+```bash
+# 1. Sprawdź, czy CLI jest zainstalowane i jest w PATH
+openclaw --version
+
+# 2. Uruchom narzędzie diagnostyczne
+openclaw doctor
+
+# 3. Zainicjuj projekt testowy
+openclaw init test-project
+cd test-project
+
+# 4. Uruchom serwer deweloperski
+openclaw dev
+
+# 5. Otwórz WebChat w przeglądarce
+# Przejdź do http://localhost:18789
+```
+
+Jeśli interfejs WebChat się ładuje i możesz wysłać wiadomość, instalacja jest zakończona. Możesz później usunąć projekt testowy:
+
+```bash
+cd ..
+rm -rf test-project
+```
+
+## Top 10 Typowych Błędów i Rozwiązań
+
+### 1. `command not found: openclaw`
+
+**Przyczyna:** CLI nie jest w Twoim PATH.
+
+```bash
+# Sprawdź, gdzie npm instaluje pakiety globalne
+npm config get prefix
+
+# Upewnij się, że katalog bin tej ścieżki jest w Twoim PATH
+# Na przykład, dodaj do ~/.zshrc lub ~/.bashrc:
+export PATH="$(npm config get prefix)/bin:$PATH"
+```
+
+### 2. `Error: EACCES permission denied`
+
+**Przyczyna:** npm próbuje instalować do katalogu, który nie należy do Ciebie.
+
+```bash
+# Rozwiązanie: Nie używaj sudo. Zamiast tego zmień domyślny katalog npm:
+mkdir -p ~/.npm-global
+npm config set prefix '~/.npm-global'
+export PATH="$HOME/.npm-global/bin:$PATH"
+npm install -g @openclaw/cli
+```
+
+### 3. `Error: API key not found`
+
+**Przyczyna:** Brak skonfigurowanego klucza API w `.env` lub konfiguracji globalnej.
+
+```bash
+# Sprawdź, czy klucz jest ustawiony
+openclaw config get openai_api_key
+
+# Jeśli jest pusty, ustaw go:
+openclaw config set openai_api_key sk-proj-your-key-here
+```
+
+### 4. `Error: Invalid API key`
+
+**Przyczyna:** Klucz jest zniekształcony, wygasł lub pochodzi od niewłaściwego dostawcy.
+
+```bash
+# Przetestuj klucz bezpośrednio
+openclaw doctor --verbose
+
+# Typowe błędy:
+# - Skopiowany klucz z końcową spacją
+# - Użycie klucza projektu bez identyfikatora projektu
+# - Klucz został unieważniony lub zmieniony w panelu dostawcy
+```
+
+### 5. `Error: Port 18789 is already in use`
+
+**Przyczyna:** Inny proces (lub inna instancja OpenClaw) używa domyślnego portu.
+
+```bash
+# Znajdź, co używa portu
+lsof -i :18789          # macOS/Linux
+netstat -ano | findstr 18789  # Windows
+
+# Opcja A: Zabij inny proces
+kill -9 <PID>
+
+# Opcja B: Użyj innego portu
+openclaw dev --port 18790
+```
+
+### 6. `Error: Node.js version 18.x is not supported`
+
+**Przyczyna:** OpenClaw wymaga Node.js 20 lub nowszego.
+
+```bash
+# Sprawdź swoją wersję
+node --version
+
+# Zaktualizuj za pomocą nvm
+nvm install 20
+nvm use 20
+```
+
+### 7. `Error: Cannot find module '@openclaw/core'`
+
+**Przyczyna:** Uszkodzona lub niekompletna instalacja.
+
+```bash
+# Zainstaluj ponownie od zera
+npm uninstall -g @openclaw/cli
+npm cache clean --force
+npm install -g @openclaw/cli
+```
+
+### 8. `Error: SOUL.md not found`
+
+**Przyczyna:** Twoja konfiguracja odwołuje się do pliku SOUL.md, który nie istnieje pod podaną ścieżką.
+
+```bash
+# Sprawdź ścieżkę w openclaw.config.yaml
+# Upewnij się, że plik istnieje:
+ls -la agents/assistant/SOUL.md
+
+# Jeśli brakuje, utwórz go:
+mkdir -p agents/assistant
+echo "You are a helpful assistant." > agents/assistant/SOUL.md
+```
+
+### 9. `Error: YAML parsing error in openclaw.config.yaml`
+
+**Przyczyna:** Błąd składni w pliku konfiguracyjnym. YAML jest wymagający co do wcięć.
+
+```bash
+# Zwaliduj swój YAML
+openclaw config validate
+
+# Typowe problemy:
+# - Tabulatory zamiast spacji (YAML wymaga spacji)
+# - Nieprawidłowy poziom wcięcia
+# - Brakujące cudzysłowy wokół ciągów ze specjalnymi znakami
+```
+
+### 10. `Error: Network timeout connecting to model provider`
+
+**Przyczyna:** Nie można dotrzeć do API dostawcy AI. Może to być zapora, proxy lub problem DNS.
+
+```bash
+# Przetestuj łączność
+curl https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY"
+
+# Jeśli jesteś za proxy, skonfiguruj je:
+openclaw config set proxy http://your-proxy:8080
+
+# Jeśli używasz VPN, spróbuj tymczasowo się rozłączyć, aby odizolować problem
+```
+
+## Aktualizacja OpenClaw
+
+Aby zaktualizować do najnowszej wersji:
+
+```bash
+# Homebrew
+brew upgrade openclaw
+
+# npm
+npm update -g @openclaw/cli
+
+# Sprawdź nową wersję
+openclaw --version
+```
+
+Zalecamy subskrybowanie [changelogu](https://github.com/openclaw/openclaw/blob/main/CHANGELOG.md) lub obserwowanie repozytorium GitHub w celu otrzymywania powiadomień o wydaniach. Aktualizacje głównych wersji mogą zawierać zmiany powodujące niezgodność — zawsze czytaj informacje o wydaniu przed aktualizacją.
+
+## Odinstalowanie
+
+Jeśli musisz usunąć OpenClaw:
+
+```bash
+# Homebrew
+brew uninstall openclaw
+
+# npm
+npm uninstall -g @openclaw/cli
+
+# Usuń konfigurację globalną (opcjonalnie)
+rm -rf ~/.openclaw
+```
+
+## Kolejne Kroki
+
+Twoja instalacja jest zweryfikowana, a klucz API działa. Czas coś zbudować. Przejdź do **Twojej Pierwszej Godziny**, aby zapoznać się z przewodnikiem tworzenia pierwszego Agenta, łączenia kanału i zobaczenia, jak wszystko działa razem.

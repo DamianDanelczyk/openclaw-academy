@@ -1,0 +1,330 @@
+---
+title: Canvas
+description: El espacio de trabajo visual de OpenClaw — el sistema A2UI que permite a tu agente mostrar, no solo decir.
+---
+
+# Canvas
+
+El texto es poderoso, pero algunas cosas se muestran mejor de lo que se describen. Intenta explicar un plano de planta, un cronograma de proyecto o una tendencia de datos en texto plano — se complica rápidamente. Ahí es donde entra **Canvas**. Canvas es el espacio de trabajo visual de OpenClaw, impulsado por el sistema **A2UI** (Agent-to-User Interface), que permite a tu agente generar contenido visual interactivo al momento.
+
+## ¿Qué Es A2UI?
+
+A2UI significa **Agent-to-User Interface** (Interfaz Agente-a-Usuario). La interfaz de usuario tradicional está diseñada por humanos para humanos. A2UI está diseñada *por tu agente* para ti, en tiempo real, basada en lo que necesitas en ese momento.
+
+Cuando tu agente decide que una representación visual te serviría mejor que el texto, renderiza un Canvas. Esto puede ser un gráfico, un diagrama, un formulario, una línea de tiempo, un tablero Kanban o incluso una simple lista de verificación interactiva. El agente elige el formato. Tú interactúas con él.
+
+```yaml
+# canvas/config.yaml
+canvas:
+  enabled: true
+  rendering:
+    engine: "a2ui-v2"
+    theme: "auto"           # Coincide con tu tema del sistema (claro/oscuro)
+    max_width: "100%"
+    animations: true
+
+  permissions:
+    auto_render: true        # El agente puede crear canvases sin preguntar
+    interactive: true        # Puedes hacer clic, arrastrar y editar elementos del canvas
+    persist: true            # Los canvases se guardan en tu sesión
+
+  supported_types:
+    - chart
+    - diagram
+    - table
+    - form
+    - timeline
+    - kanban
+    - map
+    - gallery
+    - code_editor
+    - whiteboard
+```
+
+## Cómo Funciona Canvas
+
+Aquí está el flujo cuando tu agente usa Canvas:
+
+```
+Tú: "Muéstrame nuestra tendencia de ingresos trimestral"
+
+Pensamiento del agente:
+  1. Esto es una solicitud de visualización de datos
+  2. Tengo datos de ingresos de la habilidad de finanzas
+  3. Un gráfico de líneas sería el mejor formato
+  4. Renderizarlo en Canvas
+
+Resultado: Aparece un gráfico de líneas interactivo mostrando ingresos T1-T4
+        con información emergente al pasar el cursor, etiquetas de datos y una línea de tendencia.
+```
+
+El agente genera una definición de Canvas — una descripción estructurada de qué mostrar — y el motor A2UI lo renderiza en tu dispositivo. Nunca ves la definición; solo ves el visual.
+
+### Ejemplo de Definición de Canvas
+
+Bajo el capó, esto es lo que genera el agente:
+
+```json
+{
+  "canvas": {
+    "type": "chart",
+    "chart_type": "line",
+    "title": "Ingresos Trimestrales — 2025 vs 2026",
+    "data": {
+      "labels": ["T1", "T2", "T3", "T4"],
+      "datasets": [
+        {
+          "label": "2025",
+          "values": [420000, 510000, 485000, 630000],
+          "color": "#6366f1"
+        },
+        {
+          "label": "2026",
+          "values": [580000, null, null, null],
+          "color": "#22c55e"
+        }
+      ]
+    },
+    "options": {
+      "currency": "PLN",
+      "show_trend": true,
+      "interactive": true,
+      "annotations": [
+        {
+          "point": "T4-2025",
+          "label": "Pico en lanzamiento de producto"
+        }
+      ]
+    }
+  }
+}
+```
+
+No escribes estas definiciones tú mismo. Tu agente las crea basándose en tu solicitud. Pero conocer la estructura ayuda si quieres personalizar canvases o crear plantillas.
+
+## Tipos de Canvas
+
+### Gráficos
+
+Para datos que tienen patrones, tendencias o comparaciones:
+
+```
+Tú: Compara nuestros tres niveles de precios por cobertura de funciones.
+
+Canvas renderiza: Un gráfico de barras agrupadas que muestra los niveles Starter, Pro y
+Enterprise con barras para cada categoría de funciones.
+```
+
+Tipos de gráficos soportados: línea, barra, pastel, dispersión, área, radar, histograma, treemap.
+
+### Diagramas
+
+Para sistemas, procesos y relaciones:
+
+```
+Tú: Dibuja el flujo de incorporación de usuarios.
+
+Canvas renderiza: Un diagrama de flujo que comienza con "Registro" y se ramifica
+a través de verificación de correo electrónico, configuración de perfil, tutorial y primer proyecto.
+```
+
+```json
+{
+  "canvas": {
+    "type": "diagram",
+    "diagram_type": "flowchart",
+    "nodes": [
+      {"id": "1", "label": "Registro", "type": "start"},
+      {"id": "2", "label": "Verificación de Correo", "type": "process"},
+      {"id": "3", "label": "¿Verificado?", "type": "decision"},
+      {"id": "4", "label": "Configuración de Perfil", "type": "process"},
+      {"id": "5", "label": "Tutorial", "type": "process"},
+      {"id": "6", "label": "Primer Proyecto", "type": "end"}
+    ],
+    "edges": [
+      {"from": "1", "to": "2"},
+      {"from": "2", "to": "3"},
+      {"from": "3", "to": "4", "label": "Sí"},
+      {"from": "3", "to": "2", "label": "No (reenviar)"},
+      {"from": "4", "to": "5"},
+      {"from": "5", "to": "6"}
+    ]
+  }
+}
+```
+
+### Tablas Interactivas
+
+Cuando una tabla de texto plano no es suficiente:
+
+```
+Tú: Muéstrame todos los problemas abiertos ordenados por prioridad.
+
+Canvas renderiza: Una tabla ordenable y filtrable con columnas para
+ID del problema, título, prioridad, asignado y estado. Puedes hacer clic
+en los encabezados de columna para ordenar, usar un cuadro de búsqueda para filtrar y hacer clic
+en las filas para ver detalles.
+```
+
+### Tableros Kanban
+
+Para la gestión de tareas y proyectos:
+
+```
+Tú: Muéstrame el tablero del sprint.
+
+Canvas renderiza: Un tablero Kanban de tres columnas (Por Hacer, En Progreso, Hecho)
+con tarjetas para cada tarea. Puedes arrastrar tarjetas entre columnas,
+y el agente actualiza los datos subyacentes.
+```
+
+### Líneas de Tiempo
+
+Para cronogramas, planes de proyecto y eventos históricos:
+
+```
+Tú: Muestra la línea de tiempo del lanzamiento del producto.
+
+Canvas renderiza: Una línea de tiempo horizontal de marzo a junio con hitos
+para la finalización del diseño, lanzamiento beta, empuje de marketing y día de lanzamiento.
+Las dependencias se muestran como flechas de conexión.
+```
+
+### Formularios
+
+Cuando tu agente necesita entrada estructurada de tu parte:
+
+```
+Tú: Ayúdame a configurar un nuevo proyecto.
+
+Canvas renderiza: Un formulario con campos para nombre del proyecto, descripción,
+miembros del equipo (selección múltiple), fecha límite (selector de fecha) y prioridad
+(menú desplegable). Lo rellenas visualmente en lugar de responder preguntas
+una por una.
+```
+
+### Pizarra
+
+Para lluvia de ideas de forma libre:
+
+```
+Tú: Hagamos lluvia de ideas sobre nombres para la nueva función.
+
+Canvas renderiza: Una pizarra donde tanto tú como el agente pueden agregar
+notas adhesivas, dibujar conexiones, agrupar ideas y votar por las favoritas.
+```
+
+## Cuándo el Visual Supera al Texto
+
+No todo pertenece a un Canvas. Aquí tienes una guía práctica:
+
+| Escenario | Texto | Canvas | Por qué |
+|----------|------|--------|---------|
+| Respuesta factual rápida | Mejor | Excesivo | "¿Qué hora es en Tokio?" no necesita un visual |
+| Comparación de datos | Aceptable | Mejor | Las tablas y gráficos hacen visibles los patrones |
+| Instrucciones paso a paso | Mejor | Bueno | El texto numerado es fácil de seguir |
+| Flujos de procesos | Difícil | Mejor | Los diagramas de flujo comunican la lógica de ramificación instantáneamente |
+| Estado del proyecto | Aceptable | Mejor | Los tableros Kanban muestran el estado de un vistazo |
+| Lluvia de ideas | Bueno | Mejor | El diseño espacial ayuda con el pensamiento creativo |
+| Revisión de código | Mejor | Bueno | El resaltado de sintaxis en texto suele ser suficiente |
+| Resumen de horario | Difícil | Mejor | Las líneas de tiempo muestran brechas y conflictos visualmente |
+
+Tu agente aprende tus preferencias. Si siempre le pides que "muestre" cosas, tenderá hacia Canvas. Si normalmente pides texto, usará eso por defecto. También puedes ser explícito:
+
+```
+Tú: Muéstrame esto en Canvas.
+Tú: Solo dame el texto, sin visuales.
+```
+
+## Personalización de Canvas
+
+Puedes controlar el aspecto y comportamiento predeterminados:
+
+```yaml
+canvas:
+  theme:
+    mode: "auto"              # auto, light, dark
+    accent_color: "#6366f1"
+    font: "Inter"
+    border_radius: 8
+
+  defaults:
+    chart_style: "minimal"    # minimal, detailed, presentation
+    diagram_direction: "top_to_bottom"
+    table_rows_per_page: 25
+    animation_speed: "normal"  # none, fast, normal, slow
+
+  export:
+    formats: ["png", "svg", "pdf", "json"]
+    default_format: "png"
+    resolution: "2x"          # Exportaciones de calidad Retina
+
+  collaboration:
+    enabled: true
+    real_time: true
+    allow_agent_edits: true   # El agente puede modificar el canvas mientras interactúas
+```
+
+### Exportar Canvases
+
+Cualquier Canvas puede exportarse para compartir:
+
+```
+Tú: Exporta este gráfico como PDF.
+
+OpenClaw: Listo. Guardado como T2_Revenue_Chart.pdf en tu carpeta de Descargas.
+¿Quieres que lo adjunte a un correo electrónico?
+```
+
+O mediante programación:
+
+```bash
+# Exportar el último canvas
+openclaw canvas export --format pdf --output revenue_chart.pdf
+
+# Exportar con resolución personalizada
+openclaw canvas export --format png --resolution 3x --output chart_hires.png
+```
+
+## Canvas en Diferentes Dispositivos
+
+Canvas se adapta al dispositivo que estás usando:
+
+- **Escritorio/Portátil** — experiencia interactiva completa. Arrastra, haz clic, pasa el cursor, cambia el tamaño.
+- **Tableta** — optimizado para toque. Pellizca para hacer zoom, desliza para desplazarte, toca para interactuar.
+- **Teléfono** — diseños simplificados. Los gráficos muestran puntos de datos clave, las tablas se convierten en tarjetas desplazables, los diagramas se pueden hacer zoom.
+- **Solo voz** — el contenido del Canvas se describe verbalmente. "Tu gráfico muestra ingresos aumentando un 15% trimestre a trimestre, con un pico en el T4."
+
+La misma definición de Canvas se adapta a cada plataforma. No necesitas pensar en esto — simplemente funciona.
+
+## Construcción de Plantillas de Canvas
+
+Si frecuentemente solicitas el mismo tipo de visual, puedes crear plantillas:
+
+```yaml
+# canvas/templates/weekly-report.yaml
+template:
+  name: "Informe Semanal"
+  trigger: "mostrar informe semanal"
+
+  layout:
+    - section: "Resumen de KPI"
+      type: "chart"
+      chart_type: "bar"
+      data_source: "analytics_skill"
+      metric: "weekly_kpis"
+
+    - section: "Progreso de Tareas"
+      type: "kanban"
+      data_source: "jira_skill"
+      filter: "current_sprint"
+
+    - section: "Actividad del Equipo"
+      type: "timeline"
+      data_source: "calendar_skill"
+      range: "this_week"
+```
+
+Ahora cuando dices "mostrar informe semanal", tu agente extrae datos de las habilidades relevantes y renderiza un panel completo de una sola vez.
+
+Canvas transforma OpenClaw de un asistente con el que hablas en un espacio de trabajo con el que interactúas. La línea entre conversación e interfaz se difumina — y ese es exactamente el punto. Tu agente no solo responde preguntas. Te construye la herramienta que necesitas, justo cuando la necesitas.

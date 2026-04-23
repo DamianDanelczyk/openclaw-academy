@@ -1,0 +1,313 @@
+---
+title: Sandboxing
+description: Verstehe, wie OpenClaw-Sandboxing die Aktionen deines Assistenten isoliert, wie du überprüfst, ob es funktioniert, und wann du Beschränkungen lockern könntest.
+---
+
+# Sandboxing
+
+Wenn dein OpenClaw-Assistent eine Aktion ausführt — eine Datei lesen, eine API aufrufen, ein Skript ausführen — möchtest du wahrscheinlich sicherstellen, dass er nicht versehentlich (oder böswillig) über das hinausgreift, was er soll. Genau das tut Sandboxing. Es zieht eine Grenze um die Ausführungsumgebung deines Assistenten, damit Aktionen eingedämmt und vorhersehbar bleiben.
+
+Stell dir es wie einen Spielbereich für deinen Assistenten vor. Innerhalb des Sandkastens hat er alles, was er für seine Arbeit braucht. Außerhalb des Sandkastens sind dein System, deine Dateien und dein Netzwerk tabu.
+
+## Wie Sandboxing funktioniert
+
+Unter der Haube verwendet OpenClaw Isolierung auf Betriebssystemebene, um für jede Aktionsausführung eine eingeschränkte Umgebung zu erstellen. Das passiert, wenn dein Assistent ein Tool ausführt:
+
+1. OpenClaw erstellt einen temporären, isolierten Container.
+2. Die Aktion läuft in diesem Container mit eingeschränkten Berechtigungen.
+3. Der Container hat nur Zugang zu explizit erlaubten Ressourcen (Dateien, Netzwerk-Endpunkte, Umgebungsvariablen).
+4. Wenn die Aktion abgeschlossen ist, wird der Container zusammen mit temporären Dateien, die er erstellt hat, gelöscht.
+
+Das bedeutet, dass selbst wenn eine Aktion versucht, etwas zu tun, was sie nicht sollte — wie Dateien außerhalb ihres Arbeitsverzeichnisses zu lesen oder eine Verbindung zu einem unerwarteten Server herzustellen — der Sandbox sie blockiert.
+
+## Sandbox-Modi
+
+OpenClaw bietet drei Sandbox-Modi, von am restriktivsten bis am wenigsten restriktiv:
+
+### Strikter Modus (Empfohlene Standardeinstellung)
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+```
+
+Im strikten Modus:
+- Kein Dateisystem-Zugriff außerhalb des designierten Arbeitsverzeichnisses
+- Kein Netzwerkzugriff, sofern nicht ausdrücklich in deiner Netzwerkkonfiguration erlaubt
+- Kein Zugriff auf Umgebungsvariablen, sofern nicht ausdrücklich aufgelistet
+- Keine Möglichkeit, Kindprozesse zu starten
+- Speicher und CPU-Zeit sind begrenzt
+
+Das ist die richtige Wahl für die meisten Nutzer. Beginne hier und lockere Beschränkungen nur, wenn du einen bestimmten Grund dafür hast.
+
+### Standard-Modus
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "standard"
+```
+
+Im Standard-Modus:
+- Nur-Lese-Zugriff auf das Dateisystem (aber nicht auf sensible Verzeichnisse wie `/etc`, Home-Verzeichnisse oder SSH-Schlüssel)
+- Netzwerkzugriff folgt deiner Allowlist-Konfiguration
+- In `sandbox.allowed_env` aufgelistete Umgebungsvariablen sind zugänglich
+- Kindprozesse sind erlaubt, werden aber überwacht
+- Speicher- und CPU-Limits gelten weiterhin
+
+Der Standard-Modus ist geeignet, wenn dein Assistent als Teil seiner Aufgaben Projektdateien oder Konfigurationsdaten lesen muss.
+
+### Freizügiger Modus
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "permissive"
+```
+
+Im freizügigen Modus:
+- Lese- und Schreibzugriff auf erlaubte Verzeichnisse
+- Netzwerkzugriff folgt deiner Allowlist
+- Alle Umgebungsvariablen sind zugänglich
+- Kindprozesse sind erlaubt
+- Höhere Speicher- und CPU-Limits
+
+Verwende den freizügigen Modus nur, wenn dein Assistent Dateien schreiben, Pakete installieren oder Entwicklungsaufgaben erledigen muss. Selbst im freizügigen Modus bleiben bestimmte kritische Systempfade geschützt.
+
+### Sandbox deaktiviert
+
+```yaml
+security:
+  sandbox:
+    enabled: false
+```
+
+Wenn Sandboxing deaktiviert ist, läuft dein Assistent mit denselben Berechtigungen wie der OpenClaw-Prozess selbst. **Das wird für den Produktionseinsatz nicht empfohlen.** Es mag für lokale Entwicklung oder Tests akzeptabel sein, aber du solltest dir bewusst sein, dass es keine Leitplanken gibt.
+
+## Überprüfen, ob dein Sandbox funktioniert
+
+Vertrauen, aber verifizieren. Hier sind mehrere Möglichkeiten, zu bestätigen, dass Sandboxing aktiv ist und korrekt funktioniert.
+
+### Den Status prüfen
+
+```bash
+openclaw security status
+```
+
+```
+Security Status
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Sandbox:           ENABLED (strict)
+Network policy:    allowlist (4 domains)
+Tool policies:     active (3 rules)
+Audit logging:     enabled
+Last verified:     2026-04-22 09:14 UTC
+```
+
+### Den integrierten Sicherheitstest ausführen
+
+OpenClaw enthält einen Selbsttest, der mehrere eingeschränkte Operationen versucht und bestätigt, dass sie blockiert sind:
+
+```bash
+openclaw security test sandbox
+```
+
+```
+Sandbox Test Results
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[PASS] File read outside working dir .... blocked
+[PASS] File write outside working dir ... blocked
+[PASS] Network request to unlisted host . blocked
+[PASS] Environment variable access ...... blocked
+[PASS] Process spawning ................. blocked
+[PASS] Memory allocation (512MB) ........ capped
+[PASS] CPU time (30s) ................... capped
+
+All 7 tests passed. Sandbox is working correctly.
+```
+
+### Eine bestimmte Aktion inspizieren
+
+Du kannst genau sehen, welche Sandbox-Beschränkungen für einen bestimmten Aktionsdurchlauf galten:
+
+```bash
+openclaw audit inspect --action-id act_7f8a2c4e
+```
+
+```
+Action: assistant.analyze (act_7f8a2c4e)
+Sandbox: strict
+Timestamp: 2026-04-22 10:31:04 UTC
+
+Resources granted:
+  Filesystem: /var/openclaw/workdir (read-only)
+  Network: none
+  Env vars: none
+  Max memory: 256MB
+  Max CPU time: 15s
+
+Blocked attempts: 0
+```
+
+## Sandbox-Berechtigungen feinabstimmen
+
+Manchmal ist der Standardmodus fast richtig, aber du musst Zugriff auf eine bestimmte Ressource gewähren. Anstatt den gesamten Modus zu ändern, kannst du gezielte Ausnahmen hinzufügen.
+
+### Bestimmte Verzeichnisse erlauben
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    filesystem:
+      allowed_paths:
+        - path: "/data/project-files"
+          access: "read"
+        - path: "/var/openclaw/output"
+          access: "read-write"
+      denied_paths:
+        - "/data/project-files/secrets"
+```
+
+### Bestimmte Umgebungsvariablen erlauben
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    allowed_env:
+      - "NODE_ENV"
+      - "API_BASE_URL"
+      - "LOG_LEVEL"
+```
+
+Beachte, dass sensible Variablen wie `OPENCLAW_API_KEY` oder `DATABASE_URL` *nicht* auf dieser Liste stehen. Exponiere nur das, was der Assistent wirklich benötigt.
+
+### Ressourcenlimits anpassen
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    resource_limits:
+      max_memory_mb: 512
+      max_cpu_seconds: 60
+      max_output_size_mb: 10
+```
+
+## Wann Sandboxing zu lockern ist
+
+Es gibt legitime Szenarien, in denen du Sandbox-Beschränkungen möglicherweise reduzieren musst. Hier sind die häufigsten, zusammen mit dem empfohlenen Ansatz für jeden.
+
+### Dein Assistent muss Projektdateien lesen
+
+**Szenario:** Du möchtest, dass dein Assistent Code analysiert, Dokumente überprüft oder auf deinem Server gespeicherte Datendateien verarbeitet.
+
+**Empfehlung:** Bleibe im `strict`-Modus, aber füge das spezifische Verzeichnis zu `allowed_paths` mit `read`-Zugriff hinzu.
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    filesystem:
+      allowed_paths:
+        - path: "/home/user/projects/my-project"
+          access: "read"
+```
+
+### Dein Assistent muss Ausgabedateien schreiben
+
+**Szenario:** Dein Assistent generiert Berichte, exportiert Daten oder erstellt Dateien als Teil seines Workflows.
+
+**Empfehlung:** Bleibe im `strict`-Modus, aber füge ein designiertes Ausgabeverzeichnis mit `read-write`-Zugriff hinzu.
+
+```yaml
+filesystem:
+  allowed_paths:
+    - path: "/var/openclaw/output"
+      access: "read-write"
+```
+
+Gib keinen Schreibzugriff auf dasselbe Verzeichnis, in dem deine Quelldaten liegen. Halte Ein- und Ausgaben getrennt.
+
+### Dein Assistent führt Entwicklungstools aus
+
+**Szenario:** Du verwendest OpenClaw als Coding-Assistenten, und er muss Linter, Tests oder Build-Befehle ausführen.
+
+**Empfehlung:** Verwende den `standard`- oder `permissive`-Modus, aber begrenzen ihn auf eine bestimmte Automation oder ein Tool, anstatt die globale Einstellung zu ändern.
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    overrides:
+      - automation: "code-review"
+        mode: "standard"
+        filesystem:
+          allowed_paths:
+            - path: "/home/user/projects"
+              access: "read"
+      - automation: "run-tests"
+        mode: "permissive"
+        filesystem:
+          allowed_paths:
+            - path: "/home/user/projects/my-app"
+              access: "read-write"
+```
+
+Auf diese Weise bleibt dein globaler Sandbox strikt, während bestimmte Automationen den Zugriff erhalten, den sie benötigen.
+
+### Du entwickelst lokal
+
+**Szenario:** Du entwickelst und testest auf deiner eigenen Maschine, und die Reibung des strikten Sandboxings verlangsamt dich.
+
+**Empfehlung:** Es ist vertretbar, während der lokalen Entwicklung den `permissive`-Modus zu verwenden oder Sandboxing sogar zu deaktivieren. Aber trage diese Einstellung **niemals** in die Produktion. Verwende umgebungsspezifische Konfigurationen:
+
+```yaml
+# openclaw.config.development.yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "permissive"
+
+# openclaw.config.production.yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+```
+
+## Warnsignale
+
+Wenn du eines der folgenden Dinge tust, stoppe und überdenke:
+
+- **Sandboxing in der Produktion deaktivieren**, weil eine Automation damit "nicht funktioniert". Die Automation muss wahrscheinlich umstrukturiert werden, nicht der Sandbox deaktiviert.
+- **Modus global auf permissive setzen** aus Bequemlichkeit. Verwende stattdessen pro-Automation-Überschreibungen.
+- **`/` oder dein gesamtes Home-Verzeichnis zu `allowed_paths` hinzufügen**. Das untergräbt den Zweck des Sandboxings vollständig.
+- **Sandbox-Verletzungs-Logs ignorieren.** Wenn du blockierte Versuche in deinem Audit-Log siehst, untersuche sie. Sie könnten auf eine Fehlkonfiguration oder etwas Ernsteres hinweisen.
+
+Blockierte Versuche regelmäßig überprüfen:
+
+```bash
+openclaw audit log --filter "sandbox.blocked" --last 7d
+```
+
+```
+ZEITSTEMPEL          AKTION                  VERSUCH                    ERGEBNIS
+2026-04-19 14:22:01  assistant.analyze       read /etc/passwd           BLOCKED
+2026-04-20 08:44:33  automations.export      write /tmp/data.csv        BLOCKED
+2026-04-21 16:11:09  assistant.run_script    spawn process: curl        BLOCKED
+```
+
+Jedes davon erzählt eine Geschichte. Das erste könnte ein Prompt-Injection-Versuch sein. Das zweite könnte bedeuten, dass du vergessen hast, ein Ausgabeverzeichnis hinzuzufügen. Das dritte könnte bedeuten, dass dein Skript Netzwerkzugang benötigt, der auf der Netzwerkrichtlinienebene konfiguriert werden sollte, anstatt curl zu spawnen.
+
+Sandboxing ist eine der wichtigsten Sicherheitsfunktionen in OpenClaw. Halte es aktiviert, halte es eng und passe es chirurgisch an, wenn es nötig ist.

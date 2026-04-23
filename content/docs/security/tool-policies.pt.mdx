@@ -1,0 +1,381 @@
+---
+title: Políticas de Ferramentas
+description: Configure controle de acesso para ferramentas e ações do OpenClaw, com políticas recomendadas para casos de uso comuns.
+---
+
+# Políticas de Ferramentas
+
+Seu assistente OpenClaw tem acesso a uma ampla gama de ferramentas — lendo arquivos, enviando e-mails, chamando APIs, gerenciando bancos de dados e muito mais. Políticas de ferramentas permitem que você decida quais dessas ferramentas seu assistente tem realmente permissão de usar e sob quais condições.
+
+Pense nas políticas de ferramentas como um sistema de permissões. Assim como você não daria a cada funcionário uma chave mestra para todos os cômodos do prédio, você não deve dar ao seu assistente acesso irrestrito a todas as ferramentas. O princípio é simples: conceda acesso ao que é necessário, restrinja todo o resto.
+
+## Como as Políticas de Ferramentas Funcionam
+
+Cada ferramenta no OpenClaw tem um nome, organizado em uma hierarquia separada por pontos:
+
+```
+calendar.get_events
+calendar.create_event
+calendar.delete_event
+email.read
+email.send
+email.delete
+system.backup
+system.delete_files
+system.execute_command
+github.get_issues
+github.create_pull_request
+```
+
+Políticas de ferramentas atribuem um de três níveis de acesso a cada ferramenta ou grupo de ferramentas:
+
+| Política | O que faz |
+|----------|-----------|
+| `allow` | A ferramenta é executada imediatamente sem perguntar |
+| `ask` | O OpenClaw pausa e pede sua aprovação antes de executar |
+| `deny` | A ferramenta é completamente bloqueada. O assistente não pode usá-la. |
+
+## Configuração Básica
+
+As políticas de ferramentas ficam no seu `openclaw.config.yaml` sob a seção `security`:
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      - tools: ["calendar.*"]
+        policy: "allow"
+      - tools: ["email.read"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+      - tools: ["email.delete"]
+        policy: "deny"
+```
+
+Vamos ler esta configuração em voz alta:
+
+- **Padrão: negar.** Se uma ferramenta não for mencionada em nenhuma regra, ela é bloqueada.
+- **Todas as ferramentas de calendário são permitidas.** O assistente pode livremente ler, criar e modificar eventos do calendário.
+- **Ler e-mail é permitido.** O assistente pode verificar sua caixa de entrada sem perguntar.
+- **Enviar e-mail requer aprovação.** O assistente mostrará o rascunho e aguardará seu OK.
+- **Excluir e-mail é bloqueado.** O assistente não pode excluir e-mails, ponto final.
+
+### A Importância do Negar por Padrão
+
+Definir `default: "deny"` é fortemente recomendado. Significa que cada nova ferramenta adicionada ao OpenClaw começa bloqueada até que você a permita explicitamente. Isso é muito mais seguro do que `default: "allow"`, onde cada nova ferramenta é automaticamente acessível.
+
+```yaml
+# Seguro: novas ferramentas são bloqueadas por padrão
+security:
+  tool_policies:
+    default: "deny"
+
+# Arriscado: novas ferramentas são acessíveis por padrão
+security:
+  tool_policies:
+    default: "allow"
+```
+
+## Padrões Curinga
+
+Você pode usar `*` como curinga para corresponder grupos de ferramentas:
+
+| Padrão | Corresponde a |
+|--------|---------------|
+| `calendar.*` | Todas as ferramentas de calendário |
+| `email.*` | Todas as ferramentas de e-mail |
+| `system.*` | Todas as ferramentas do sistema |
+| `*.read` | Qualquer ferramenta terminando em `.read` |
+| `*` | Tudo |
+
+Você também pode listar múltiplas ferramentas específicas em uma regra:
+
+```yaml
+- tools: ["weather.get_forecast", "news.get_headlines", "calendar.get_events"]
+  policy: "allow"
+```
+
+## Políticas Condicionais
+
+Às vezes você quer que uma ferramenta seja permitida em algumas circunstâncias e bloqueada em outras. Políticas condicionais permitem adicionar contexto às suas regras:
+
+### Restrições Baseadas em Horário
+
+```yaml
+rules:
+  - tools: ["email.send"]
+    policy: "allow"
+    conditions:
+      time_window:
+        start: "09:00"
+        end: "18:00"
+        timezone: "America/Sao_Paulo"
+        days: ["mon", "tue", "wed", "thu", "fri"]
+    fallback_policy: "deny"
+```
+
+Isso permite que o assistente envie e-mails durante o horário comercial, mas o bloqueia fora desses horários. Útil para evitar e-mails acidentais de madrugada.
+
+### Restrições Baseadas em Origem
+
+```yaml
+rules:
+  - tools: ["system.execute_command"]
+    policy: "allow"
+    conditions:
+      triggered_by: ["automation:code-review"]
+    fallback_policy: "deny"
+```
+
+Isso permite `system.execute_command` somente quando acionado pela automação `code-review`. Se qualquer outra coisa tentar usá-lo, é negado.
+
+### Restrições Baseadas em Argumentos
+
+```yaml
+rules:
+  - tools: ["github.create_pull_request"]
+    policy: "allow"
+    conditions:
+      arguments:
+        repo:
+          pattern: "minha-org/*"
+    fallback_policy: "ask"
+```
+
+O assistente pode criar PRs em repositórios sob `minha-org` sem perguntar, mas solicitará aprovação para qualquer outro repositório.
+
+## Políticas Recomendadas por Caso de Uso
+
+Aqui estão configurações completas de políticas para cenários comuns. Copie a que se adequa à sua situação e ajuste conforme necessário.
+
+### Assistente Pessoal
+
+Para um assistente de uso geral que cuida do seu calendário, e-mail, notas e pesquisas de informações:
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Recuperação de informações — seguro para permitir livremente
+      - tools: ["calendar.get_events", "weather.*", "news.*", "search.*"]
+        policy: "allow"
+
+      # Criação de conteúdo — permitir com alguma supervisão
+      - tools: ["calendar.create_event", "calendar.update_event"]
+        policy: "allow"
+      - tools: ["notes.create", "notes.update"]
+        policy: "allow"
+
+      # Comunicação — exigir aprovação
+      - tools: ["email.read"]
+        policy: "allow"
+      - tools: ["email.send", "email.reply"]
+        policy: "ask"
+      - tools: ["slack.send_message"]
+        policy: "ask"
+
+      # Ações destrutivas — bloquear completamente
+      - tools: ["*.delete*", "system.*"]
+        policy: "deny"
+```
+
+### Assistente de Desenvolvimento
+
+Para um assistente de codificação que ajuda com revisão de código, testes e gerenciamento de projetos:
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Leitura e análise de código
+      - tools: ["filesystem.read", "filesystem.list", "filesystem.search"]
+        policy: "allow"
+
+      # Escrita de código — permitir em diretórios de projeto
+      - tools: ["filesystem.write", "filesystem.create"]
+        policy: "allow"
+        conditions:
+          arguments:
+            path:
+              pattern: "/home/usuario/projetos/*"
+        fallback_policy: "ask"
+
+      # Ferramentas de desenvolvimento
+      - tools: ["git.*", "github.get_*", "github.list_*"]
+        policy: "allow"
+      - tools: ["github.create_pull_request", "github.create_issue"]
+        policy: "ask"
+      - tools: ["system.execute_command"]
+        policy: "ask"
+
+      # Gerenciamento de pacotes
+      - tools: ["npm.install", "pip.install"]
+        policy: "ask"
+
+      # Operações perigosas
+      - tools: ["git.force_push", "git.reset_hard", "system.delete_*"]
+        policy: "deny"
+```
+
+### Bot de Suporte ao Cliente
+
+Para um assistente que lida com consultas de clientes com acesso a uma base de conhecimento e sistema de tickets:
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Base de conhecimento — somente leitura
+      - tools: ["kb.search", "kb.get_article"]
+        policy: "allow"
+
+      # Tickets
+      - tools: ["tickets.get", "tickets.list", "tickets.search"]
+        policy: "allow"
+      - tools: ["tickets.create", "tickets.update", "tickets.add_comment"]
+        policy: "allow"
+      - tools: ["tickets.close", "tickets.assign"]
+        policy: "ask"
+      - tools: ["tickets.delete"]
+        policy: "deny"
+
+      # Dados de clientes — ler com restrições
+      - tools: ["customers.get_profile"]
+        policy: "allow"
+      - tools: ["customers.update_profile"]
+        policy: "ask"
+      - tools: ["customers.delete_account"]
+        policy: "deny"
+
+      # Comunicação
+      - tools: ["chat.send_reply"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+```
+
+### Automação de Pipeline de Dados
+
+Para um assistente gerenciando fluxos de trabalho de processamento de dados:
+
+```yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      # Leitura de dados
+      - tools: ["database.query", "database.list_tables"]
+        policy: "allow"
+      - tools: ["filesystem.read"]
+        policy: "allow"
+        conditions:
+          arguments:
+            path:
+              pattern: "/data/*"
+
+      # Escrita de dados — controlada
+      - tools: ["database.insert", "database.update"]
+        policy: "ask"
+      - tools: ["filesystem.write"]
+        policy: "ask"
+        conditions:
+          arguments:
+            path:
+              pattern: "/data/output/*"
+
+      # Nunca permitir operações destrutivas
+      - tools: ["database.drop_*", "database.truncate", "database.delete"]
+        policy: "deny"
+      - tools: ["filesystem.delete"]
+        policy: "deny"
+
+      # Relatórios
+      - tools: ["reports.generate", "reports.export"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+```
+
+## Visualizando e Testando Políticas
+
+### Listar Políticas Ativas
+
+```bash
+openclaw policy list
+```
+
+```
+TOOL                          POLICY    CONDITION
+calendar.*                    allow     -
+email.read                    allow     -
+email.send                    ask       business hours only
+email.delete                  deny      -
+system.*                      deny      -
+(default)                     deny      -
+```
+
+### Testar uma Ferramenta Específica
+
+Verifique qual política seria aplicada se uma determinada ferramenta fosse invocada:
+
+```bash
+openclaw policy test "email.send"
+```
+
+```
+Tool: email.send
+Policy: ask
+Reason: Matched rule #4 (email.send → ask, business hours only)
+Current time: 14:22 BRT (within business hours)
+Effective policy: ask
+```
+
+### Revisar Violações de Política
+
+Veja quais ferramentas foram bloqueadas ou precisaram de aprovação recentemente:
+
+```bash
+openclaw audit log --filter "policy.denied,policy.asked" --last 7d
+```
+
+```
+TIMESTAMP            TOOL                    POLICY   ACTION TAKEN
+2026-04-21 11:04:22  system.execute_command   deny     blocked
+2026-04-21 14:33:01  email.send               ask      approved by user
+2026-04-22 02:15:44  email.send               ask      auto-denied (outside hours)
+2026-04-22 09:08:11  email.send               ask      approved by user
+```
+
+## Prioridade de Política e Conflitos
+
+Quando múltiplas regras correspondem à mesma ferramenta, o OpenClaw usa estas regras para resolver conflitos:
+
+1. **Regras mais específicas vencem.** `email.send` supera `email.*` que supera `*`.
+2. **Negar explícito vence sobre permitir.** Se uma regra diz `allow` e outra diz `deny` para a mesma ferramenta, `deny` vence.
+3. **Regras condicionais são avaliadas em ordem.** A primeira regra condicional correspondente é aplicada.
+
+Se você não tiver certeza de qual regra seria aplicada, use `openclaw policy test` para verificar.
+
+## Atualizando Políticas Sem Tempo de Inatividade
+
+Após editar seu `openclaw.config.yaml`, recarregue as políticas:
+
+```bash
+openclaw policy reload
+```
+
+```
+Policies reloaded.
+  Total rules: 12
+  Default policy: deny
+  Tools allowed: 8
+  Tools requiring approval: 3
+  Tools denied: 14
+```
+
+O recarregamento é instantâneo e não interrompe automações em execução. As novas regras de política se aplicam à próxima invocação de ferramenta.

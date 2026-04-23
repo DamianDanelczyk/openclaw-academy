@@ -1,0 +1,290 @@
+---
+title: Memória
+description: Entendendo o sistema de memória em camadas do OpenClaw — da memória de sessão à busca vetorial — e como gerenciá-lo.
+---
+
+# Memória
+
+A memória é o que separa um assistente útil de um chatbot esquecido. O OpenClaw usa uma **pilha de memória em camadas** que espelha como a memória humana funciona: algumas coisas estão na ponta da língua, outras ficam no fundo da cabeça, e algumas precisam de um gatilho para serem lembradas. Entender essas camadas permite aproveitar ao máximo a capacidade do seu assistente de lembrar — e esquecer.
+
+## A Pilha de Memória
+
+A memória do OpenClaw é organizada em quatro camadas, cada uma com um propósito e ciclo de vida diferentes:
+
+```
+┌─────────────────────────────┐
+│      Memória de Sessão      │  ← O que você acabou de dizer (minutos)
+├─────────────────────────────┤
+│      Memória Diária         │  ← Destaques de hoje (horas)
+├─────────────────────────────┤
+│      Memória de Longo Prazo │  ← Fatos importantes (semanas/meses)
+├─────────────────────────────┤
+│      Memória Vetorial       │  ← Busca semântica (para sempre)
+└─────────────────────────────┘
+```
+
+Cada camada alimenta a próxima. O que importa no momento fica na memória de sessão. O que importa hoje é promovido para a memória diária. O que importa a longo prazo é persistido. E tudo é pesquisável pela memória vetorial.
+
+### Camada 1: Memória de Sessão
+
+Esta é a memória de trabalho do seu assistente — a conversa atual. Cada mensagem, cada resposta, cada resultado de habilidade vive aqui durante uma sessão ativa.
+
+```yaml
+session_memory:
+  capacity: 128000 tokens
+  strategy: "sliding_window"
+  summarize_threshold: 50 messages
+  priority_items:
+    - user_instructions
+    - active_tasks
+    - recent_context
+  eviction_policy: "oldest_first_with_summary"
+```
+
+A memória de sessão é rápida e detalhada, mas temporária. Quando o contexto da conversa fica muito grande, mensagens mais antigas são resumidas e comprimidas. Suas instruções explícitas e tarefas ativas nunca são removidas — elas ficam fixadas.
+
+**O que lembra:** Tudo na conversa atual.
+**Por quanto tempo:** Até a sessão terminar (geralmente reinicia diariamente).
+**Exemplo:** "Você me pediu para rascunhar um e-mail há 10 minutos. Aqui está a versão atualizada."
+
+### Camada 2: Memória Diária
+
+Ao final de cada sessão, o OpenClaw destila as partes importantes na memória diária. Pense nisso como seu assistente escrevendo em um diário antes de dormir.
+
+```yaml
+daily_memory:
+  auto_generate: true
+  max_entries_per_day: 20
+  retention: "30 days"
+  format:
+    type: "structured"
+    fields:
+      - summary
+      - decisions_made
+      - tasks_completed
+      - tasks_pending
+      - preferences_learned
+      - notable_events
+```
+
+Aqui está como uma entrada de memória diária pode se parecer:
+
+```json
+{
+  "date": "2026-04-21",
+  "summary": "Dia de trabalho intenso focado no planejamento do lançamento do T2.",
+  "decisions_made": [
+    "Decidiu adiar a revisão de design para quinta-feira",
+    "Escolheu a Opção B para o modelo de precificação"
+  ],
+  "tasks_completed": [
+    "Rascunhou e-mail para Dr. Chen sobre o cronograma",
+    "Pesquisou preços dos concorrentes"
+  ],
+  "tasks_pending": [
+    "Acompanhar Sarah sobre os mockups",
+    "Reservar restaurante para o aniversário de Jamie"
+  ],
+  "preferences_learned": [
+    "Usuário prefere tabelas a listas com marcadores para comparações"
+  ]
+}
+```
+
+**O que lembra:** Eventos-chave, decisões e tarefas de cada dia.
+**Por quanto tempo:** 30 dias por padrão (configurável).
+**Exemplo:** "Ontem você decidiu seguir com a Opção B para precificação."
+
+### Camada 3: Memória de Longo Prazo
+
+Algumas coisas importam além de um único dia. A memória de longo prazo armazena fatos, preferências e eventos significativos que seu assistente deve saber indefinidamente.
+
+```yaml
+long_term_memory:
+  storage: "local_db"
+  categories:
+    facts:
+      description: "Informações concretas sobre o mundo do usuário"
+      examples: ["Sarah entrou para a equipe em janeiro", "Prazo do T2 é 30 de abril"]
+      retention: "until_invalidated"
+
+    preferences:
+      description: "Como o usuário gosta que as coisas sejam feitas"
+      examples: ["Prefere reuniões de manhã", "Gosta de comentários de código detalhados"]
+      retention: "permanent"
+
+    relationships:
+      description: "Pessoas e como elas se conectam ao usuário"
+      examples: ["Mike se reporta ao Damian", "Dr. Chen é VP de Produto"]
+      retention: "until_updated"
+
+    events:
+      description: "Coisas significativas que aconteceram"
+      examples: ["Foi promovido em março de 2026", "Lançou o Projeto Falcon"]
+      retention: "permanent"
+
+  management:
+    deduplication: true
+    conflict_resolution: "latest_wins"
+    max_entries: 10000
+```
+
+Memórias de longo prazo são estruturadas e marcadas. Quando seu agente carrega o contexto no início de uma sessão, ele puxa as memórias de longo prazo mais relevantes com base nos tópicos recentes.
+
+**O que lembra:** Fatos importantes, preferências, relacionamentos e marcos.
+**Por quanto tempo:** Indefinidamente, até ser explicitamente atualizado ou removido.
+**Exemplo:** "O aniversário do seu parceiro Jamie é 15 de março. Quer que eu planeje algo?"
+
+### Camada 4: Memória Vetorial
+
+Este é o arquivo profundo. Cada interação que você já teve é incorporada como um vetor (uma representação matemática do significado) e armazenada em um banco de dados pesquisável. Seu agente não carrega tudo isso no contexto — isso seria impossível. Em vez disso, ele *pesquisa* nesta camada quando precisa encontrar algo específico.
+
+```yaml
+vector_memory:
+  engine: "local_embeddings"
+  model: "text-embedding-3-small"
+  dimensions: 1536
+  index:
+    type: "hnsw"
+    metric: "cosine"
+  search:
+    default_top_k: 5
+    score_threshold: 0.75
+    rerank: true
+  storage:
+    location: "~/.openclaw/vectors/"
+    max_size: "5GB"
+    compression: true
+```
+
+Quando você pergunta "O que eu disse sobre modelos de precificação no mês passado?" — seu agente não se lembra disso da memória de sessão ou diária. Ele realiza uma busca semântica na sua memória vetorial, encontra as conversas relevantes e as apresenta.
+
+**O que lembra:** O conteúdo semântico de todas as interações passadas.
+**Por quanto tempo:** Para sempre (até você deletar).
+**Exemplo:** "Em uma conversa no dia 12 de março, você discutiu três modelos de precificação. Aqui está o que você disse sobre cada um..."
+
+## Memória em Ação
+
+Aqui está como todas as quatro camadas trabalham juntas em uma interação real:
+
+```
+Você: O que devo fazer com a situação do fornecedor?
+
+Processo interno do OpenClaw:
+1. Memória de sessão: "O usuário mencionou um problema com fornecedor há 20 minutos"
+2. Memória diária: "Ontem, usuário decidiu dar ao fornecedor mais uma semana"
+3. Memória de longo prazo: "Este fornecedor (Acme Corp) tem problemas de entrega desde fevereiro"
+4. Busca vetorial: Encontra 3 conversas passadas sobre problemas com o fornecedor Acme Corp
+
+Resposta: Com base nas nossas conversas, a Acme Corp tem tido problemas recorrentes de
+entrega desde fevereiro. Ontem você deu a eles mais uma semana. Esse prazo seria
+na próxima segunda-feira. Quer que eu redija o e-mail de acompanhamento, ou devemos
+começar a procurar fornecedores alternativos?
+```
+
+Nenhuma camada de memória isolada poderia ter produzido essa resposta. Ela exigiu contexto de todas as quatro.
+
+## Comandos de Gerenciamento de Memória
+
+Você tem controle total sobre a memória do seu agente:
+
+```bash
+# Ver estatísticas de memória
+openclaw memory stats
+
+# Saída:
+# Session: 23 messages (18% capacity)
+# Daily: 147 entries (last 30 days)
+# Long-term: 892 facts stored
+# Vector: 2.1GB (12,340 embeddings)
+
+# Pesquisar memórias
+openclaw memory search "precificação do fornecedor"
+
+# Esquecer algo específico
+openclaw memory forget --query "detalhes da negociação salarial"
+
+# Exportar todas as memórias
+openclaw memory export --format json
+
+# Compactar memória vetorial (remove embeddings redundantes)
+openclaw memory compact
+
+# Definir política de retenção
+openclaw memory retention --daily 60d --vector unlimited
+```
+
+## Estratégias de Memória
+
+### O Minimalista
+
+Manter a memória enxuta. Bom para usuários focados em privacidade.
+
+```yaml
+strategy: "minimalist"
+session_memory: true
+daily_memory:
+  enabled: true
+  retention: "7 days"
+long_term_memory:
+  enabled: true
+  categories: ["preferences"]  # Lembrar apenas preferências
+vector_memory:
+  enabled: false
+```
+
+### O Elefante
+
+Lembrar tudo. Bom para usuários avançados que querem recordação profunda.
+
+```yaml
+strategy: "elephant"
+session_memory: true
+daily_memory:
+  enabled: true
+  retention: "365 days"
+long_term_memory:
+  enabled: true
+  categories: ["all"]
+  max_entries: 50000
+vector_memory:
+  enabled: true
+  max_size: "20GB"
+  retention: "unlimited"
+```
+
+### O Profissional
+
+Equilíbrio entre utilidade e privacidade. Lembra coisas do trabalho, esquece conversas pessoais.
+
+```yaml
+strategy: "professional"
+session_memory: true
+daily_memory:
+  enabled: true
+  retention: "90 days"
+  filter:
+    include: ["tasks", "decisions", "meetings"]
+    exclude: ["casual", "personal"]
+long_term_memory:
+  enabled: true
+  categories: ["facts", "relationships", "preferences"]
+vector_memory:
+  enabled: true
+  max_size: "5GB"
+  filter:
+    include_topics: ["work", "projects", "professional"]
+```
+
+## Quando Fazer a Poda
+
+Memória não é sempre melhor com mais dados. Memórias antigas e desatualizadas podem confundir seu agente. Aqui estão sinais de que é hora de fazer a poda:
+
+- Seu agente referencia informações que não são mais precisas.
+- Os resultados de pesquisa retornam muitas correspondências irrelevantes.
+- Seu armazenamento vetorial está crescendo além de 5GB sem benefício claro.
+- Seu agente parece "confuso" sobre fatos que mudaram.
+
+Execute `openclaw memory audit` para obter um relatório sobre memórias obsoletas e potencialmente desatualizadas, depois revise e limpe conforme necessário.
+
+A memória é a espinha dorsal de um assistente personalizado. Acerte nisso, e seu agente parecerá que realmente te conhece. Deixe sem gerenciamento, e se tornará um sótão bagunçado. A boa notícia? Alguns minutos de configuração fazem uma grande diferença.

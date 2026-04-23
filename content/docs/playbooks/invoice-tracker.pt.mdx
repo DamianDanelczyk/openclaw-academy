@@ -1,0 +1,240 @@
+---
+title: Rastreamento de Faturas e Pagamentos
+description: Automatize o monitoramento de faturas, lembretes de pagamento e visibilidade do fluxo de caixa com o playbook de rastreamento financeiro do OpenClaw.
+---
+
+# Rastreamento de Faturas e Pagamentos
+
+O fluxo de caixa é a força vital de qualquer negócio, mas acompanhar quem deve o quê e quando pode parecer um trabalho em tempo integral por si só. Faturas se perdem em hilo de e-mails, prazos de pagamento se confundem e, quando você percebe que um cliente está 30 dias atrasado, a conversa já ficou desconfortável.
+
+O playbook de Rastreamento de Faturas e Pagamentos dá ao OpenClaw visibilidade sobre sua faturação e contas a receber. Ele monitora faturas pendentes, envia lembretes antes dos vencimentos, sinaliza contas em atraso e fornece uma imagem clara do seu fluxo de caixa a qualquer momento. Nenhum diploma em contabilidade necessário.
+
+## O Que Este Playbook Rastreia
+
+O OpenClaw se conecta à sua ferramenta de faturação e monitora o ciclo de vida completo de cada fatura:
+
+- **Enviada** — A fatura foi entregue ao cliente
+- **Visualizada** — O cliente abriu a fatura (se sua ferramenta de faturação suportar confirmação de leitura)
+- **Vence em Breve** — A data de vencimento é dentro de 7 dias
+- **Em Atraso** — O pagamento passou da data de vencimento
+- **Parcialmente Paga** — O cliente pagou parte mas não toda a fatura
+- **Paga** — Pagamento recebido integralmente
+
+Para cada fatura, o OpenClaw rastreia o valor, nome do cliente, data de vencimento, status atual e dias em aberto. Ele calcula totais acumulados para que você sempre saiba o total de contas a receber de relance.
+
+## Por Que Isso Importa
+
+Receber no prazo não é apenas sobre fluxo de caixa. É sobre respeito e profissionalismo. Quando você tem um sistema que proativamente rastreia pagamentos e lembra você de fazer acompanhamento, pode tratar pagamentos atrasados cedo, antes que se tornem um padrão. Um gentil "só verificando a fatura #247" enviado no dia 3 após o vencimento é muito diferente de um e-mail frustrado enviado no dia 45.
+
+Muitos freelancers e proprietários de pequenas empresas nos dizem que este playbook por si só reduziu seu tempo médio até o pagamento em 30 a 40 por cento, simplesmente porque eles fazem acompanhamento mais cedo e com mais consistência.
+
+## Antes de Começar
+
+Este playbook funciona melhor quando conectado à sua ferramenta de faturação. Ele suporta opções populares como QuickBooks, FreshBooks, Stripe, Xero e Wave. Se você usa uma ferramenta que não é diretamente suportada, muitas vezes pode conectá-la através de um webhook ou encaminhando e-mails de confirmação de fatura para o OpenClaw.
+
+Você também vai querer pensar sobre sua estratégia de acompanhamento. Quantos dias após a data de vencimento você envia um primeiro lembrete? Um segundo? Em que ponto você escala? Ter uma política clara torna a automação direta.
+
+## Adições ao SOUL.md
+
+```markdown
+## Behaviors
+
+### Invoice Tracking
+- Monitor all invoices from my connected invoicing tool
+- Alert me when an invoice has been outstanding for more than 3 days past due
+- Send me a weekly summary every Monday with: total receivable, overdue amount, and upcoming payments
+- For overdue invoices, suggest a follow-up message that is professional and friendly (not aggressive)
+- Escalate to a firmer tone if an invoice is more than 14 days overdue and there has been no response to the first follow-up
+- Track payment trends per client — if a client is consistently late, flag them
+- Never send payment reminders directly to clients — always draft them for my review
+- When a payment is received, confirm the amount and mark it as resolved
+- Monthly summary on the 1st: total invoiced, total collected, average days to payment, outstanding balance
+- If total overdue amount exceeds $5,000, send an immediate alert regardless of schedule
+```
+
+## Habilidades Recomendadas
+
+```yaml
+skills:
+  - name: invoice-reader
+    provider: quickbooks  # or freshbooks, xero, stripe-invoicing, wave
+    permissions: read-only
+    description: Reads invoice data, statuses, and payment history
+
+  - name: payment-monitor
+    provider: stripe  # or bank-feed
+    permissions: read-only
+    description: Monitors incoming payments and matches them to invoices
+
+  - name: email-drafter
+    provider: gmail  # or outlook-mail
+    permissions: draft-only
+    description: Creates follow-up email drafts for overdue invoices
+
+  - name: spreadsheet-writer
+    provider: google-sheets
+    permissions: read-write
+    description: Maintains a running accounts receivable spreadsheet
+```
+
+## Configuração de Cron
+
+```yaml
+cron:
+  invoice-daily-check:
+    schedule: "0 9 * * 1-5"  # Dias úteis às 9:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: invoice-status-scan
+    config:
+      check_overdue: true
+      check_due_soon: true  # sinalizar faturas com vencimento em 7 dias
+      threshold_alert: 5000  # alerta imediato se total em atraso exceder isso
+    retry:
+      attempts: 2
+      delay: 10m
+
+  invoice-weekly-summary:
+    schedule: "0 8 * * 1"  # Segunda-feira às 8:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: invoice-weekly-report
+    config:
+      include_aging: true  # mostrar breakdown de envelhecimento 30/60/90 dias
+      include_trends: true
+
+  invoice-monthly-summary:
+    schedule: "0 9 1 * *"  # 1º de cada mês às 9:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: invoice-monthly-report
+    config:
+      include_client_breakdown: true
+      include_collection_rate: true
+
+  invoice-payment-watcher:
+    schedule: "0 */4 * * *"  # A cada 4 horas
+    timezone: "UTC"
+    action: run-playbook
+    playbook: payment-reconciliation
+    config:
+      auto_match: true  # automaticamente corresponder pagamentos às faturas
+      notify_on_payment: true
+```
+
+## Configuração de Canal
+
+```yaml
+channels:
+  invoice-alerts:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: rich
+      notify: true  # notificações push para alertas de atraso
+
+  invoice-reports:
+    type: email
+    config:
+      recipient: "voce@suaempresa.com"
+      subject_prefix: "[Faturas]"
+      format: html
+      cc: ["contador@suaempresa.com"]  # opcional
+
+  payment-received:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: compact
+      notify: false  # sem push para pagamentos — apenas uma confirmação agradável no DM
+```
+
+## Exemplo de Saída
+
+Aqui está um alerta diário de atraso:
+
+```
+ALERTA DE FATURA — 2 Faturas em Atraso
+
+1. Fatura #1047 — BlueHarbor LLC
+   Valor: R$ 21.000,00
+   Data de vencimento: 10 de Abril (6 dias em atraso)
+   Status: Enviada, visualizada em 9 de Abril
+   Acompanhamento anterior: Nenhum
+   Histórico de pagamentos do cliente: Normalmente paga em 5 dias. Isso é incomum.
+   Ação sugerida: Enviar uma verificação amigável. Rascunho pronto para revisão.
+
+   Mensagem de rascunho:
+   "Oi Marcus, espero que esteja bem. Só uma nota rápida que a fatura
+   #1047 (R$ 21.000,00) venceu em 10 de Abril. Quero garantir que não
+   se perdeu no caminho. Me avisa se precisar de algo da minha parte
+   para processá-la. Obrigado!"
+
+2. Fatura #1039 — Cascade Digital
+   Valor: R$ 43.750,00
+   Data de vencimento: 2 de Abril (14 dias em atraso)
+   Status: Enviada, não visualizada
+   Acompanhamento anterior: Enviado em 8 de Abril, sem resposta
+   Histórico de pagamentos do cliente: Atrasou em 3 das últimas 5 faturas.
+   Ação sugerida: Acompanhamento mais firme. Considerar ligar para o departamento de contas a pagar deles.
+
+   Mensagem de rascunho:
+   "Oi equipe, fazendo acompanhamento da fatura #1039 (R$ 43.750,00) que venceu
+   em 2 de Abril. Enviei um lembrete na semana passada mas não recebi retorno.
+   Poderia confirmar quando podemos esperar o pagamento? Fico feliz em reenviar
+   a fatura se necessário. Obrigado."
+
+TOTAL EM ATRASO: R$ 64.750,00
+
+Responda "enviar rascunho 1" ou "enviar rascunho 2" para criar o rascunho de e-mail,
+ou "editar rascunho 1" para modificar antes de enviar.
+```
+
+Aqui está um resumo semanal de segunda-feira:
+
+```
+RESUMO DE FATURAS — Semana de 13 de Abril
+
+INSTANTÂNEO DE CONTAS A RECEBER
+  Total pendente: R$ 171.000,00
+  Vence esta semana: R$ 37.500,00 (2 faturas)
+  Em atraso: R$ 64.750,00 (2 faturas)
+  Recebido semana passada: R$ 77.000,00 (3 faturas)
+
+BREAKDOWN DE ENVELHECIMENTO
+  Atual (ainda não vencido): R$ 106.250,00
+  1-7 dias em atraso: R$ 21.000,00
+  8-14 dias em atraso: R$ 43.750,00
+  15-30 dias em atraso: R$ 0,00
+  30+ dias em atraso: R$ 0,00
+
+PRÓXIMAS DATAS DE VENCIMENTO
+  15 de Abril: Fatura #1051 — Greenfield Analytics — R$ 17.500,00
+  18 de Abril: Fatura #1052 — Northwind Partners — R$ 20.000,00
+
+PAGAMENTOS RECEBIDOS NA SEMANA PASSADA
+  8 de Abril: Meridian Corp — R$ 31.000,00 (Fatura #1042, no prazo)
+  9 de Abril: TechFlow Inc — R$ 26.000,00 (Fatura #1044, 2 dias adiantado)
+  11 de Abril: Apex Solutions — R$ 20.000,00 (Fatura #1045, no prazo)
+
+SAÚDE DO CLIENTE
+  Cascade Digital: Sinalizado — consistentemente atrasado, atualmente 14 dias em atraso.
+  Considere ajustar os termos de pagamento deles ou exigir depósitos.
+
+MÉDIA DE DIAS ATÉ O PAGAMENTO
+  Este mês: 8,2 dias
+  Mês passado: 11,4 dias
+  Tendência: Melhorando (graças a acompanhamentos mais rápidos)
+```
+
+## Aproveitando ao Máximo Este Playbook
+
+- **Conecte seu banco**: Se seu banco suporta integração de feed ou você usa Stripe, conecte a habilidade payment-monitor para automaticamente corresponder pagamentos recebidos às faturas. Chega de reconciliação manual.
+- **Perfis de pagamento de clientes**: Com o tempo, o OpenClaw constrói um perfil de pagamento para cada cliente. Você verá padrões como "Acme Corp sempre paga no dia 15 independentemente da data de vencimento" ou "BlueHarbor precisa de um lembrete toda vez." Use esses padrões para ajustar suas expectativas e timing de acompanhamento.
+- **Faturação por depósito e marcos**: Se você fatura em parcelas (comum em consultoria e agências), o OpenClaw rastreia pagamentos parciais e sabe quando a próxima parcela vence.
+- **Auxiliar no imposto de renda**: No final do ano, peça ao OpenClaw um resumo completo de todas as faturas, pagamentos e recebíveis pendentes. Ele exporta de forma limpa para uma planilha para seu contador.
+- **Previsão de fluxo de caixa**: Com base no seu pipeline de faturas e padrões históricos de pagamento, o OpenClaw pode estimar sua entrada de caixa esperada para os próximos 30, 60 e 90 dias.
+
+<CTACard variant="community" />

@@ -1,0 +1,316 @@
+---
+title: Nodes
+description: Wie OpenClaw auf all deinen Geräten läuft — iOS, Android, macOS — und alles synchron hält.
+---
+
+# Nodes
+
+In OpenClaw ist jedes Gerät, das du verwendest, ein **Node**. Dein iPhone ist ein Node. Dein MacBook ist ein Node. Dein Android-Tablet ist ein Node. Nodes sind die Art, wie OpenClaw in die physische Welt reicht — sie geben deinem Agenten Zugang zu deinen Geräten, deren Sensoren und ihren Fähigkeiten. Das Besondere ist, dass alle deine Nodes als ein nahtloses System zusammenarbeiten.
+
+## Was ist ein Node?
+
+Ein Node ist jedes Gerät, auf dem der OpenClaw-Client läuft und das mit deinem Gateway verbunden ist. Jeder Node hat seine eigenen Fähigkeiten (ein Telefon hat Kamera und GPS; ein Laptop hat Tastatur und großen Bildschirm), und dein Agent kennt alle davon. Das bedeutet, dein Agent kann Dinge tun wie:
+
+- Dich auf deinem Telefon erinnern, wenn du das Haus verlässt
+- Eine detaillierte Tabelle auf deinem Laptop anzeigen, weil der Bildschirm größer ist
+- Musik auf dem Gerät abspielen, das dir am nächsten ist
+- Ein Foto auf deinem Telefon aufnehmen und es zur Bearbeitung an deinen Laptop senden
+
+Nodes sind nicht nur passive Empfänger von Informationen. Sie berichten aktiv ihren Status — Akkustand, Netzwerkverbindung, Standort, aktive Apps — damit dein Agent intelligente Entscheidungen darüber treffen kann, welches Gerät wofür verwendet werden soll.
+
+## Geräteunterstützung
+
+### iOS
+
+Der iOS-Node läuft als Hintergrunddienst mit tiefer Systemintegration:
+
+```yaml
+# nodes/ios.yaml
+node:
+  platform: "ios"
+  name: "Damians iPhone"
+  id: "node_iphone_15_pro"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - camera
+    - gps
+    - notifications
+    - haptics
+    - health_kit
+    - shortcuts_integration
+    - focus_modes
+
+  always_listening:
+    enabled: true
+    wake_word: "Hey Claw"
+    processing: "on_device"  # Wake-Word-Erkennung bleibt lokal
+
+  notifications:
+    priority_levels: true
+    grouped: true
+    actionable: true
+
+  background:
+    location_updates: "significant_changes"
+    health_sync: "hourly"
+    battery_optimization: true
+```
+
+Unter iOS integriert sich OpenClaw mit Shortcuts, sodass du Agenten-Aktionen aus der Shortcuts-App oder von Widgets auslösen kannst. Es verbindet sich auch mit HealthKit für Fitness-bezogene Skills und respektiert deine Fokus-Modi — es wird dich während "Nicht stören" nicht benachrichtigen, außer es ist wirklich dringend.
+
+### Android
+
+Der Android-Node bietet ähnliche Fähigkeiten mit einigen plattformspezifischen Extras:
+
+```yaml
+# nodes/android.yaml
+node:
+  platform: "android"
+  name: "Damians Pixel"
+  id: "node_pixel_9"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - camera
+    - gps
+    - notifications
+    - nfc
+    - tasker_integration
+    - digital_wellbeing
+
+  permissions:
+    accessibility_service: true   # Ermöglicht Bildschirmlesen
+    notification_listener: true   # Kann Benachrichtigungen lesen und darauf reagieren
+    overlay: true                 # Schwebende Assistenten-Blase
+
+  widget:
+    enabled: true
+    size: "4x2"
+    show: ["quick_actions", "next_event", "active_tasks"]
+
+  automation:
+    tasker_integration: true
+    intents:
+      - action: "com.openclaw.TRIGGER"
+        extras: ["command", "context"]
+```
+
+Androids Offenheit gibt OpenClaw mehr Systemzugriff. Der Barrierefreiheitsdienst erlaubt deinem Agenten, zu lesen, was auf dem Bildschirm ist (mit deiner Erlaubnis), was Dinge wie "Was für eine App schaue ich gerade an?" oder "Fasse diesen Artikel zusammen" ermöglicht. Die Tasker-Integration erlaubt komplexe Automatisierungsketten.
+
+### macOS
+
+Der macOS-Node ist der Ort, an dem Power-User die meiste Zeit verbringen:
+
+```yaml
+# nodes/macos.yaml
+node:
+  platform: "macos"
+  name: "Damians MacBook"
+  id: "node_macbook_pro_m4"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - screen_sharing
+    - file_system
+    - terminal
+    - clipboard
+    - menu_bar
+    - spotlight_integration
+
+  interface:
+    mode: "menu_bar"  # Optionen: menu_bar, floating, dock, fullscreen
+    hotkey: "Cmd+Shift+Space"
+    quick_actions:
+      - "Neue Notiz"
+      - "Kalender prüfen"
+      - "Dateien suchen"
+
+  file_access:
+    allowed_paths:
+      - "~/Documents"
+      - "~/Desktop"
+      - "~/Downloads"
+    denied_paths:
+      - "~/Library"
+      - "/System"
+    watch_folders:
+      - path: "~/Downloads"
+        action: "notify_new_files"
+
+  terminal:
+    enabled: true
+    shell: "zsh"
+    allowed_commands: ["git", "npm", "python", "docker"]
+    require_confirmation: true
+```
+
+Unter macOS sitzt OpenClaw in deiner Menüleiste für schnellen Zugriff. Drücke den Hotkey und fang an zu reden oder zu tippen. Es kann auf dein Dateisystem zugreifen (in den von dir erlaubten Pfaden), Terminal-Befehle ausführen (mit deiner Bestätigung) und sogar Ordner auf Änderungen überwachen.
+
+## Geräteübergreifende Fähigkeiten
+
+Die wirkliche Stärke der Nodes liegt nicht in einem einzelnen Gerät — sondern darin, wie sie zusammenarbeiten.
+
+### Sitzungsübergabe
+
+Beginne ein Gespräch auf einem Gerät, setze es auf einem anderen fort:
+
+```yaml
+cross_device:
+  session_sync:
+    enabled: true
+    latency: "< 500ms"
+    handoff:
+      trigger: "automatic"   # Optionen: automatic, manual, ask
+      notification: true
+
+  # Beispielablauf:
+  # 1. Du chattest auf deinem MacBook an deinem Schreibtisch
+  # 2. Du nimmst dein Telefon und gehst weg
+  # 3. OpenClaw erkennt den Gerätewechsel
+  # 4. Telefon zeigt: "Weiter von deinem MacBook..."
+  # 5. Vollständiger Gesprächskontext ist verfügbar
+```
+
+### Geräteadaptive Antworten
+
+Dein Agent passt seine Ausgabe an das Gerät an, das du verwendest:
+
+```yaml
+adaptive_output:
+  rules:
+    - device: "phone"
+      formatting:
+        max_length: "concise"
+        prefer: "bullet_points"
+        tables: "simplified"
+        code_blocks: "collapsible"
+
+    - device: "laptop"
+      formatting:
+        max_length: "full"
+        prefer: "mixed"
+        tables: "full_width"
+        code_blocks: "expanded"
+
+    - device: "tablet"
+      formatting:
+        max_length: "moderate"
+        prefer: "visual"
+        tables: "full_width"
+        code_blocks: "expanded"
+```
+
+Stelle dieselbe Frage auf deinem Telefon und deinem Laptop, und du erhältst unterschiedliche Darstellungen derselben Informationen. Das Telefon bekommt eine prägnante Zusammenfassung. Der Laptop bekommt die vollständige Aufschlüsselung mit Tabellen und Code-Blöcken.
+
+### Geräteübergreifende Aktionen
+
+Dein Agent kann Aktionen geräteübergreifend koordinieren:
+
+```
+Du (am Telefon): Nimm den Bericht, den ich auf meinem Laptop heruntergeladen habe,
+und schick ihn an Sarah.
+
+OpenClaw:
+  1. Greift auf MacBook-Node zu → findet "Q2_Report.pdf" in Downloads
+  2. Greift auf E-Mail-Skill zu → entwirft E-Mail an Sarah
+  3. Hängt die Datei an
+  4. Kehrt zum Telefon zurück → "Erledigt. Q2_Report.pdf an Sarah gesendet. Möchtest du die E-Mail sehen?"
+```
+
+Das funktioniert, weil alle deine Nodes mit demselben Gateway verbunden sind und dein Agent Sichtbarkeit über alle von ihnen hat.
+
+## Node-Verwaltung
+
+```bash
+# Alle registrierten Nodes auflisten
+openclaw node list
+
+# Ausgabe:
+# NAME                PLATTFORM   STATUS    ZULETZT GESEHEN
+# Damians iPhone      ios         online    gerade eben
+# Damians MacBook     macos       online    gerade eben
+# Damians Pixel       android     offline   vor 2 Stunden
+
+# Ein neues Gerät registrieren
+openclaw node add
+
+# Ein Gerät entfernen
+openclaw node remove node_pixel_9
+
+# Node-Gesundheit prüfen
+openclaw node health --all
+
+# Primärgerät festlegen
+openclaw node set-primary node_macbook_pro_m4
+```
+
+### Node-Priorität
+
+Wenn dein Agent ein Gerät für etwas auswählen muss, folgt er Prioritätsregeln:
+
+```yaml
+node_priority:
+  notification_delivery:
+    - rule: "active_device"       # An das Gerät senden, das du gerade verwendest
+      fallback: "primary_device"  # Falls keines aktiv, das primäre verwenden
+
+  file_operations:
+    - rule: "device_with_file"    # Das Gerät verwenden, das die Datei hat
+      fallback: "primary_device"
+
+  voice_interactions:
+    - rule: "device_with_wake"    # Das Gerät, das das Wake-Wort gehört hat
+      fallback: "nearest_device"  # Basierend auf Standortnähe
+
+  heavy_processing:
+    - rule: "most_capable"        # An das Gerät mit den meisten Ressourcen weiterleiten
+      prefer: "macos"
+```
+
+## Sicherheit und Datenschutz
+
+Nodes haben Zugang zu deinen physischen Geräten, daher ist Sicherheit von größter Bedeutung:
+
+```yaml
+node_security:
+  authentication:
+    method: "device_certificate"
+    biometric_required: true
+    session_token_expiry: "24h"
+
+  encryption:
+    in_transit: "TLS 1.3"
+    at_rest: "AES-256"
+
+  remote_actions:
+    require_confirmation: true
+    confirmation_timeout: 30  # Sekunden
+    allowed_remote_actions:
+      - read_files
+      - send_notifications
+    denied_remote_actions:
+      - delete_files
+      - install_apps
+      - access_camera_without_prompt
+
+  lost_device:
+    action: "revoke_access"
+    wipe_local_data: true
+    notify_other_nodes: true
+```
+
+Wenn ein Gerät verloren geht, widerruft OpenClaw sofort seinen Zugang, löscht alle lokalen OpenClaw-Daten und benachrichtigt deine anderen Geräte. Geräteübergreifende Dateilese-Vorgänge erfordern biometrische Bestätigung, und der Remote-Kamerazugriff zeigt immer eine Bildschirmaufforderung.
+
+## Erste Schritte mit Nodes
+
+1. **Installiere OpenClaw auf deinem primären Gerät** und schließe die Einrichtung ab.
+2. **Füge dein zweites Gerät hinzu** — `openclaw node add` generiert einen QR-Code, den du mit dem neuen Gerät scannst.
+3. **Konfiguriere Fähigkeiten** — entscheide, was jedes Gerät tun kann und was nicht.
+4. **Setze dein primäres Gerät** — hier kommen Benachrichtigungen standardmäßig an.
+5. **Teste die Übergabe** — beginne ein Gespräch auf einem Gerät, wechsle zu einem anderen und bestätige, dass es dir folgt.
+
+Die meisten Menschen beginnen mit zwei Nodes (Telefon und Laptop) und fügen mehr hinzu, wenn sie den Wert sehen. Selbst mit nur zwei Geräten machen die Übergabe- und geräteübergreifenden Aktionsfunktionen OpenClaw zu einem Assistenten, der überall lebt, und nicht zu separaten Apps auf separaten Geräten.

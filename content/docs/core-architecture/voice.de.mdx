@@ -1,0 +1,297 @@
+---
+title: Sprache
+description: Wake-Words, den Gesprächsmodus und praktische Sprach-Interaktionen mit deinem OpenClaw-Assistenten konfigurieren.
+---
+
+# Sprache
+
+Tippen ist gut für Präzision. Aber manchmal möchtest du einfach reden. Das Sprachsystem von OpenClaw ermöglicht dir natürliche gesprochene Gespräche mit deinem Agenten — freihändig, auf jedem Gerät. Egal ob du Abendessen kochst, Auto fährst oder auf der Couch zu bequem bist, um die Tastatur zu erreichen — Sprache macht deinen Assistenten wirklich zugänglich.
+
+## Wake-Word-Konfiguration
+
+Das Wake-Word ist, wie du die Aufmerksamkeit deines Agenten bekommst, ohne ein Gerät zu berühren. Standardmäßig lautet es **"Hey Claw"**, aber du kannst es anpassen.
+
+```yaml
+# voice/wake-word.yaml
+wake_word:
+  phrase: "Hey Claw"
+  sensitivity: 0.7          # 0.0 (löst nie aus) bis 1.0 (löst auf alles aus)
+  processing: "on_device"   # Wake-Word-Erkennung verlässt nie dein Gerät
+
+  alternatives:
+    - "OK Claw"
+    - "Claw"                 # Einzelnes Wort, funktioniert, aber mehr falsch-positive
+
+  custom:
+    enabled: true
+    phrase: "Hey Atlas"      # Den Namen deines Agenten als Wake-Word verwenden
+    training_samples: 10     # 10 Mal sagen, um das Modell zu trainieren
+
+  behavior:
+    confirmation_sound: true          # Ton bei Aktivierung
+    confirmation_sound_file: "soft_chime.wav"
+    listen_timeout: 10                # Sekunden auf Sprache warten
+    cancel_phrase: "vergiss es"
+    ambient_noise_adaptation: true    # Passt sich dem Hintergrundgeräusch an
+```
+
+Einige Hinweise zur Empfindlichkeit:
+
+- **0,5 - 0,6** — löst selten versehentlich aus, aber du musst möglicherweise klar und direkt auf das Gerät sprechen.
+- **0,7** — der Sweet Spot für die meisten Menschen. Zuverlässig ohne zu viele falsch-positive.
+- **0,8 - 0,9** — sehr empfindlich. Gut in ruhigen Umgebungen, könnte aber durch Fernseher oder Gespräche in der Nähe ausgelöst werden.
+
+### Benutzerdefiniertes Wake-Word-Training
+
+Wenn du ein benutzerdefiniertes Wake-Word willst (wie den Namen deines Agenten), trainiert OpenClaw ein kleines Modell auf deinem Gerät:
+
+```bash
+# Wake-Word-Training starten
+openclaw voice train-wake-word "Hey Atlas"
+
+# Die CLI fordert dich auf, den Satz 10 Mal in verschiedenen
+# Bedingungen zu sagen (ruhig, laut, nah, weit weg).
+
+# Das neue Wake-Word testen
+openclaw voice test-wake-word
+
+# Auf Standard zurücksetzen
+openclaw voice reset-wake-word
+```
+
+Das Training dauert etwa zwei Minuten. Sprich dein Wake-Word in verschiedenen Abständen und Lautstärken für die besten Ergebnisse. Das Modell läuft vollständig auf deinem Gerät — deine Sprachproben verlassen es nie.
+
+## Gesprächsmodus
+
+Der Gesprächsmodus ist ein kontinuierlicher Konversationsmodus, in dem du das Wake-Word nicht für jeden Austausch benötigst. Aktiviere ihn einmal, und du kannst eine Hin-und-Her-Konversation natürlich führen, wie mit einer anderen Person.
+
+```yaml
+# voice/talk-mode.yaml
+talk_mode:
+  activation:
+    trigger: "Hey Claw, lass uns reden"
+    hotkey: "hold_volume_button"     # Plattformabhängig
+    auto_activate: false
+
+  behavior:
+    continuous_listening: true
+    turn_detection: "voice_activity"  # Erkennt, wenn du aufhörst zu sprechen
+    pause_threshold: 1.5              # Sekunden Stille = dein Turn ist beendet
+    interrupt_allowed: true           # Du kannst während der Antwort unterbrechen
+
+  response:
+    voice: "ember"                    # Optionen: ember, sage, nova, flint
+    speed: 1.0                        # 0,5 (langsam) bis 2,0 (schnell)
+    pitch: "natural"
+    language: "auto_detect"
+
+  deactivation:
+    phrase: "Das war's, danke"
+    auto_timeout: 300                 # Gesprächsmodus nach 5 Min. Stille beenden
+    explicit_only: false              # Endet auch bei Timeout
+```
+
+### Stimm-Optionen
+
+OpenClaw wird mit mehreren Stimm-Personas geliefert:
+
+```yaml
+voices:
+  ember:
+    description: "Warm, mittlerer Tonhöhenbereich, gesprächig"
+    best_for: "Alltagsgebrauch, persönlicher Assistent"
+    gender_presentation: "neutral"
+
+  sage:
+    description: "Ruhig, gemessen, autoritativ"
+    best_for: "Professionelle Kontexte, Briefings"
+    gender_presentation: "neutral"
+
+  nova:
+    description: "Hell, energetisch, lebhaft"
+    best_for: "Kreative Sitzungen, Brainstorming"
+    gender_presentation: "neutral"
+
+  flint:
+    description: "Tief, beständig, minimal"
+    best_for: "Ruhige Umgebungen, Nachtgebrauch"
+    gender_presentation: "neutral"
+```
+
+Du kannst Stimmen im Handumdrehen wechseln:
+
+```
+Du: Wechsle zur Sage-Stimme.
+OpenClaw (jetzt in der Sage-Stimme): Erledigt. Ich verwende diese Stimme von jetzt an.
+```
+
+## Sprache-zu-Text-Konfiguration
+
+Wenn du sprichst, wandelt OpenClaw deine Stimme in Text um, bevor es verarbeitet wird. Du hast Kontrolle darüber, wie das funktioniert:
+
+```yaml
+speech_to_text:
+  engine: "whisper-large-v3"
+  processing: "hybrid"       # Auf Gerät für kurze, Cloud für lange
+  threshold:
+    on_device_max: 30        # Sekunden — bis 30 Sek. auf Gerät verarbeiten
+    cloud_above: 30          # Längeres Audio geht in die Cloud
+
+  language:
+    primary: "de"
+    secondary: "en"
+    auto_detect: true
+    code_switching: true     # Sprachenwechsel mitten im Satz behandeln
+
+  enhancements:
+    punctuation: true        # Interpunktion automatisch hinzufügen
+    profanity_filter: false  # Nicht zensieren
+    domain_vocabulary:
+      - "OpenClaw"
+      - "ClawHub"
+      - "SOUL.md"
+      - "Pi runtime"
+
+  privacy:
+    audio_retention: "none"  # Keine Rohaufnahmen speichern
+    transcription_retention: "session"  # Für Sitzung aufbewahrt, dann gelöscht
+```
+
+Die `domain_vocabulary`-Einstellung ist wichtig. Sie lehrt die Sprache-zu-Text-Engine, Wörter korrekt zu transkribieren, die sie möglicherweise nicht kennt — wie "OpenClaw" statt "open claw" oder "SOUL.md" statt "soul MD."
+
+## Praktische Sprach-Anwendungsfälle
+
+### Morgen-Briefing
+
+```
+Du: Hey Claw, guten Morgen. Wie sieht mein Tag aus?
+
+OpenClaw: Guten Morgen. Du hast heute drei Meetings.
+Zuerst ein Standup um 10 Uhr mit dem Produktteam.
+Dann Mittagessen mit Sarah um 12:30 — sie hat diesen neuen Ort
+auf dem Nowy Świat vorgeschlagen. Dein 1:1 mit Dr. Chen ist um 15 Uhr.
+Zwischen den Meetings hast du etwa zwei Stunden Fokuszeit.
+Ach ja, es sind 12 Grad und leicht bewölkt — du könntest eine Jacke brauchen.
+```
+
+Das funktioniert wunderbar als Sprach-Interaktion beim Morgenkaffee. Kein Bildschirm erforderlich.
+
+### Freihändiges Kochen
+
+```
+Du: Hey Claw, lass uns reden.
+
+OpenClaw: Gesprächsmodus aktiv. Was gibt's?
+
+Du: Ich mache das Pilzrisotto. Führe mich Schritt für Schritt durch.
+
+OpenClaw: Klar. Zuerst die Pilze schneiden und die Brühe auf der hinteren
+Herdplatte erwärmen. Bereit für Schritt eins?
+
+Du: Bereit.
+
+OpenClaw: Erhitze zwei Esslöffel Olivenöl in einer breiten Pfanne bei mittlerer
+Hitze. Füge eine gewürfelte Zwiebel hinzu und brate sie weich, etwa fünf Minuten.
+
+Du: Fertig, was kommt als nächstes?
+
+OpenClaw: Füge den Arborio-Reis hinzu — etwa eineinhalb Tassen. Rühre ihn
+eine Minute um, bis die Körner bedeckt und an den Rändern leicht durchscheinend sind.
+
+Du: Warte, soll ich Knoblauch hinzufügen?
+
+OpenClaw: Guter Einfall. Füge zwei gehackte Zehen direkt nach dem Weichwerden
+der Zwiebel hinzu, vor dem Reis. Den Knoblauch nur 30 Sekunden garen,
+damit er nicht verbrennt.
+```
+
+Beachte, wie der Gesprächsmodus einen natürlichen Austausch ermöglicht, ohne jedes Mal das Wake-Word zu sagen. Und du kannst mitten im Rezept unterbrechen oder Fragen stellen.
+
+### Fahrmodus
+
+```yaml
+# voice/driving-mode.yaml
+driving_mode:
+  activation: "Hey Claw, ich fahre"
+  behavior:
+    responses: "voice_only"      # Niemals visuellen Inhalt anzeigen
+    length: "extra_concise"      # Antworten sehr kurz halten
+    confirmations: "verbal"      # "Soll ich das senden?" statt Entwurf zeigen
+    no_questions: true            # Keine klärenden Fragen stellen, bestes Urteil
+    emergency_override: true     # Immer bei dringenden Nachrichten warnen
+
+  allowed_skills:
+    - navigation
+    - music
+    - calls
+    - messages_read_only
+  blocked_skills:
+    - email_compose
+    - code_exec
+    - file_manager
+```
+
+Der Fahrmodus ist eine Sicherheitsfunktion. Er schränkt ein, was der Agent tun kann, erzwingt reine Sprachausgabe und hält Antworten ultra-kurz. Dein Agent wird dich nicht bitten, auf einen Bildschirm zu schauen.
+
+### Schnelle Meeting-Notizen
+
+```
+Du: Hey Claw, kurze Notiz. Sarah möchte die Frist auf den 15. Mai verschieben.
+Mike hat widersprochen, aber zugestimmt, wenn wir den Umfang des Analytics-Dashboards
+kürzen. Entscheidung: wir liefern ohne Echtzeit-Diagramme und fügen sie in v2 hinzu.
+
+OpenClaw: Verstanden. Gespeichert:
+  - Sarah schlug Friständerung auf 15. Mai vor
+  - Mike stimmte unter Bedingung zu: Analytics-Dashboard-Umfang kürzen
+  - Entscheidung: ohne Echtzeit-Diagramme liefern, in v2 hinzufügen
+  Soll ich diese Zusammenfassung an das Team senden?
+```
+
+Sprachnotizen erfasst, strukturiert und bereit zum Teilen — alles auf dem Weg zurück vom Konferenzraum.
+
+### Schlafenszeit-Wind-Down
+
+```yaml
+# voice/night-mode.yaml
+night_mode:
+  activation:
+    time: "22:00"
+    manual: "Hey Claw, Nachtmodus"
+
+  behavior:
+    voice: "flint"             # Tiefe, leise Stimme
+    volume: 0.4                # Reduzierte Lautstärke
+    responses: "minimal"       # Sehr kurze Antworten
+    no_proactive: true         # Keine Informationen von sich aus anbieten
+
+  sleep_sounds:
+    enabled: true
+    trigger: "schlafgeräusche abspielen"
+    options: ["regen", "ozean", "wald", "weißes_rauschen"]
+    timer: 30                  # Automatisch nach 30 Minuten stoppen
+```
+
+## Sprach-Fehlerbehebung
+
+Häufige Probleme und Lösungen:
+
+```bash
+# Mikrofon testen
+openclaw voice mic-test
+
+# Wake-Word-Erkennung prüfen
+openclaw voice debug-wake-word
+# Zeigt Echtzeit-Konfidenzwerte während du sprichst
+
+# Für eine neue Umgebung neu kalibrieren
+openclaw voice calibrate
+# Passt Geräuschboden und Empfindlichkeit an deinen aktuellen Raum an
+
+# Sprach-Latenz prüfen
+openclaw voice latency-test
+# Zeigt Verarbeitungszeit-Aufschlüsselung: STT → Verarbeitung → TTS
+```
+
+Wenn dein Wake-Word zu oft auslöst, senke die Empfindlichkeit. Wenn es deine Stimme verfehlt, erhöhe sie. Wenn die Spracherkennung Wörter falsch versteht, füge sie zur `domain_vocabulary`-Liste hinzu. Die meisten Sprachprobleme lassen sich auf diese drei Anpassungen zurückführen.
+
+Sprache ist eine dieser Funktionen, die sich wie ein Gimmick anfühlen, bis du sie im richtigen Kontext verwendest. Kochen, Autofahren, Morgenroutinen, schnelle Notizen unterwegs — sobald du deine Anwendungsfälle findest, wirst du dich fragen, wie du früher alles eingetippt hast.

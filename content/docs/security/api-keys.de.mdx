@@ -1,0 +1,285 @@
+---
+title: API-Schlüssel
+description: Ein nicht-technischer Leitfaden zum Erstellen, Speichern und Rotieren von API-Schlüsseln in OpenClaw, um deine Integrationen sicher zu halten.
+---
+
+# API-Schlüssel
+
+Wenn du jemals ein Passwort verwendet hast, um dich bei einer Website anzumelden, verstehst du bereits die grundlegende Idee hinter API-Schlüsseln. Ein API-Schlüssel ist wie ein Passwort, aber anstatt dass eine Person ihn zum Anmelden verwendet, nutzt Software ihn, um ihre Identität zu beweisen, wenn sie mit einer anderen Software kommuniziert.
+
+Wenn dein OpenClaw-Assistent sich mit GitHub verbindet, eine Nachricht über Slack sendet oder eine Zahlung über Stripe verarbeitet, verwendet er API-Schlüssel, um zu sagen: "Ich bin berechtigt, das zu tun." Diese Seite behandelt alles, was du über das Erstellen, Speichern und sichere Verwalten dieser Schlüssel wissen musst.
+
+## Was ist ein API-Schlüssel wirklich?
+
+Ein API-Schlüssel ist eine lange Zeichenfolge — Buchstaben, Zahlen und manchmal Sonderzeichen — die als Zugangsdaten dient. So sieht einer aus:
+
+```
+oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+```
+
+Das Präfix (`oc_sk_`) teilt dir mit, dass es ein OpenClaw-Geheimschlüssel ist. Verschiedene Dienste verwenden verschiedene Präfixe:
+
+| Dienst | Schlüssel-Präfix | Beispiel |
+|--------|-----------------|---------|
+| OpenClaw | `oc_sk_` | `oc_sk_9f8a2c4e...` |
+| GitHub | `ghp_` | `ghp_aBcDeFgHiJ...` |
+| Stripe | `sk_live_` | `sk_live_51Hx7y...` |
+| OpenAI | `sk-` | `sk-abc123def...` |
+
+Der Schlüssel selbst ist zufällig. Es gibt keine Möglichkeit, ihn zu erraten, was ihn sicher macht — solange du ihn privat hältst.
+
+### Schlüssel vs. Passwörter
+
+Es gibt einige wichtige Unterschiede zwischen API-Schlüsseln und Passwörtern:
+
+- **Du wählst keine API-Schlüssel aus.** Sie werden vom System zufällig generiert. Das macht sie viel schwerer zu erraten als ein menschlich gewähltes Passwort.
+- **API-Schlüssel verfallen standardmäßig nicht.** Sofern du keine Rotation einrichtest (mehr dazu weiter unten), funktioniert ein Schlüssel für immer.
+- **Ein Dienst kann mehrere Schlüssel haben.** Du könntest separate Schlüssel für Entwicklung, Staging und Produktion haben, jeder mit unterschiedlichen Berechtigungen.
+- **Schlüssel können begrenzt werden.** Ein Schlüssel kann auf bestimmte Aktionen beschränkt werden (nur lesen, nur schreiben, Vollzugriff), sodass selbst wenn er durchsickert, der Schaden begrenzt ist.
+
+## API-Schlüssel erstellen
+
+### OpenClaw interne Schlüssel
+
+Um einen neuen API-Schlüssel für deine OpenClaw-Instanz zu generieren:
+
+```bash
+openclaw keys generate --name "production-main" --scope "full"
+```
+
+```
+Key generated successfully:
+
+  Name:    production-main
+  Key:     oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+  Scope:   full
+  Created: 2026-04-22
+
+⚠️  Copy this key now. It will not be shown again.
+```
+
+Diese letzte Warnung ist wichtig. OpenClaw speichert einen Hash des Schlüssels, nicht den Schlüssel selbst. Sobald du diesen Bildschirm schließt, gibt es keine Möglichkeit, den originalen Schlüssel abzurufen. Wenn du ihn verlierst, musst du einen neuen generieren.
+
+### Begrenzte Schlüssel
+
+Anstatt jedem Schlüssel vollen Zugriff zu geben, erstelle Schlüssel mit eingeschränkten Berechtigungen:
+
+```bash
+# Nur-Lese-Schlüssel für Monitoring-Dashboards
+openclaw keys generate --name "monitoring-readonly" --scope "read"
+
+# Schlüssel, der nur auf bestimmte Tools zugreifen kann
+openclaw keys generate --name "calendar-bot" --scope "custom" \
+  --allowed-tools "calendar.*,weather.*"
+```
+
+Deine vorhandenen Schlüssel auflisten:
+
+```bash
+openclaw keys list
+```
+
+```
+NAME                  SCOPE    ERSTELLT      ZULETZT VERWENDET   STATUS
+production-main       full     2026-01-15    2026-04-22          active
+monitoring-readonly   read     2026-02-20    2026-04-22          active
+calendar-bot          custom   2026-03-08    2026-04-21          active
+old-test-key          full     2025-11-01    2025-12-15          active ⚠️
+```
+
+Beachte die Warnung bei `old-test-key` — er wurde seit Monaten nicht verwendet. Das ist ein Kandidat für die Widerrufung.
+
+## Schlüssel sicher speichern
+
+Das ist der mit Abstand wichtigste Abschnitt auf dieser Seite. Wie du deine Schlüssel speicherst, bestimmt, ob sie geheim bleiben.
+
+### Die goldene Regel: Umgebungsvariablen verwenden
+
+Schreibe niemals API-Schlüssel direkt in deine Konfigurationsdateien, deinen Quellcode oder die Versionskontrolle. Speichere sie stattdessen in einer `.env`-Datei:
+
+```bash
+# .env — diese Datei bleibt auf deiner Maschine und wird nie committed
+OPENCLAW_API_KEY=oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+GITHUB_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345
+STRIPE_SECRET_KEY=sk_live_YOUR_STRIPE_KEY_HERE
+OPENAI_API_KEY=sk-abc123def456ghi789jkl012mno345pqr
+SLACK_BOT_TOKEN=xoxb-YOUR-BOT-TOKEN-HERE
+```
+
+Referenziere sie dann in deiner Konfiguration mit der `${}`-Syntax:
+
+```yaml
+# openclaw.config.yaml — sicher zum Committen
+integrations:
+  github:
+    token: "${GITHUB_TOKEN}"
+  stripe:
+    secret_key: "${STRIPE_SECRET_KEY}"
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+  slack:
+    bot_token: "${SLACK_BOT_TOKEN}"
+```
+
+### Stelle sicher, dass .env in Git ignoriert wird
+
+Dieser Schritt ist entscheidend. Führe diesen Befehl jetzt aus, wenn du es noch nicht getan hast:
+
+```bash
+echo ".env" >> .gitignore
+echo ".env.local" >> .gitignore
+echo ".env.production" >> .gitignore
+```
+
+Überprüfe, ob es funktioniert hat:
+
+```bash
+git status
+```
+
+Deine `.env`-Datei sollte nicht in der Ausgabe erscheinen. Wenn doch, wird sie nicht ignoriert — überprüfe deine `.gitignore`-Datei.
+
+### Was tun, wenn ich versehentlich einen Schlüssel committed habe?
+
+Das passiert. So gehst du vor:
+
+1. **Den Schlüssel sofort widerrufen.** Nicht warten. Ein durchgesickerter Schlüssel ist ein kompromittierter Schlüssel.
+2. **Einen neuen Schlüssel generieren** und deine `.env`-Datei aktualisieren.
+3. **Den Schlüssel aus dem Git-Verlauf entfernen.** Die Datei in einem neuen Commit einfach zu löschen reicht nicht — der Schlüssel steckt noch im alten Commit.
+
+```bash
+# Den kompromittierten Schlüssel widerrufen
+openclaw keys revoke "compromised-key-name"
+
+# Einen Ersatz generieren
+openclaw keys generate --name "replacement-key" --scope "full"
+```
+
+### Einen Secrets Manager verwenden
+
+Für Produktions-Deployments solltest du stattdessen einen dedizierten Secrets Manager verwenden:
+
+```yaml
+# openclaw.config.yaml
+secrets:
+  provider: "vault"
+  config:
+    address: "https://vault.internal.example.com"
+    path: "secret/openclaw"
+    auth_method: "approle"
+```
+
+OpenClaw unterstützt mehrere Anbieter:
+
+| Anbieter | Konfigurationswert | Geeignet für |
+|----------|-------------------|-------------|
+| `.env`-Dateien | `"dotenv"` (Standard) | Lokale Entwicklung, kleine Deployments |
+| HashiCorp Vault | `"vault"` | Unternehmen, Teams |
+| AWS Secrets Manager | `"aws-secrets"` | AWS-gehostete Deployments |
+| Google Secret Manager | `"gcp-secrets"` | GCP-gehostete Deployments |
+| Azure Key Vault | `"azure-keyvault"` | Azure-gehostete Deployments |
+
+## Schlüssel rotieren
+
+Schlüsselrotation bedeutet, deine Schlüssel regelmäßig durch neue zu ersetzen. Es ist wie das Austauschen deiner Schlösser — selbst wenn jemand eine Kopie des alten Schlüssels gemacht hat, funktioniert er nicht mehr.
+
+### Warum rotieren?
+
+- Ein Schlüssel könnte ohne dein Wissen exponiert worden sein.
+- Teammitglieder, die Zugang hatten, könnten das Team verlassen haben.
+- Es begrenzt das Expositionsfenster, wenn ein Einbruch stattfindet.
+
+### Einen Rotationsplan einrichten
+
+```yaml
+# openclaw.config.yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    notify_before_days: 14
+    auto_rotate: false
+```
+
+Diese Konfiguration teilt OpenClaw mit, dich 14 Tage zu erinnern, bevor jeder Schlüssel 90 Tage alt ist. Du kannst den Rotationsstatus jederzeit prüfen:
+
+```bash
+openclaw keys rotation-status
+```
+
+```
+SCHLÜSSEL-ROTATIONSSTATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+production-main       Alter: 97 Tage    ⚠️ ÜBERFÄLLIG (vor 7 Tagen fällig)
+monitoring-readonly   Alter: 61 Tage    ✓ OK (fällig in 29 Tagen)
+calendar-bot          Alter: 45 Tage    ✓ OK (fällig in 45 Tagen)
+```
+
+### Der Rotationsprozess
+
+Wenn es Zeit ist, einen Schlüssel zu rotieren, folge diesen Schritten:
+
+```bash
+# Schritt 1: Den neuen Schlüssel generieren
+openclaw keys generate --name "production-main-v2" --scope "full"
+
+# Schritt 2: Deine .env-Datei mit dem neuen Schlüssel aktualisieren
+# (Bearbeite .env manuell oder verwende deinen Secrets Manager)
+
+# Schritt 3: Die Konfiguration neu laden
+openclaw config reload
+
+# Schritt 4: Überprüfen, ob der neue Schlüssel funktioniert
+openclaw keys test "production-main-v2"
+
+# Schritt 5: Den alten Schlüssel widerrufen
+openclaw keys revoke "production-main"
+```
+
+Der Grund, warum du den alten Schlüssel erst widerrufst, nachdem du bestätigt hast, dass der neue funktioniert, ist, dich nicht auszusperren. Es gibt ein kurzes Fenster, in dem beide Schlüssel aktiv sind, was normal und erwartet während der Rotation ist.
+
+### Automatische Rotation
+
+Wenn dein Setup es handhaben kann, aktiviere die automatische Rotation:
+
+```yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    auto_rotate: true
+    on_rotate:
+      - action: "system.notify"
+        params:
+          message: "API-Schlüssel automatisch rotiert"
+          channel: "security-alerts"
+```
+
+Mit `auto_rotate: true` generiert OpenClaw einen neuen Schlüssel, aktualisiert die interne Referenz und widerruft den alten — alles ohne manuellen Eingriff. Das funktioniert jedoch nur für OpenClaws eigene Schlüssel. Externe Dienst-Schlüssel (GitHub, Stripe usw.) müssen über ihre jeweiligen Dashboards rotiert werden.
+
+## Schlüssel widerrufen
+
+Wenn ein Schlüssel nicht mehr benötigt wird oder kompromittiert worden sein könnte:
+
+```bash
+openclaw keys revoke "old-test-key"
+```
+
+```
+Key "old-test-key" revoked.
+  Status: revoked
+  Revoked at: 2026-04-22 14:30 UTC
+  Any requests using this key will now receive 401 Unauthorized.
+```
+
+Der Widerruf ist sofortig und irreversibel. Es gibt kein Rückgängigmachen. Wenn du einen Schlüssel versehentlich widerrufst, generiere einen neuen.
+
+## Zusammenfassung der Best Practices
+
+1. **Schlüssel mit der CLI generieren**, niemals von Hand.
+2. **Schlüssel in `.env`-Dateien speichern** oder einem Secrets Manager, niemals im Code oder in Konfigurationsdateien.
+3. **Schlüssel eng begrenzen.** Gib jedem Schlüssel nur die Berechtigungen, die er benötigt.
+4. **Alle 90 Tage rotieren.** Erinnerungen einrichten, damit du es nicht vergisst.
+5. **Ungenutzte Schlüssel widerrufen.** Wenn ein Schlüssel seit 60 Tagen nicht verwendet wurde, sollte er wahrscheinlich nicht existieren.
+6. **Einen durchgesickerten Schlüssel als kompromittiert behandeln.** Zuerst widerrufen, später Fragen stellen.
+7. **Regelmäßig prüfen.** `openclaw keys list` monatlich ausführen und alles Veraltete bereinigen.

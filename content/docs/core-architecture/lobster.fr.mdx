@@ -1,0 +1,511 @@
+---
+title: Lobster
+description: Le constructeur de flux de travail visuel d'OpenClaw — automatisez des tâches en plusieurs étapes avec une simplicité glisser-déposer.
+---
+
+# Lobster
+
+Certaines tâches ne sont pas ponctuelles. Ce sont des séquences — "quand ceci se produit, fais cela, puis vérifie ceci, puis notifie-moi." Les faire manuellement à chaque fois est fastidieux. C'est pourquoi OpenClaw inclut **Lobster**, un constructeur de flux de travail visuel qui vous permet d'automatiser des processus en plusieurs étapes sans écrire de code.
+
+## Qu'est-ce que Lobster ?
+
+Lobster est un constructeur de flux de travail par glisser-déposer intégré à OpenClaw. Si vous avez déjà utilisé des outils comme Zapier, Make ou Apple Shortcuts, le concept est similaire — mais avec une différence clé : votre agent IA est un participant de premier ordre dans le flux de travail. Les flux de travail Lobster ne sont pas de simples automatisations "si ceci alors cela". Ils peuvent inclure le raisonnement de l'agent, des décisions et le traitement du langage naturel à n'importe quelle étape.
+
+Pensez-y ainsi : les outils d'automatisation traditionnels connectent des applications. Lobster connecte des applications *et* votre agent IA.
+
+## Comment Fonctionne Lobster
+
+Chaque flux de travail Lobster est une série d'**étapes** connectées par des **flux**. Les étapes sont des actions — envoyer un e-mail, vérifier un calendrier, demander à l'agent de résumer quelque chose. Les flux sont les lignes entre elles — ils peuvent être simples (toujours aller à l'étape suivante) ou conditionnels (aller à gauche si X, aller à droite si Y).
+
+```
+┌─────────┐     ┌──────────┐     ┌──────────┐
+│Déclencheur│ ──→ │  Étape 1  │ ──→ │  Étape 2  │
+└─────────┘     └──────────┘     └──────────┘
+                                       │
+                               ┌───────┴───────┐
+                               │  Condition ?   │
+                               └───────┬───────┘
+                              Oui │         │ Non
+                                  ▼         ▼
+                            ┌─────────┐ ┌─────────┐
+                            │ Étape 3a│ │ Étape 3b│
+                            └─────────┘ └─────────┘
+```
+
+Vous construisez cela visuellement dans l'éditeur Lobster — faites glisser des étapes sur un canvas, connectez-les avec des lignes, configurez les paramètres de chaque étape.
+
+## Configuration du Flux de Travail
+
+Bien que vous puissiez construire des flux de travail visuellement, ils sont stockés en YAML en coulisses. Cela signifie que vous pouvez également les écrire à la main, les versionner ou les partager avec d'autres.
+
+```yaml
+# lobster/workflows/example.yaml
+workflow:
+  name: "Briefing Matinal"
+  description: "Résumé matinal automatisé livré quotidiennement"
+  enabled: true
+
+  trigger:
+    type: "schedule"
+    cron: "0 8 * * 1-5"  # 8h00, du lundi au vendredi
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_calendar"
+      skill: "calendar"
+      action: "get_today_events"
+      output: "today_events"
+
+    - id: "get_weather"
+      skill: "weather"
+      action: "get_forecast"
+      params:
+        location: "Warsaw"
+      output: "weather"
+
+    - id: "get_emails"
+      skill: "email"
+      action: "get_unread"
+      params:
+        limit: 10
+        priority: "high"
+      output: "urgent_emails"
+
+    - id: "summarize"
+      type: "agent"
+      prompt: |
+        Créez un briefing matinal à partir de ces données :
+        Calendrier : {{today_events}}
+        Météo : {{weather}}
+        E-mails urgents : {{urgent_emails}}
+
+        Restez en dessous de 200 mots. Commencez par l'élément le plus important.
+      output: "briefing"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "voice"
+      message: "{{briefing}}"
+      fallback: "push_notification"
+```
+
+C'est un flux de travail complet. Chaque jour de semaine à 8h00, Lobster vérifie votre calendrier, la météo et les e-mails, demande à votre agent de créer un résumé, et vous le lit. Si la voix n'est pas disponible (peut-être que votre téléphone est en mode silencieux), il bascule vers une notification push.
+
+## 5 Exemples de Flux de Travail
+
+### 1. Tri des E-mails
+
+Triez automatiquement les e-mails entrants par urgence et rédigez des réponses pour les routiniers.
+
+```yaml
+workflow:
+  name: "Tri des E-mails"
+  description: "Trier et pré-répondre aux e-mails entrants"
+
+  trigger:
+    type: "event"
+    source: "email"
+    event: "new_email"
+    filter:
+      exclude_senders: ["noreply@*", "newsletter@*"]
+
+  steps:
+    - id: "classify"
+      type: "agent"
+      prompt: |
+        Classifiez cet e-mail :
+        De : {{trigger.sender}}
+        Objet : {{trigger.subject}}
+        Corps : {{trigger.body}}
+
+        Catégories : urgent, needs_response, informational, spam
+        Évaluez également l'importance de 1 à 5.
+      output: "classification"
+
+    - id: "route"
+      type: "condition"
+      rules:
+        - if: "classification.category == 'urgent'"
+          goto: "alert_user"
+        - if: "classification.category == 'needs_response'"
+          goto: "draft_response"
+        - if: "classification.category == 'informational'"
+          goto: "file_away"
+        - if: "classification.category == 'spam'"
+          goto: "archive"
+
+    - id: "alert_user"
+      type: "notify"
+      channel: "push"
+      priority: "high"
+      message: "E-mail urgent de {{trigger.sender}} : {{trigger.subject}}"
+
+    - id: "draft_response"
+      type: "agent"
+      prompt: |
+        Rédigez une réponse brève et professionnelle à cet e-mail.
+        Adoptez mon ton et mon style habituels.
+        De : {{trigger.sender}}
+        Objet : {{trigger.subject}}
+        Corps : {{trigger.body}}
+      output: "draft"
+
+    - id: "save_draft"
+      skill: "email"
+      action: "save_draft"
+      params:
+        to: "{{trigger.sender}}"
+        subject: "Re: {{trigger.subject}}"
+        body: "{{draft}}"
+
+    - id: "file_away"
+      skill: "email"
+      action: "move_to_folder"
+      params:
+        folder: "À lire plus tard"
+
+    - id: "archive"
+      skill: "email"
+      action: "archive"
+```
+
+Ce flux de travail intercepte chaque e-mail entrant (sauf les newsletters et les adresses noreply). L'agent le classe, et Lobster le route : les e-mails urgents reçoivent une notification push immédiate, ceux nécessitant une réponse obtiennent un brouillon pré-rédigé sauvegardé, les e-mails informatifs vont dans un dossier "À lire plus tard", et le spam est archivé. Vous vous réveillez avec une boîte de réception bien rangée.
+
+### 2. Préparation de Réunion
+
+Préparez automatiquement des documents de briefing avant chaque réunion.
+
+```yaml
+workflow:
+  name: "Préparation de Réunion"
+  description: "Préparer le contexte avant chaque réunion"
+
+  trigger:
+    type: "event"
+    source: "calendar"
+    event: "upcoming_event"
+    lead_time: 15          # Déclencher 15 minutes avant
+
+  steps:
+    - id: "get_attendees"
+      skill: "calendar"
+      action: "get_event_details"
+      params:
+        event_id: "{{trigger.event_id}}"
+      output: "event_details"
+
+    - id: "find_context"
+      type: "agent"
+      prompt: |
+        J'ai une réunion dans 15 minutes :
+        Titre : {{event_details.title}}
+        Participants : {{event_details.attendees}}
+        Ordre du jour : {{event_details.description}}
+
+        Recherchez dans mes souvenirs le contexte pertinent sur ces personnes
+        et ce sujet. Préparez un briefing bref (moins de 150 mots) avec :
+        - Points clés de la dernière réunion avec ces personnes
+        - Tout point d'action en suspens
+        - Points de discussion suggérés
+      memory_search: true
+      output: "briefing"
+
+    - id: "check_docs"
+      skill: "file_manager"
+      action: "search"
+      params:
+        query: "{{event_details.title}}"
+        recency: "30 days"
+      output: "related_docs"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "push"
+      message: |
+        Réunion dans 15 min : {{event_details.title}}
+
+        {{briefing}}
+
+        Documents liés : {{related_docs.names}}
+```
+
+### 3. Générateur de Rapport Hebdomadaire
+
+Compilez un résumé hebdomadaire chaque vendredi après-midi.
+
+```yaml
+workflow:
+  name: "Rapport Hebdomadaire"
+  description: "Générer et envoyer le rapport hebdomadaire d'avancement"
+
+  trigger:
+    type: "schedule"
+    cron: "0 16 * * 5"   # 16h00 chaque vendredi
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_completed_tasks"
+      skill: "jira"
+      action: "get_completed"
+      params:
+        period: "this_week"
+        assignee: "me"
+      output: "completed"
+
+    - id: "get_commits"
+      skill: "github"
+      action: "get_activity"
+      params:
+        period: "this_week"
+        user: "me"
+      output: "code_activity"
+
+    - id: "get_meetings"
+      skill: "calendar"
+      action: "get_events"
+      params:
+        period: "this_week"
+      output: "meetings"
+
+    - id: "generate_report"
+      type: "agent"
+      prompt: |
+        Rédigez un rapport hebdomadaire basé sur :
+        Tâches terminées : {{completed}}
+        Activité de code : {{code_activity}}
+        Réunions assistées : {{meetings}}
+
+        Format :
+        ## Accomplissements
+        ## En cours
+        ## Blocages
+        ## Semaine prochaine
+      output: "report"
+
+    - id: "render_canvas"
+      type: "canvas"
+      template: "weekly_report"
+      data:
+        tasks: "{{completed}}"
+        report_text: "{{report}}"
+      output: "visual_report"
+
+    - id: "send_report"
+      skill: "email"
+      action: "send"
+      params:
+        to: "dr.chen@techcorp.com"
+        subject: "Rapport Hebdomadaire — {{date.format('MMM D')}}"
+        body: "{{report}}"
+        attachments: ["{{visual_report.export_pdf}}"]
+```
+
+### 4. Routine Maison Intelligente
+
+Automatisez votre soirée de détente.
+
+```yaml
+workflow:
+  name: "Soirée Détente"
+  description: "Préparer progressivement la maison pour le sommeil"
+
+  trigger:
+    type: "schedule"
+    cron: "0 21 * * *"   # 21h00 chaque soir
+    alternative_trigger:
+      type: "voice"
+      phrase: "start wind-down"
+
+  steps:
+    - id: "dim_lights"
+      skill: "smart_home"
+      action: "set_lights"
+      params:
+        rooms: ["living_room", "bedroom"]
+        brightness: 30
+        color_temp: "warm"
+        transition: "10 minutes"
+
+    - id: "adjust_thermostat"
+      skill: "smart_home"
+      action: "set_temperature"
+      params:
+        target: 19
+        mode: "night"
+
+    - id: "check_tomorrow"
+      skill: "calendar"
+      action: "get_tomorrow_events"
+      output: "tomorrow"
+
+    - id: "prepare_summary"
+      type: "agent"
+      prompt: |
+        Donnez-moi un très bref aperçu de demain :
+        Événements : {{tomorrow}}
+        Restez à 2-3 phrases. Mentionnez si je dois me lever
+        plus tôt que d'habitude pour une réunion matinale.
+      output: "preview"
+
+    - id: "set_alarm"
+      type: "condition"
+      rules:
+        - if: "tomorrow.earliest_event.time < '09:00'"
+          goto: "early_alarm"
+        - else:
+          goto: "normal_alarm"
+
+    - id: "early_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "{{tomorrow.earliest_event.time - 90min}}"
+        label: "Journée avec réunion matinale"
+      goto: "goodnight"
+
+    - id: "normal_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "07:30"
+        label: "Bonjour"
+
+    - id: "goodnight"
+      type: "notify"
+      channel: "voice"
+      message: "{{preview}} Votre alarme est réglée. Bonne nuit."
+      voice_settings:
+        voice: "flint"
+        volume: 0.3
+```
+
+### 5. Pipeline de Recherche de Contenu
+
+Recherchez un sujet, compilez des sources et créez un briefing structuré.
+
+```yaml
+workflow:
+  name: "Pipeline de Recherche"
+  description: "Recherche approfondie sur un sujet donné"
+
+  trigger:
+    type: "command"
+    phrase: "/research {topic}"
+
+  input:
+    topic:
+      type: "string"
+      required: true
+
+  steps:
+    - id: "web_search"
+      skill: "web_search"
+      action: "search"
+      params:
+        query: "{{input.topic}}"
+        num_results: 20
+        recency: "6 months"
+      output: "search_results"
+
+    - id: "filter_sources"
+      type: "agent"
+      prompt: |
+        Examinez ces résultats de recherche pour "{{input.topic}}" :
+        {{search_results}}
+
+        Sélectionnez les 5 sources les plus crédibles et pertinentes.
+        Expliquez pourquoi chacune a été sélectionnée.
+      output: "top_sources"
+
+    - id: "deep_read"
+      skill: "web_search"
+      action: "read_pages"
+      params:
+        urls: "{{top_sources.urls}}"
+      output: "full_content"
+
+    - id: "synthesize"
+      type: "agent"
+      prompt: |
+        Sur la base de ces sources sur "{{input.topic}}" :
+        {{full_content}}
+
+        Créez un briefing de recherche avec :
+        ## Conclusions Clés (3-5 points)
+        ## Analyse Détaillée (500 mots)
+        ## Points de Vue Contradictoires (le cas échéant)
+        ## Sources (avec liens)
+        ## Questions pour Recherches Complémentaires
+      output: "brief"
+
+    - id: "save"
+      skill: "notes"
+      action: "create"
+      params:
+        title: "Recherche : {{input.topic}}"
+        content: "{{brief}}"
+        tags: ["research", "{{input.topic}}"]
+
+    - id: "notify"
+      type: "notify"
+      channel: "push"
+      message: "La recherche sur '{{input.topic}}' est terminée. Sauvegardée dans vos notes."
+```
+
+Déclenchez cela avec `/research tendances informatique quantique` et revenez plus tard. Vous trouverez un briefing structuré dans vos notes.
+
+## Gérer les Flux de Travail
+
+```bash
+# Lister tous les flux de travail
+openclaw lobster list
+
+# Exécuter un flux de travail manuellement
+openclaw lobster run "Briefing Matinal"
+
+# Mettre en pause un flux de travail
+openclaw lobster pause "Tri des E-mails"
+
+# Voir l'historique d'exécution
+openclaw lobster history "Rapport Hebdomadaire" --last 10
+
+# Déboguer une exécution échouée
+openclaw lobster debug --run-id run_abc123
+
+# Importer un flux de travail partagé
+openclaw lobster import workflow.yaml
+
+# Exporter pour partager
+openclaw lobster export "Préparation de Réunion" --output meeting-prep.yaml
+```
+
+## Gestion des Erreurs
+
+Les flux de travail peuvent échouer — une API peut être indisponible, une compétence peut expirer. Lobster gère cela avec élégance :
+
+```yaml
+workflow:
+  error_handling:
+    default: "retry_then_skip"
+    retries: 3
+    retry_delay: 10s
+
+    on_failure:
+      notify: true
+      channel: "push"
+      message: "Le flux '{{workflow.name}}' a échoué à l'étape '{{failed_step.id}}'"
+
+    per_step_overrides:
+      - step: "send_report"
+        on_failure: "halt"    # Ne pas ignorer l'envoi final — arrêter et m'alerter
+```
+
+## Conseils pour Construire des Flux de Travail
+
+1. **Commencez par le déclencheur.** Qu'est-ce qui lance le flux de travail ? Un horaire, un événement, une commande ?
+2. **Gardez les flux de travail focalisés.** Un flux de travail, un travail. "Briefing Matinal" ne devrait pas aussi gérer le tri des e-mails.
+3. **Testez avec des exécutions à sec.** Utilisez `openclaw lobster run "Mon Flux" --dry-run` pour voir ce qui *se passerait* sans vraiment le faire.
+4. **Utilisez l'étape agent libéralement.** Chaque fois que vous avez besoin de jugement, de synthèse ou de traitement du langage naturel, utilisez une étape agent. C'est le super-pouvoir de Lobster par rapport aux outils d'automatisation traditionnels.
+5. **Configurez des notifications d'erreur.** Vous ne voulez pas qu'un flux échoue silencieusement pendant des jours. Configurez toujours des alertes en cas d'échec.
+
+Lobster transforme votre agent de réactif (répondre quand on lui demande) à proactif (faire des choses automatiquement). Les meilleurs flux de travail sont ceux que vous configurez une fois et que vous oubliez — ils améliorent simplement et discrètement votre vie en arrière-plan.

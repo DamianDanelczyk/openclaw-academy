@@ -1,0 +1,246 @@
+---
+title: Assistente de Preparação para Reuniões
+description: Entre em cada reunião totalmente preparado com pesquisa automatizada, pautas e resumos de contexto do OpenClaw.
+---
+
+# Assistente de Preparação para Reuniões
+
+Todos já passamos por aquela situação. Uma reunião começa em cinco minutos, você dá uma olhada no convite do calendário e percebe que não tem ideia do que se trata. Talvez você tenha esquecido de revisar os documentos compartilhados. Talvez não se lembre do que foi decidido na última reunião com esta pessoa. Talvez você nem saiba quem são metade dos participantes.
+
+O playbook de Preparação para Reuniões garante que isso nunca aconteça novamente. O OpenClaw prepara automaticamente um documento de briefing para cada reunião no seu calendário, entregue a você com tempo suficiente para realmente lê-lo. Sem mais correria de última hora, sem mais blefar nos primeiros dez minutos e sem mais momentos de "desculpe, pode me lembrar onde paramos?".
+
+## O Que É Preparado
+
+Para cada reunião, o OpenClaw monta um pacote de preparação que inclui:
+
+- **Contexto da reunião** — Sobre o que é a reunião, com base na descrição do convite, pauta e quaisquer documentos vinculados
+- **Perfis dos participantes** — Quem está participando, seus papéis e suas interações recentes com eles
+- **Resumo da reunião anterior** — O que foi discutido e decidido na última vez que você se reuniu com essas pessoas
+- **Itens em aberto** — Quaisquer itens de ação de reuniões anteriores que ainda estão pendentes
+- **Atualizações relevantes** — E-mails recentes, mensagens no Slack ou documentos relacionados ao tema da reunião
+- **Pontos de discussão sugeridos** — Coisas que você pode querer trazer com base no contexto
+
+A profundidade da preparação escala com o tipo de reunião. Uma reunião individual casual pode receber um resumo de dois parágrafos. Uma apresentação para cliente pode receber uma página completa com dados de suporte.
+
+## Como Ele Sabe O Que Importa
+
+O OpenClaw usa uma combinação de sinais para descobrir quanta preparação cada reunião precisa:
+
+- **Título e descrição da reunião** fornecem o tópico básico
+- **Lista de participantes** diz ao OpenClaw quem está envolvido e qual é o relacionamento deles com você
+- **Padrões do calendário** indicam se esta é uma reunião recorrente ou pontual
+- **Seu histórico de interação** com os participantes ajuda a destacar contexto relevante
+- **Documentos vinculados** no convite são resumidos para que você não precise abri-los separadamente
+
+Você também pode ensinar o OpenClaw quais reuniões são mais importantes para você. Chamadas com clientes podem sempre receber o tratamento completo, enquanto standups internos podem precisar apenas de um lembrete rápido das suas atualizações.
+
+## Configurando
+
+A decisão-chave de configuração é o timing. Com quanto de antecedência você quer que sua preparação seja entregue? A maioria dos usuários acha que 30 a 60 minutos antes da reunião funciona melhor. Muito cedo e você esquece o que leu. Muito tarde e não tem tempo para absorver.
+
+Você também vai querer pensar em qual calendário quer que o OpenClaw monitore. Se você tem calendários de trabalho e pessoal separados, provavelmente só quer preparação para reuniões de trabalho.
+
+## Adições ao SOUL.md
+
+```markdown
+## Behaviors
+
+### Meeting Preparation
+- Prepare a briefing for every meeting on my work calendar
+- Deliver prep documents 45 minutes before each meeting
+- Scale depth based on meeting type:
+  - Client/external meetings: Full prep with attendee research, history, and talking points
+  - Team meetings: Quick summary of agenda and my pending action items
+  - 1:1s: Summary of last meeting, open items, and any relevant updates about the person
+  - Recurring standups: Just my status updates and blockers
+- Always include a "Last time we discussed" section for recurring meetings
+- If the meeting invite has no description or agenda, flag it and suggest I ask the organizer for context
+- Summarize any documents linked in the meeting invite (Google Docs, slides, PDFs)
+- For meetings with external people I have not met before, include a brief profile based on their LinkedIn or company website
+- If I have conflicting meetings, alert me in the prep document
+```
+
+## Habilidades Recomendadas
+
+```yaml
+skills:
+  - name: calendar-reader
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-only
+    description: Reads upcoming meetings and their details
+
+  - name: contact-resolver
+    provider: google-contacts  # or outlook-contacts, linkedin
+    permissions: read-only
+    description: Identifies attendees and provides context about them
+
+  - name: document-summarizer
+    provider: openclaw-native
+    config:
+      max_summary_length: 300  # words
+    description: Summarizes documents linked in meeting invites
+
+  - name: meeting-history
+    provider: openclaw-native
+    description: Tracks meeting notes and action items from previous meetings
+
+  - name: email-scanner
+    provider: gmail
+    permissions: read-only
+    description: Finds recent email threads relevant to meeting topics
+```
+
+<PremiumContent title="Configuração Completa do Playbook">
+
+## Configuração de Cron
+
+```yaml
+cron:
+  meeting-prep-scan:
+    schedule: "0 7 * * 1-5"  # 7:00 dias úteis — verificar reuniões de hoje
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: meeting-prep-schedule
+    config:
+      lookahead: 1d  # preparar para as reuniões de hoje
+      prep_lead_time: 45m  # entregar preparação 45 minutos antes de cada reunião
+      min_meeting_duration: 15m  # pular reuniões muito curtas (menos de 15 min)
+    retry:
+      attempts: 2
+      delay: 5m
+
+  meeting-prep-deliver:
+    schedule: "*/15 8-18 * * 1-5"  # Verificar a cada 15 min para janelas de entrega
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: meeting-prep-deliver
+    config:
+      deliver_before: 45m
+      skip_declined: true  # não preparar para reuniões que você recusou
+
+  meeting-notes-capture:
+    schedule: "*/5 8-18 * * 1-5"  # A cada 5 min durante o horário comercial
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: meeting-notes-listener
+    config:
+      channel: "#notas-reuniao"
+      auto_extract_actions: true  # extrair itens de ação das notas
+```
+
+## Configuração de Canal
+
+```yaml
+channels:
+  meeting-prep-delivery:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: rich
+      notify: true  # notificação push para que você veja antes da reunião
+      thread: false
+
+  meeting-notes:
+    type: slack-channel
+    config:
+      workspace: "seu-workspace"
+      channel: "#notas-reuniao"
+      format: rich
+      description: "Poste notas de reunião aqui — o OpenClaw rastreia itens de ação"
+      thread: true  # cada reunião tem seu próprio hilo
+
+  meeting-weekly-recap:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: rich
+      schedule: "friday-evening"
+```
+
+## Exemplo de Saída
+
+Aqui está como um documento de preparação de reunião parece nos seus DMs do Slack:
+
+```
+PREPARAÇÃO PARA REUNIÃO — Chamada com Cliente Acme Corp
+Hoje às 14:00 (em 45 minutos) | Zoom | 60 minutos
+
+PARTICIPANTES
+  Você
+  Sarah Chen (Gerente de Conta, sua equipe)
+  James Wilson (CTO, Acme Corp) — Já se reuniram 3 vezes anteriormente
+  Diana Reeves (Líder de Produto, Acme Corp) — Primeira vez se encontrando
+    Histórico: 8 anos na Acme, anteriormente no Stripe.
+    LinkedIn mostra interesse em integrações de API e ferramentas para desenvolvedores.
+
+ÚLTIMA VEZ (28 de Março)
+  Você discutiu o cronograma de implementação da Fase 2. James expressou
+  preocupação com a complexidade da migração de dados. Você concordou em fornecer
+  uma estimativa revisada até 10 de Abril.
+
+  Itens de ação em aberto dessa reunião:
+  [ ] Você: Enviar estimativa de migração revisada (venceu em 10 de Abril — EM ATRASO)
+  [x] Sarah: Compartilhar documentação da API com Diana (concluído em 2 de Abril)
+  [ ] James: Confirmar acesso ao ambiente de staging deles (ainda pendente)
+
+ATUALIZAÇÕES RELEVANTES DESDE A ÚLTIMA REUNIÃO
+  - E-mail de James (12 de Abril): Perguntou sobre suporte a SSO para a Fase 2.
+    Você respondeu confirmando que está incluído no escopo.
+  - Sarah observou no Slack (14 de Abril): "A Acme também está avaliando um
+    concorrente. Devemos reforçar nossa vantagem de cronograma."
+  - Acme Corp nas notícias: Anunciou parceria com DataFlow Inc.
+    em 8 de Abril. Pode ser relevante para suas necessidades de integração.
+
+RESUMO DO DOCUMENTO VINCULADO
+  "Rascunho SOW Fase 2 Acme" (Google Doc, compartilhado por Sarah)
+    Declaração de trabalho de 12 páginas cobrindo migração, SSO e relatórios
+    personalizados. Mudança principal em relação à Fase 1: querem chamadas de
+    status semanais em vez de quinzenais.
+
+PONTOS DE DISCUSSÃO SUGERIDOS
+  1. Tratar a estimativa de migração atrasada — trazer um número para a chamada
+  2. Dar boas-vindas a Diana e entender suas prioridades no lado do produto
+  3. Perguntar a James sobre a parceria com DataFlow — possível oportunidade de integração
+  4. Confirmar o cronograma do ambiente de staging do lado deles
+  5. Discutir a preferência de chamadas semanais vs. quinzenais
+```
+
+E aqui está uma preparação mais leve para uma reunião individual interna:
+
+```
+PREPARAÇÃO PARA REUNIÃO — 1:1 com Alex Rivera
+Hoje às 11:00 (em 45 minutos) | Presencial | 30 minutos
+
+ÚLTIMA VEZ (9 de Abril)
+  Alex mencionou estar sobrecarregado com muitos projetos ao mesmo tempo.
+  Você discutiu priorizar o redesign do dashboard sobre o
+  recurso de notificações mobile. Alex concordou mas quis revisitar
+  em 2 semanas.
+
+  Itens em aberto:
+  [ ] Alex: Redigir uma proposta de prioridade de projeto
+  [x] Você: Conectar Alex com o líder de UX (feito em 10 de Abril)
+
+CONTEXTO RECENTE
+  - Alex submeteu 3 PRs esta semana (todos mesclados)
+  - Alex postou em #random sobre participar de uma conferência de React em Maio
+  - Sem novos DMs no Slack entre vocês desde o último 1:1
+
+TÓPICOS SUGERIDOS
+  1. Verificar carga de trabalho — já faz 2 semanas desde a discussão de priorização
+  2. Perguntar sobre a proposta de prioridade de projeto
+  3. Conferência de React — ele precisa de aprovação ou orçamento?
+```
+
+## Ideias de Otimização
+
+- **Notas pós-reunião**: Após cada reunião, jogue suas notas no canal #notas-reuniao. O OpenClaw extrairá itens de ação e os vinculará automaticamente à preparação da próxima reunião.
+- **Controle de profundidade de preparação**: Adicione regras específicas por reunião como "sempre fazer preparação completa para reuniões marcadas como 'cliente'" ou "pular preparação para reuniões com menos de 15 minutos".
+- **Memória de participantes**: Com o tempo, o OpenClaw constrói um perfil de todos com quem você se reúne. Lembra tópicos de conversa, preferências e dinâmicas do seu relacionamento. Isso torna a preparação cada vez mais personalizada.
+- **Alertas de higiene do calendário**: O OpenClaw pode sinalizar dias onde você tem mais de 5 horas de reuniões, sem pausas entre chamadas ou reuniões sem pauta — ajudando você a proteger seu tempo proativamente.
+
+</PremiumContent>
+
+<CTACard variant="community" />

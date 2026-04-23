@@ -1,0 +1,511 @@
+---
+title: Lobster
+description: Der visuelle Workflow-Builder von OpenClaw — mehrstufige Aufgaben mit Drag-and-Drop-Einfachheit automatisieren.
+---
+
+# Lobster
+
+Manche Aufgaben sind keine Einmal-Sache. Sie sind Abläufe — "wenn das passiert, tu das, dann prüfe dies, dann benachrichtige mich." Diese jedes Mal manuell zu erledigen ist mühsam. Deshalb enthält OpenClaw **Lobster**, einen visuellen Workflow-Builder, mit dem du mehrstufige Prozesse automatisieren kannst, ohne Code zu schreiben.
+
+## Was ist Lobster?
+
+Lobster ist ein in OpenClaw integrierter Drag-and-Drop-Workflow-Builder. Wenn du schon mal Tools wie Zapier, Make oder Apple Shortcuts verwendet hast, ist das Konzept ähnlich — aber mit einem wichtigen Unterschied: Dein KI-Agent ist ein erstklassiger Teilnehmer im Workflow. Lobster-Workflows sind nicht nur "wenn dies dann das" Automatisierungen. Sie können an jedem Schritt Agenten-Reasoning, Entscheidungen und Verarbeitung natürlicher Sprache beinhalten.
+
+Stell es dir so vor: Traditionelle Automatisierungstools verbinden Apps. Lobster verbindet Apps *und* deinen KI-Agenten.
+
+## Wie Lobster funktioniert
+
+Jeder Lobster-Workflow ist eine Reihe von **Schritten**, die durch **Flüsse** verbunden sind. Schritte sind Aktionen — eine E-Mail senden, einen Kalender prüfen, den Agenten bitten, etwas zusammenzufassen. Flüsse sind die Verbindungen zwischen ihnen — sie können einfach sein (immer zum nächsten Schritt) oder bedingt (gehe links wenn X, rechts wenn Y).
+
+```
+┌─────────┐     ┌──────────┐     ┌──────────┐
+│ Auslöser│ ──→ │  Schritt 1│ ──→ │  Schritt 2│
+└─────────┘     └──────────┘     └──────────┘
+                                       │
+                               ┌───────┴───────┐
+                               │  Bedingung?    │
+                               └───────┬───────┘
+                              Ja │         │ Nein
+                                  ▼         ▼
+                            ┌─────────┐ ┌─────────┐
+                            │Schritt 3a│ │Schritt 3b│
+                            └─────────┘ └─────────┘
+```
+
+Du baust diese visuell im Lobster-Editor — ziehe Schritte auf eine Canvas, verbinde sie mit Linien, konfiguriere die Einstellungen jedes Schritts.
+
+## Workflow-Konfiguration
+
+Obwohl du Workflows visuell bauen kannst, werden sie im Hintergrund als YAML gespeichert. Das bedeutet, du kannst sie auch per Hand schreiben, versionskontrollieren oder mit anderen teilen.
+
+```yaml
+# lobster/workflows/example.yaml
+workflow:
+  name: "Morgen-Briefing"
+  description: "Automatische Morgenzusammenfassung, täglich geliefert"
+  enabled: true
+
+  trigger:
+    type: "schedule"
+    cron: "0 8 * * 1-5"  # 8 Uhr, Montag bis Freitag
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_calendar"
+      skill: "calendar"
+      action: "get_today_events"
+      output: "today_events"
+
+    - id: "get_weather"
+      skill: "weather"
+      action: "get_forecast"
+      params:
+        location: "Warsaw"
+      output: "weather"
+
+    - id: "get_emails"
+      skill: "email"
+      action: "get_unread"
+      params:
+        limit: 10
+        priority: "high"
+      output: "urgent_emails"
+
+    - id: "summarize"
+      type: "agent"
+      prompt: |
+        Erstelle ein Morgen-Briefing aus diesen Daten:
+        Kalender: {{today_events}}
+        Wetter: {{weather}}
+        Dringende E-Mails: {{urgent_emails}}
+
+        Halte es unter 200 Wörtern. Beginne mit dem wichtigsten Punkt.
+      output: "briefing"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "voice"
+      message: "{{briefing}}"
+      fallback: "push_notification"
+```
+
+Das ist ein vollständiger Workflow. Jeden Wochentag um 8 Uhr prüft Lobster deinen Kalender, das Wetter und deine E-Mails, bittet deinen Agenten eine Zusammenfassung zu erstellen und liest sie dir vor. Wenn Sprache nicht verfügbar ist (vielleicht ist dein Telefon auf lautlos), fällt es auf eine Push-Benachrichtigung zurück.
+
+## 5 Beispiel-Workflows
+
+### 1. E-Mail-Triage
+
+Eingehende E-Mails automatisch nach Dringlichkeit sortieren und Antworten für die routinemäßigen entwerfen.
+
+```yaml
+workflow:
+  name: "E-Mail-Triage"
+  description: "Eingehende E-Mails sortieren und vorantworten"
+
+  trigger:
+    type: "event"
+    source: "email"
+    event: "new_email"
+    filter:
+      exclude_senders: ["noreply@*", "newsletter@*"]
+
+  steps:
+    - id: "classify"
+      type: "agent"
+      prompt: |
+        Klassifiziere diese E-Mail:
+        Von: {{trigger.sender}}
+        Betreff: {{trigger.subject}}
+        Text: {{trigger.body}}
+
+        Kategorien: urgent, needs_response, informational, spam
+        Bewerte auch die Wichtigkeit von 1-5.
+      output: "classification"
+
+    - id: "route"
+      type: "condition"
+      rules:
+        - if: "classification.category == 'urgent'"
+          goto: "alert_user"
+        - if: "classification.category == 'needs_response'"
+          goto: "draft_response"
+        - if: "classification.category == 'informational'"
+          goto: "file_away"
+        - if: "classification.category == 'spam'"
+          goto: "archive"
+
+    - id: "alert_user"
+      type: "notify"
+      channel: "push"
+      priority: "high"
+      message: "Dringende E-Mail von {{trigger.sender}}: {{trigger.subject}}"
+
+    - id: "draft_response"
+      type: "agent"
+      prompt: |
+        Verfasse eine kurze, professionelle Antwort auf diese E-Mail.
+        Passe meinen üblichen Ton und Stil an.
+        Von: {{trigger.sender}}
+        Betreff: {{trigger.subject}}
+        Text: {{trigger.body}}
+      output: "draft"
+
+    - id: "save_draft"
+      skill: "email"
+      action: "save_draft"
+      params:
+        to: "{{trigger.sender}}"
+        subject: "Re: {{trigger.subject}}"
+        body: "{{draft}}"
+
+    - id: "file_away"
+      skill: "email"
+      action: "move_to_folder"
+      params:
+        folder: "Später lesen"
+
+    - id: "archive"
+      skill: "email"
+      action: "archive"
+```
+
+Dieser Workflow fängt jede eingehende E-Mail ab (außer Newslettern und No-Reply-Adressen). Der Agent klassifiziert sie, und Lobster leitet sie weiter: Dringende E-Mails bekommen eine sofortige Push-Benachrichtigung, E-Mails, die eine Antwort benötigen, bekommen einen vorgeschriebenen Entwurf gespeichert, informative E-Mails gehen in einen "Später lesen"-Ordner, und Spam wird archiviert. Du wachst mit einem aufgeräumten Posteingang auf.
+
+### 2. Meeting-Vorbereitung
+
+Vor jedem Meeting automatisch Briefing-Dokumente erstellen.
+
+```yaml
+workflow:
+  name: "Meeting-Vorbereitung"
+  description: "Kontext vor jedem Meeting vorbereiten"
+
+  trigger:
+    type: "event"
+    source: "calendar"
+    event: "upcoming_event"
+    lead_time: 15          # 15 Minuten vor dem Termin auslösen
+
+  steps:
+    - id: "get_attendees"
+      skill: "calendar"
+      action: "get_event_details"
+      params:
+        event_id: "{{trigger.event_id}}"
+      output: "event_details"
+
+    - id: "find_context"
+      type: "agent"
+      prompt: |
+        Ich habe in 15 Minuten ein Meeting:
+        Titel: {{event_details.title}}
+        Teilnehmer: {{event_details.attendees}}
+        Agenda: {{event_details.description}}
+
+        Suche in meinen Erinnerungen nach relevantem Kontext zu diesen Personen
+        und diesem Thema. Erstelle ein kurzes Briefing (unter 150 Wörtern) mit:
+        - Wichtige Punkte aus dem letzten Meeting mit diesen Personen
+        - Ausstehende Aktionspunkte
+        - Vorgeschlagene Gesprächspunkte
+      memory_search: true
+      output: "briefing"
+
+    - id: "check_docs"
+      skill: "file_manager"
+      action: "search"
+      params:
+        query: "{{event_details.title}}"
+        recency: "30 days"
+      output: "related_docs"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "push"
+      message: |
+        Meeting in 15 Min.: {{event_details.title}}
+
+        {{briefing}}
+
+        Verwandte Dokumente: {{related_docs.names}}
+```
+
+### 3. Wöchentlicher Berichtsgenerator
+
+Jeden Freitagnachmittag eine Wochenzusammenfassung zusammenstellen.
+
+```yaml
+workflow:
+  name: "Wochenbericht"
+  description: "Wöchentlichen Fortschrittsbericht erstellen und senden"
+
+  trigger:
+    type: "schedule"
+    cron: "0 16 * * 5"   # 16 Uhr jeden Freitag
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_completed_tasks"
+      skill: "jira"
+      action: "get_completed"
+      params:
+        period: "this_week"
+        assignee: "me"
+      output: "completed"
+
+    - id: "get_commits"
+      skill: "github"
+      action: "get_activity"
+      params:
+        period: "this_week"
+        user: "me"
+      output: "code_activity"
+
+    - id: "get_meetings"
+      skill: "calendar"
+      action: "get_events"
+      params:
+        period: "this_week"
+      output: "meetings"
+
+    - id: "generate_report"
+      type: "agent"
+      prompt: |
+        Schreibe einen Wochenbericht basierend auf:
+        Erledigte Aufgaben: {{completed}}
+        Code-Aktivität: {{code_activity}}
+        Besuchte Meetings: {{meetings}}
+
+        Format:
+        ## Errungenschaften
+        ## In Bearbeitung
+        ## Blockaden
+        ## Nächste Woche
+      output: "report"
+
+    - id: "render_canvas"
+      type: "canvas"
+      template: "weekly_report"
+      data:
+        tasks: "{{completed}}"
+        report_text: "{{report}}"
+      output: "visual_report"
+
+    - id: "send_report"
+      skill: "email"
+      action: "send"
+      params:
+        to: "dr.chen@techcorp.com"
+        subject: "Wochenbericht — {{date.format('MMM D')}}"
+        body: "{{report}}"
+        attachments: ["{{visual_report.export_pdf}}"]
+```
+
+### 4. Smart-Home-Routine
+
+Den abendlichen Wind-Down automatisieren.
+
+```yaml
+workflow:
+  name: "Abendliches Entspannen"
+  description: "Das Zuhause schrittweise auf den Schlaf vorbereiten"
+
+  trigger:
+    type: "schedule"
+    cron: "0 21 * * *"   # 21 Uhr täglich
+    alternative_trigger:
+      type: "voice"
+      phrase: "start wind-down"
+
+  steps:
+    - id: "dim_lights"
+      skill: "smart_home"
+      action: "set_lights"
+      params:
+        rooms: ["living_room", "bedroom"]
+        brightness: 30
+        color_temp: "warm"
+        transition: "10 minutes"
+
+    - id: "adjust_thermostat"
+      skill: "smart_home"
+      action: "set_temperature"
+      params:
+        target: 19
+        mode: "night"
+
+    - id: "check_tomorrow"
+      skill: "calendar"
+      action: "get_tomorrow_events"
+      output: "tomorrow"
+
+    - id: "prepare_summary"
+      type: "agent"
+      prompt: |
+        Gib mir eine sehr kurze Vorschau auf morgen:
+        Ereignisse: {{tomorrow}}
+        Halte es bei 2-3 Sätzen. Erwähne, ob ich wegen eines frühen Meetings
+        früher aufstehen muss.
+      output: "preview"
+
+    - id: "set_alarm"
+      type: "condition"
+      rules:
+        - if: "tomorrow.earliest_event.time < '09:00'"
+          goto: "early_alarm"
+        - else:
+          goto: "normal_alarm"
+
+    - id: "early_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "{{tomorrow.earliest_event.time - 90min}}"
+        label: "Früher Meeting-Tag"
+      goto: "goodnight"
+
+    - id: "normal_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "07:30"
+        label: "Guten Morgen"
+
+    - id: "goodnight"
+      type: "notify"
+      channel: "voice"
+      message: "{{preview}} Dein Wecker ist gestellt. Gute Nacht."
+      voice_settings:
+        voice: "flint"
+        volume: 0.3
+```
+
+### 5. Content-Recherche-Pipeline
+
+Ein Thema recherchieren, Quellen zusammenstellen und ein strukturiertes Briefing erstellen.
+
+```yaml
+workflow:
+  name: "Recherche-Pipeline"
+  description: "Tiefgehende Recherche zu einem bestimmten Thema"
+
+  trigger:
+    type: "command"
+    phrase: "/research {topic}"
+
+  input:
+    topic:
+      type: "string"
+      required: true
+
+  steps:
+    - id: "web_search"
+      skill: "web_search"
+      action: "search"
+      params:
+        query: "{{input.topic}}"
+        num_results: 20
+        recency: "6 months"
+      output: "search_results"
+
+    - id: "filter_sources"
+      type: "agent"
+      prompt: |
+        Überprüfe diese Suchergebnisse für "{{input.topic}}":
+        {{search_results}}
+
+        Wähle die 5 glaubwürdigsten und relevantesten Quellen aus.
+        Erkläre, warum jede ausgewählt wurde.
+      output: "top_sources"
+
+    - id: "deep_read"
+      skill: "web_search"
+      action: "read_pages"
+      params:
+        urls: "{{top_sources.urls}}"
+      output: "full_content"
+
+    - id: "synthesize"
+      type: "agent"
+      prompt: |
+        Basierend auf diesen Quellen über "{{input.topic}}":
+        {{full_content}}
+
+        Erstelle ein Recherche-Briefing mit:
+        ## Wichtigste Erkenntnisse (3-5 Stichpunkte)
+        ## Detaillierte Analyse (500 Wörter)
+        ## Widersprüchliche Standpunkte (falls vorhanden)
+        ## Quellen (mit Links)
+        ## Fragen für weitere Recherche
+      output: "brief"
+
+    - id: "save"
+      skill: "notes"
+      action: "create"
+      params:
+        title: "Recherche: {{input.topic}}"
+        content: "{{brief}}"
+        tags: ["research", "{{input.topic}}"]
+
+    - id: "notify"
+      type: "notify"
+      channel: "push"
+      message: "Recherche zu '{{input.topic}}' ist abgeschlossen. In deinen Notizen gespeichert."
+```
+
+Starte das mit `/research Quantencomputing-Trends` und geh weg. Komm zurück zu einem strukturierten Briefing in deinen Notizen.
+
+## Workflows verwalten
+
+```bash
+# Alle Workflows auflisten
+openclaw lobster list
+
+# Einen Workflow manuell ausführen
+openclaw lobster run "Morgen-Briefing"
+
+# Einen Workflow pausieren
+openclaw lobster pause "E-Mail-Triage"
+
+# Verlauf anzeigen
+openclaw lobster history "Wochenbericht" --last 10
+
+# Einen fehlgeschlagenen Lauf debuggen
+openclaw lobster debug --run-id run_abc123
+
+# Einen geteilten Workflow importieren
+openclaw lobster import workflow.yaml
+
+# Zum Teilen exportieren
+openclaw lobster export "Meeting-Vorbereitung" --output meeting-prep.yaml
+```
+
+## Fehlerbehandlung
+
+Workflows können scheitern — eine API könnte nicht verfügbar sein, ein Skill könnte eine Zeitüberschreitung haben. Lobster behandelt das elegant:
+
+```yaml
+workflow:
+  error_handling:
+    default: "retry_then_skip"
+    retries: 3
+    retry_delay: 10s
+
+    on_failure:
+      notify: true
+      channel: "push"
+      message: "Workflow '{{workflow.name}}' fehlgeschlagen bei Schritt '{{failed_step.id}}'"
+
+    per_step_overrides:
+      - step: "send_report"
+        on_failure: "halt"    # Den endgültigen Sendevorgang nicht überspringen — anhalten und warnen
+```
+
+## Tipps für den Workflow-Aufbau
+
+1. **Beginne mit dem Auslöser.** Was startet den Workflow? Eine Zeit, ein Ereignis, ein Befehl?
+2. **Halte Workflows fokussiert.** Ein Workflow, eine Aufgabe. "Morgen-Briefing" sollte nicht auch E-Mail-Triage erledigen.
+3. **Teste mit Trockendurchläufen.** Verwende `openclaw lobster run "Mein Workflow" --dry-run`, um zu sehen, was *passieren würde*, ohne es tatsächlich zu tun.
+4. **Verwende den Agenten-Schritt großzügig.** Wann immer du Beurteilung, Zusammenfassung oder Verarbeitung natürlicher Sprache brauchst, verwende einen Agenten-Schritt. Das ist Lobsters Superkraft gegenüber traditionellen Automatisierungstools.
+5. **Richte Fehler-Benachrichtigungen ein.** Du möchtest nicht, dass ein Workflow tagelang still scheitert. Konfiguriere immer Fehler-Warnungen.
+
+Lobster verwandelt deinen Agenten von reaktiv (antworte wenn gefragt) in proaktiv (erledige Dinge automatisch). Die besten Workflows sind die, die du einmal einrichtest und vergisst — sie machen dein Leben leise im Hintergrund einfacher.

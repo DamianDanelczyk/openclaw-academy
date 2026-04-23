@@ -1,0 +1,217 @@
+---
+title: Fluxo de Trabalho de Integração de Clientes
+description: Crie uma experiência de integração de clientes suave e automatizada que causa uma ótima primeira impressão e nunca deixa nada escapar.
+---
+
+# Fluxo de Trabalho de Integração de Clientes
+
+Os primeiros dias de um relacionamento com cliente definem o tom para tudo que vem depois. Uma experiência de integração suave constrói confiança, reduz a rotatividade e faz os clientes sentirem que fizeram a escolha certa. Uma desorganizada — acompanhamentos perdidos, solicitações de acesso esquecidas, materiais de boas-vindas atrasados — planta sementes de dúvida que são difíceis de erradicar.
+
+O playbook de Integração de Clientes transforma o OpenClaw em seu coordenador de onboarding. Ele rastreia cada etapa do processo, envia lembretes quando as coisas estão atrasadas e garante que nenhum cliente caia nas rachaduras. Seja integrando um novo cliente por mês ou dez por semana, este playbook escala com você.
+
+## A Jornada de Integração
+
+Todo negócio tem um processo de integração ligeiramente diferente, mas a maioria segue um arco similar. Este playbook organiza a integração em cinco fases:
+
+1. **Boas-vindas** (Dia 0) — Enviar e-mail de boas-vindas, apresentar contatos principais, compartilhar documentação inicial
+2. **Configuração** (Dias 1-3) — Coletar informações necessárias, provisionar acesso, configurar a conta deles
+3. **Kickoff** (Dias 3-5) — Agendar e conduzir a reunião de kickoff, definir expectativas, concordar sobre marcos
+4. **Ativação** (Dias 5-14) — Guiar o cliente pelo primeiro uso, fornecer materiais de treinamento, responder perguntas
+5. **Transferência** (Dia 14-30) — Transicionar do onboarding para o suporte contínuo, agendar o primeiro check-in
+
+O OpenClaw rastreia onde cada cliente está nessa jornada e proativamente move as coisas para frente. Se um cliente não completou o questionário de configuração até o Dia 2, o OpenClaw lembra você (ou o cliente, se preferir). Se a reunião de kickoff não foi agendada até o Dia 4, ele sinaliza.
+
+## Por Que Automatizar a Integração
+
+A integração manual funciona bem quando você tem dois ou três clientes. Mas conforme seu negócio cresce, as coisas começam a escorregar. Você esquece de enviar o pacote de boas-vindas para um cliente. As credenciais de acesso de outro cliente ficam presas na caixa de entrada de alguém. Um terceiro cliente nunca recebe sua reunião de kickoff porque todo mundo assumiu que outra pessoa estava agendando.
+
+Essas não são falhas catastróficas individualmente. Mas coletivamente, criam um padrão de desleixo que corrói a confiança do cliente. Automatizar o processo garante consistência. Cada cliente recebe a mesma experiência de alta qualidade independentemente de quão ocupada sua equipe esteja.
+
+## Antes de Começar
+
+Para configurar este playbook efetivamente, você precisa documentar seu processo atual de integração. Anote cada etapa, cada e-mail, cada formulário, cada reunião. Inclua quem é responsável por cada etapa e quanto tempo deve levar. Este exercício é valioso mesmo se você nunca automatizar — a maioria das pessoas descobre lacunas em seu processo apenas ao escrevê-lo.
+
+Uma vez que você documentou seu processo, pode mapeá-lo nos estágios de integração do OpenClaw.
+
+## Adições ao SOUL.md
+
+```markdown
+## Behaviors
+
+### Client Onboarding
+- When I say "new client: [name]" start the onboarding workflow for that client
+- Track each client through five phases: Welcome, Setup, Kickoff, Activation, Handoff
+- Each phase has a target timeline — flag any phase that is more than 1 day behind schedule
+- Send me a daily status update for all clients currently in onboarding
+- For each client, track: current phase, days in onboarding, pending actions, blockers
+- Remind me about pending actions 24 hours before they become overdue
+- When a client completes all phases, archive the onboarding and suggest scheduling a 30-day check-in
+- Keep a log of all client communications during onboarding for reference
+- If multiple clients are onboarding simultaneously, prioritize status updates by who is most at risk of falling behind
+- Never contact clients directly — always route communications through me or the designated team member
+```
+
+## Habilidades Recomendadas
+
+```yaml
+skills:
+  - name: workflow-engine
+    provider: openclaw-native
+    description: Manages multi-step workflows with dependencies and timelines
+
+  - name: email-sender
+    provider: gmail  # or outlook-mail
+    permissions: draft-only  # creates drafts, does not send
+    description: Drafts onboarding emails for your review before sending
+
+  - name: calendar-scheduler
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-write
+    config:
+      booking_link: "seu-link-calendly-ou-cal"
+    description: Schedules kickoff meetings and check-ins
+
+  - name: form-tracker
+    provider: typeform  # or google-forms, jotform
+    permissions: read-only
+    description: Monitors form submissions for client questionnaires
+
+  - name: project-creator
+    provider: notion  # or asana, monday
+    permissions: read-write
+    description: Creates onboarding project boards for each new client
+```
+
+<PremiumContent title="Configuração Completa do Playbook">
+
+## Configuração de Cron
+
+```yaml
+cron:
+  onboarding-daily-check:
+    schedule: "0 9 * * 1-5"  # Todo dia útil às 9:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: onboarding-status-check
+    config:
+      flag_overdue: true  # destacar quaisquer ações atrasadas
+      suggest_next_steps: true
+    retry:
+      attempts: 2
+      delay: 10m
+
+  onboarding-reminder:
+    schedule: "0 14 * * 1-5"  # Todo dia útil às 14:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: onboarding-pending-actions
+    config:
+      remind_threshold: 24h  # lembrar sobre ações vencendo em 24 horas
+      escalate_threshold: 48h  # escalar se atrasado por mais de 48 horas
+
+  onboarding-weekly-summary:
+    schedule: "0 17 * * 5"  # Sexta-feira às 17:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: onboarding-weekly-report
+    config:
+      include_completed: true  # mostrar clientes que concluíram onboarding esta semana
+      include_metrics: true
+```
+
+## Configuração de Canal
+
+```yaml
+channels:
+  onboarding-alerts:
+    type: slack-channel
+    config:
+      workspace: "seu-workspace"
+      channel: "#integracao-clientes"
+      format: rich
+      notify: true
+      description: "Atualizações em tempo real sobre o progresso de integração de clientes"
+
+  onboarding-personal:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: rich
+      notify: true  # notificações push para itens atrasados
+
+  onboarding-report:
+    type: email
+    config:
+      recipient: "voce@suaempresa.com"
+      subject_prefix: "[Onboarding]"
+      format: html
+```
+
+## Exemplo de Saída
+
+Aqui está uma atualização diária de status de integração:
+
+```
+STATUS DE INTEGRAÇÃO DE CLIENTES — Quinta-feira, 16 de Abril
+
+CLIENTES ATIVOS (3)
+
+1. Meridian Corp — Fase: Configuração (Dia 2 de 3)
+   Status: No prazo
+   Concluído: E-mail de boas-vindas enviado, chamada de apresentação feita
+   Pendente: Aguardando questionário preenchido deles (enviado ontem)
+   Próximo: Agendar reunião de kickoff quando questionário for recebido
+   Risco: Baixo
+
+2. BlueHarbor LLC — Fase: Kickoff (Dia 5 de 5)
+   Status: ATRASADO
+   Concluído: Boas-vindas, configuração, questionário recebido
+   Pendente: Reunião de kickoff ainda não agendada
+   Bloqueio: CEO deles está viajando esta semana — assistente sugeriu próxima terça
+   Próximo: Confirmar terça às 10h para kickoff
+   Risco: Médio — sugerir enviar um documento de kickoff assíncrono enquanto isso
+
+3. Cascade Digital — Fase: Ativação (Dia 8 de 14)
+   Status: No prazo
+   Concluído: Boas-vindas, configuração, reunião de kickoff (correu muito bem)
+   Pendente: Ainda não fizeram login na plataforma
+   Próximo: Enviar e-mail de walkthrough guiado com link de tutorial em vídeo
+   Risco: Baixo-Médio — primeiro login é um momento crítico de ativação, fazer acompanhamento hoje
+
+CONCLUÍDOS RECENTEMENTE
+  Northwind Partners — Concluiu onboarding em 14 de Abril (12 dias no total)
+  Check-in de 30 dias agendado para 14 de Maio às 15:00
+```
+
+Aqui está como um alerta de atraso se parece:
+
+```
+ALERTA DE INTEGRAÇÃO — Ação Atrasada
+
+Cliente: BlueHarbor LLC
+Fase: Kickoff
+Item atrasado: Reunião de kickoff (deveria ter sido agendada até o Dia 4)
+Dias de atraso: 1
+
+Contexto: O CEO Marcus está viajando. Sua assistente Jen ofereceu
+próxima terça às 10h.
+
+Ações sugeridas:
+  1. Confirmar o horário de terça com Jen
+  2. Enviar a Marcus um breve resumo de kickoff assíncrono para manter o momentum
+  3. Compartilhar as credenciais de login da plataforma para que possam explorar independentemente
+
+Responda "confirmar terça 10h com BlueHarbor" para prosseguir.
+```
+
+## Tornando-o Seu
+
+- **Fases personalizadas**: O modelo de cinco fases é um ponto de partida. Adicione, remova ou renomeie fases para corresponder ao seu processo real. Alguns negócios precisam de uma fase de "Revisão Jurídica". Outros podem pular a "Ativação" porque o produto é self-service.
+- **Biblioteca de templates**: Crie templates de e-mail para cada fase. O OpenClaw os personalizará com o nome do cliente, empresa e detalhes relevantes antes de criar rascunhos para sua revisão.
+- **Atualizações voltadas ao cliente**: Alguns usuários configuram um canal compartilhado ou sequência de e-mail onde os clientes podem ver seu próprio progresso de integração. Isso constrói transparência e reduz perguntas do tipo "onde estamos?".
+- **Rastreamento de métricas**: Com o tempo, o OpenClaw mostrará a duração média de integração, gargalos mais comuns e quais fases tendem a demorar mais do que o esperado. Use esses dados para melhorar seu processo.
+
+</PremiumContent>
+
+<CTACard variant="community" />

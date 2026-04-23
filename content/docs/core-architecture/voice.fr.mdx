@@ -1,0 +1,299 @@
+---
+title: Voix
+description: Configurez les mots de réveil, le Mode Vocal, et les interactions vocales pratiques avec votre assistant OpenClaw.
+---
+
+# Voix
+
+La frappe est idéale pour la précision. Mais parfois vous voulez simplement parler. Le système vocal d'OpenClaw vous permet d'avoir des conversations orales naturelles avec votre agent — en mode mains libres, sur n'importe quel appareil. Que vous fassiez la cuisine, conduisiez, ou soyez simplement trop confortablement installé sur le canapé pour attraper votre clavier, la voix rend votre assistant vraiment accessible.
+
+## Configuration du Mot de Réveil
+
+Le mot de réveil est la façon d'attirer l'attention de votre agent sans toucher un appareil. Par défaut, c'est **"Hey Claw"**, mais vous pouvez le personnaliser.
+
+```yaml
+# voice/wake-word.yaml
+wake_word:
+  phrase: "Hey Claw"
+  sensitivity: 0.7          # 0.0 (ne se déclenche jamais) à 1.0 (se déclenche sur tout)
+  processing: "on_device"   # La détection du mot de réveil ne quitte jamais votre appareil
+
+  alternatives:
+    - "OK Claw"
+    - "Claw"                 # Un seul mot, fonctionne mais plus de faux positifs
+
+  custom:
+    enabled: true
+    phrase: "Hey Atlas"      # Utilisez le nom de votre agent comme mot de réveil
+    training_samples: 10     # Dites-le 10 fois pour entraîner le modèle
+
+  behavior:
+    confirmation_sound: true          # Son quand activé
+    confirmation_sound_file: "soft_chime.wav"
+    listen_timeout: 10                # Secondes d'attente pour la parole
+    cancel_phrase: "laisse tomber"
+    ambient_noise_adaptation: true    # S'ajuste au bruit ambiant
+```
+
+Quelques notes sur la sensibilité :
+
+- **0,5 - 0,6** — se déclenche rarement accidentellement mais vous devrez peut-être parler clairement et directement vers l'appareil.
+- **0,7** — le point idéal pour la plupart des gens. Fiable sans trop de faux positifs.
+- **0,8 - 0,9** — très sensible. Bon dans les environnements calmes, mais peut se déclencher à la télévision ou aux conversations proches.
+
+### Entraînement du Mot de Réveil Personnalisé
+
+Si vous voulez un mot de réveil personnalisé (comme le nom de votre agent), OpenClaw entraîne un petit modèle embarqué :
+
+```bash
+# Démarrer l'entraînement du mot de réveil
+openclaw voice train-wake-word "Hey Atlas"
+
+# La CLI vous demandera de dire la phrase 10 fois dans différentes
+# conditions (calme, bruyant, proche, loin).
+
+# Tester le nouveau mot de réveil
+openclaw voice test-wake-word
+
+# Revenir au mot par défaut
+openclaw voice reset-wake-word
+```
+
+L'entraînement prend environ deux minutes. Dites votre mot de réveil à différentes distances et volumes pour les meilleurs résultats. Le modèle s'exécute entièrement sur votre appareil — vos échantillons vocaux ne le quittent jamais.
+
+## Mode Vocal
+
+Le Mode Vocal est un mode de conversation continue où vous n'avez pas besoin du mot de réveil pour chaque échange. Activez-le une fois, et vous pouvez avoir une conversation naturelle, comme parler à une autre personne.
+
+```yaml
+# voice/talk-mode.yaml
+talk_mode:
+  activation:
+    trigger: "Hey Claw, parlons"
+    hotkey: "hold_volume_button"     # Dépend de la plateforme
+    auto_activate: false
+
+  behavior:
+    continuous_listening: true
+    turn_detection: "voice_activity"  # Détecte quand vous arrêtez de parler
+    pause_threshold: 1.5              # Secondes de silence = votre tour est terminé
+    interrupt_allowed: true           # Vous pouvez interrompre en cours de réponse
+
+  response:
+    voice: "ember"                    # Options : ember, sage, nova, flint
+    speed: 1.0                        # 0,5 (lent) à 2,0 (rapide)
+    pitch: "natural"
+    language: "auto_detect"
+
+  deactivation:
+    phrase: "C'est tout, merci"
+    auto_timeout: 300                 # Fin du Mode Vocal après 5 min de silence
+    explicit_only: false              # Se termine aussi par expiration
+```
+
+### Options de Voix
+
+OpenClaw est livré avec plusieurs voix :
+
+```yaml
+voices:
+  ember:
+    description: "Chaleureuse, médiane, conversationnelle"
+    best_for: "usage quotidien, assistant personnel"
+    gender_presentation: "neutral"
+
+  sage:
+    description: "Calme, mesurée, autoritaire"
+    best_for: "contextes professionnels, briefings"
+    gender_presentation: "neutral"
+
+  nova:
+    description: "Lumineuse, énergique, dynamique"
+    best_for: "séances créatives, brainstorming"
+    gender_presentation: "neutral"
+
+  flint:
+    description: "Grave, constante, minimale"
+    best_for: "environnements calmes, usage nocturne"
+    gender_presentation: "neutral"
+```
+
+Vous pouvez changer de voix à la volée :
+
+```
+Vous : Passe à la voix sage.
+OpenClaw (maintenant avec la voix sage) : C'est fait. J'utiliserai cette voix à l'avenir.
+```
+
+## Configuration de la Parole vers Texte
+
+Quand vous parlez, OpenClaw convertit votre voix en texte avant de traiter. Vous contrôlez comment cela fonctionne :
+
+```yaml
+speech_to_text:
+  engine: "whisper-large-v3"
+  processing: "hybrid"       # on_device pour les courts, cloud pour les longs
+  threshold:
+    on_device_max: 30        # Secondes — traiter sur l'appareil jusqu'à 30s
+    cloud_above: 30          # Audio plus long vers le cloud
+
+  language:
+    primary: "fr"
+    secondary: "en"
+    auto_detect: true
+    code_switching: true     # Gérer les changements de langue en milieu de phrase
+
+  enhancements:
+    punctuation: true        # Ajouter automatiquement la ponctuation
+    profanity_filter: false  # Ne pas censurer
+    domain_vocabulary:
+      - "OpenClaw"
+      - "ClawHub"
+      - "SOUL.md"
+      - "Pi runtime"
+
+  privacy:
+    audio_retention: "none"  # Ne pas stocker l'audio brut
+    transcription_retention: "session"  # Conservé pour la session, puis supprimé
+```
+
+Le paramètre `domain_vocabulary` est important. Il apprend au moteur de parole vers texte à transcrire correctement les mots qu'il pourrait ne pas connaître — comme "OpenClaw" au lieu de "open claw" ou "SOUL.md" au lieu de "soul MD".
+
+## Cas d'Usage Pratiques de la Voix
+
+### Briefing Matinal
+
+```
+Vous : Hey Claw, bonjour. À quoi ressemble ma journée ?
+
+OpenClaw : Bonjour. Vous avez trois réunions aujourd'hui.
+D'abord un standup à 10h avec l'équipe produit.
+Ensuite déjeuner avec Sarah à 12h30 — elle a suggéré le nouveau restaurant
+rue Saint-Honoré. Votre 1:1 avec Dr. Chen est à 15h.
+Entre les réunions, vous avez environ deux heures de temps de concentration.
+Oh, et il fait 12 degrés et partiellement nuageux — vous voudrez peut-être une veste.
+```
+
+Cela fonctionne parfaitement comme interaction vocale pendant que vous préparez votre café. Pas d'écran requis.
+
+### Cuisine Mains Libres
+
+```
+Vous : Hey Claw, parlons.
+
+OpenClaw : Mode Vocal actif. Qu'est-ce qu'il y a ?
+
+Vous : Je fais ce risotto aux champignons. Guidez-moi étape par étape.
+
+OpenClaw : Bien sûr. D'abord, tranchez vos champignons et faites chauffer votre bouillon
+sur un brûleur à l'arrière. Prêt pour l'étape un ?
+
+Vous : Prêt.
+
+OpenClaw : Faites chauffer deux cuillères à soupe d'huile d'olive dans une large poêle
+à feu moyen. Ajoutez un oignon en dés et faites cuire jusqu'à ce qu'il soit tendre, environ cinq minutes.
+
+Vous : Fait, c'est quoi la suite ?
+
+OpenClaw : Ajoutez le riz arborio — environ une tasse et demie. Remuez-le
+pendant une minute jusqu'à ce que les grains soient enrobés et légèrement translucides
+sur les bords.
+
+Vous : Attends, dois-je ajouter de l'ail ?
+
+OpenClaw : Bonne idée. Ajoutez deux gousses émincées juste après que l'oignon
+ramollisse, avant le riz. Faites cuire l'ail seulement 30 secondes pour qu'il
+ne brûle pas.
+```
+
+Remarquez comment le Mode Vocal vous permet d'avoir une vraie conversation naturelle sans dire le mot de réveil à chaque fois. Et vous pouvez interrompre ou poser des questions en cours de recette.
+
+### Mode Conduite
+
+```yaml
+# voice/driving-mode.yaml
+driving_mode:
+  activation: "Hey Claw, je conduis"
+  behavior:
+    responses: "voice_only"      # Ne jamais afficher de contenu visuel
+    length: "extra_concise"      # Garder les réponses très courtes
+    confirmations: "verbal"      # "Dois-je envoyer ça ?" au lieu d'afficher un brouillon
+    no_questions: true            # Ne pas poser de questions de clarification, faire le meilleur choix
+    emergency_override: true     # Toujours alerter pour les messages urgents
+
+  allowed_skills:
+    - navigation
+    - music
+    - calls
+    - messages_read_only
+  blocked_skills:
+    - email_compose
+    - code_exec
+    - file_manager
+```
+
+Le mode conduite est une fonctionnalité de sécurité. Il restreint ce que l'agent peut faire, force la sortie vocale uniquement et garde les réponses ultra-courtes. Votre agent ne vous demandera pas de regarder un écran.
+
+### Notes Rapides en Réunion
+
+```
+Vous : Hey Claw, note rapide. Sarah veut déplacer la date limite
+au 15 mai. Mike a repoussé mais a accepté si on réduit la portée du
+tableau de bord analytique. Décision : on livrera sans les graphiques
+en temps réel et on les ajoutera dans la v2.
+
+OpenClaw : Compris. Sauvegardé :
+  - Sarah a proposé un changement de date limite au 15 mai
+  - Mike a accepté sous condition : réduire la portée du tableau de bord analytique
+  - Décision : livrer sans les graphiques en temps réel, ajouter dans la v2
+  Voulez-vous que j'envoie ce résumé à l'équipe ?
+```
+
+Notes vocales capturées, structurées et prêtes à partager — tout en marchant depuis la salle de conférence.
+
+### Routine du Coucher
+
+```yaml
+# voice/night-mode.yaml
+night_mode:
+  activation:
+    time: "22:00"
+    manual: "Hey Claw, mode nocturne"
+
+  behavior:
+    voice: "flint"             # Voix grave et douce
+    volume: 0.4                # Volume réduit
+    responses: "minimal"       # Réponses très courtes
+    no_proactive: true         # Ne pas proposer des informations spontanément
+
+  sleep_sounds:
+    enabled: true
+    trigger: "joue des sons de sommeil"
+    options: ["rain", "ocean", "forest", "white_noise"]
+    timer: 30                  # Arrêt automatique après 30 minutes
+```
+
+## Dépannage de la Voix
+
+Problèmes courants et corrections :
+
+```bash
+# Tester votre microphone
+openclaw voice mic-test
+
+# Vérifier la détection du mot de réveil
+openclaw voice debug-wake-word
+# Affiche les scores de confiance en temps réel pendant que vous parlez
+
+# Recalibrer pour un nouvel environnement
+openclaw voice calibrate
+# Ajuste le seuil de bruit et la sensibilité pour votre espace actuel
+
+# Vérifier la latence vocale
+openclaw voice latency-test
+# Affiche la répartition du temps de traitement : STT → traitement → TTS
+```
+
+Si votre mot de réveil se déclenche trop souvent, réduisez la sensibilité. S'il manque votre voix, augmentez-la. Si la reconnaissance vocale se trompe sur les mots, ajoutez-les à la liste `domain_vocabulary`. La plupart des problèmes vocaux se ramènent à ces trois ajustements.
+
+La voix est l'une de ces fonctionnalités qui semble gimmick jusqu'à ce que vous l'utilisiez dans le bon contexte. Cuisine, conduite, routines matinales, notes rapides en déplacement — une fois que vous trouvez vos cas d'usage, vous vous demanderez comment vous tapiez tout auparavant.

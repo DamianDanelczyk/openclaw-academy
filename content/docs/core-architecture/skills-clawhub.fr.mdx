@@ -1,0 +1,335 @@
+---
+title: Compétences & ClawHub
+description: Étendez OpenClaw avec des compétences de ClawHub ou construisez les vôtres — un guide sur les meilleures compétences, l'installation et le développement personnalisé.
+---
+
+# Compétences & ClawHub
+
+Par défaut, OpenClaw peut parler. Avec des **compétences**, il peut *agir*. Les compétences sont des capacités modulaires qui permettent à votre agent d'interagir avec le monde extérieur — vérifier votre calendrier, envoyer des e-mails, rechercher sur le web, contrôler des appareils domotiques, exécuter du code, et des centaines d'autres. **ClawHub** est la place de marché où vous les trouvez, installez et partagez.
+
+## Qu'est-ce qu'une Compétence ?
+
+Une compétence est un package autonome qui donne à votre agent une nouvelle capacité. Elle définit :
+
+- **Ce qu'elle peut faire** — les actions qu'elle prend en charge
+- **Ce dont elle a besoin** — toutes les clés API, permissions ou configurations
+- **Quand l'utiliser** — les conditions de déclenchement et la correspondance d'intention
+
+Quand vous dites "Qu'est-ce qu'il y a à mon calendrier aujourd'hui ?", votre agent ne connaît pas magiquement votre emploi du temps. La compétence `calendar` se connecte à Google Agenda (ou Outlook, ou Apple Calendar), récupère vos événements et les renvoie dans un format que votre agent peut vous présenter.
+
+## Top 20 des Compétences sur ClawHub
+
+Voici les compétences les plus populaires, classées par installations :
+
+| # | Compétence | Ce qu'elle fait | Installations |
+|---|-------|-------------|----------|
+| 1 | `calendar` | Gérer les événements sur Google, Outlook, Apple | 284K |
+| 2 | `email` | Lire, rédiger, envoyer et organiser les e-mails | 261K |
+| 3 | `web_search` | Rechercher sur le web avec attribution des sources | 249K |
+| 4 | `notes` | Créer et gérer des notes (Notion, Obsidian, Apple Notes) | 198K |
+| 5 | `reminders` | Définir, gérer et délivrer des rappels | 187K |
+| 6 | `weather` | Données météo actuelles et prévisions | 176K |
+| 7 | `smart_home` | Contrôler lumières, thermostats, serrures (HomeKit, Hue, etc.) | 164K |
+| 8 | `music` | Lire, mettre en pause, mettre en file d'attente la musique (Spotify, Apple Music) | 152K |
+| 9 | `code_exec` | Exécuter du code dans des environnements bac à sable | 143K |
+| 10 | `file_manager` | Lire, écrire, organiser les fichiers sur vos appareils | 138K |
+| 11 | `translator` | Traduction en temps réel dans 95 langues | 127K |
+| 12 | `finance` | Suivre les dépenses, budgets et investissements | 119K |
+| 13 | `github` | Gérer les dépôts, PRs, issues | 112K |
+| 14 | `shopping` | Comparaison de prix et listes d'achats | 104K |
+| 15 | `recipes` | Planification de repas et gestion de recettes | 97K |
+| 16 | `travel` | Recherche de vols, réservation d'hôtels, planification d'itinéraires | 89K |
+| 17 | `fitness` | Suivi des entraînements et intégration des données de santé | 82K |
+| 18 | `news` | Actualités sélectionnées depuis vos sources préférées | 78K |
+| 19 | `slack` | Lire et envoyer des messages Slack | 71K |
+| 20 | `pdf` | Lire, résumer et extraire des données de PDFs | 65K |
+
+## Installer des Compétences depuis ClawHub
+
+Installer une compétence ne prend qu'une ligne :
+
+```bash
+# Installer une seule compétence
+openclaw skill install calendar
+
+# Installer plusieurs compétences à la fois
+openclaw skill install calendar email web_search notes
+
+# Installer une version spécifique
+openclaw skill install github@2.4.1
+
+# Parcourir les compétences disponibles
+openclaw skill search "gestion de projet"
+
+# Voir ce qui est installé
+openclaw skill list
+```
+
+Après l'installation, la plupart des compétences nécessitent une configuration — généralement une clé API ou une connexion de compte :
+
+```bash
+# Configurer une compétence de manière interactive
+openclaw skill setup calendar
+```
+
+Cela lance une configuration guidée qui vous accompagne dans la connexion de votre compte, la définition des permissions et le test de la connexion.
+
+### Fichier de Configuration de Compétence
+
+En coulisses, les configurations de compétences vivent dans un fichier YAML :
+
+```yaml
+# skills/calendar.yaml
+skill: calendar
+version: "3.2.0"
+source: "clawhub/official"
+
+auth:
+  provider: "google"
+  credentials: "${GOOGLE_OAUTH_TOKEN}"
+  scopes:
+    - "calendar.readonly"
+    - "calendar.events"
+
+settings:
+  default_calendar: "Travail"
+  time_format: "24h"
+  timezone: "Europe/Warsaw"
+  reminder_default: 15  # minutes avant l'événement
+
+permissions:
+  can_create_events: true
+  can_delete_events: false  # Sécurité : nécessite confirmation
+  can_invite_others: true
+  can_access_other_calendars: false
+
+triggers:
+  - intent: "check_schedule"
+    examples: ["qu'est-ce qu'il y a à mon calendrier", "des réunions aujourd'hui", "suis-je libre à 15h"]
+  - intent: "create_event"
+    examples: ["planifier une réunion", "ajouter à mon calendrier", "réserver du temps pour"]
+```
+
+Remarquez le paramètre `can_delete_events: false`. Vous pouvez contrôler exactement ce qu'une compétence est autorisée à faire, même si elle *prend en charge* davantage. C'est ainsi que vous empêchez votre agent de supprimer accidentellement votre réunion de 15h.
+
+## Créer des Compétences Personnalisées
+
+ClawHub dispose de centaines de compétences, mais parfois vous avez besoin de quelque chose de spécifique à votre flux de travail. Créer une compétence personnalisée est simple.
+
+### Structure d'une Compétence
+
+```
+my-custom-skill/
+├── manifest.yaml      # Métadonnées et configuration
+├── handler.py         # Logique principale
+├── triggers.yaml      # Quand la compétence s'active
+├── test/
+│   └── test_handler.py
+└── README.md
+```
+
+### Le Manifeste
+
+```yaml
+# manifest.yaml
+name: "jira-standup"
+version: "1.0.0"
+author: "damian"
+description: "Génère des résumés de standup quotidiens depuis Jira"
+runtime: "python3.11"
+
+dependencies:
+  - jira-client>=3.0
+  - markdown2>=2.4
+
+auth:
+  required:
+    - name: "JIRA_API_TOKEN"
+      description: "Votre token API Jira"
+    - name: "JIRA_URL"
+      description: "L'URL de votre instance Jira"
+
+permissions:
+  network: true        # Doit appeler l'API Jira
+  filesystem: false    # Pas d'accès aux fichiers nécessaire
+  execute: false       # Pas d'exécution shell
+```
+
+### Le Handler
+
+```python
+# handler.py
+from openclaw_sdk import Skill, SkillResponse
+from jira import JIRA
+
+class JiraStandupSkill(Skill):
+    def setup(self):
+        self.jira = JIRA(
+            server=self.config["JIRA_URL"],
+            token_auth=self.config["JIRA_API_TOKEN"]
+        )
+
+    def handle(self, intent: str, params: dict) -> SkillResponse:
+        if intent == "generate_standup":
+            return self.generate_standup(params.get("user", "currentUser()"))
+
+    def generate_standup(self, user: str) -> SkillResponse:
+        # Obtenir les issues mises à jour hier
+        yesterday_issues = self.jira.search_issues(
+            f'assignee = {user} AND updated >= -1d ORDER BY updated DESC'
+        )
+
+        # Obtenir les issues du sprint actuel
+        in_progress = self.jira.search_issues(
+            f'assignee = {user} AND status = "In Progress"'
+        )
+
+        standup = {
+            "completed_yesterday": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in yesterday_issues
+                if i.fields.status.name == "Done"
+            ],
+            "working_on_today": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+            ],
+            "blockers": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+                if hasattr(i.fields, 'flagged') and i.fields.flagged
+            ]
+        }
+
+        return SkillResponse(
+            data=standup,
+            display="standup_template",
+            summary=f"Trouvé {len(standup['completed_yesterday'])} terminé(s), "
+                    f"{len(standup['working_on_today'])} en cours"
+        )
+```
+
+### Déclencheurs
+
+```yaml
+# triggers.yaml
+triggers:
+  - intent: "generate_standup"
+    examples:
+      - "génère mon standup"
+      - "sur quoi ai-je travaillé hier"
+      - "rapport standup"
+      - "mise à jour quotidienne depuis Jira"
+    params:
+      user:
+        type: "string"
+        default: "currentUser()"
+        description: "Nom d'utilisateur Jira"
+```
+
+### Tester et Publier
+
+```bash
+# Tester localement
+openclaw skill test ./my-custom-skill
+
+# Exécuter la suite de tests
+openclaw skill test ./my-custom-skill --run-tests
+
+# Publier sur ClawHub
+openclaw skill publish ./my-custom-skill
+
+# Publier en privé (seul vous pouvez l'installer)
+openclaw skill publish ./my-custom-skill --private
+```
+
+## Considérations de Sécurité
+
+Les compétences peuvent être puissantes, ce qui signifie qu'elles ont besoin de garde-fous.
+
+### Modèle de Permission
+
+Chaque compétence déclare ce dont elle a besoin, et vous approuvez ou refusez :
+
+```yaml
+# Ce qu'une compétence demande vs ce que vous accordez
+skill: smart_home
+requested_permissions:
+  network: true        # Doit communiquer avec le hub domotique
+  filesystem: false
+  execute: false
+  location: true       # Veut la localisation pour le geofencing
+
+granted_permissions:
+  network: true        # Approuvé
+  location: false      # Refusé — je ne veux pas de geofencing
+```
+
+### Bac à Sable
+
+Les compétences s'exécutent dans des bacs à sable isolés. Une compétence défaillante ne peut pas :
+
+- Accéder aux données d'autres compétences
+- Lire directement votre USER.md ou SOUL.md
+- Effectuer des appels réseau au-delà de ses points de terminaison déclarés
+- Exécuter des commandes système (sauf si explicitement autorisé)
+- Persister des données en dehors de son espace de stockage alloué
+
+```yaml
+# Politique de sécurité pour les compétences
+security:
+  sandbox:
+    enabled: true
+    network_allowlist:
+      calendar: ["*.googleapis.com"]
+      email: ["*.gmail.com", "*.outlook.com"]
+      smart_home: ["192.168.1.0/24"]  # Réseau local uniquement
+    resource_limits:
+      max_memory: "256MB"
+      max_cpu_time: "10s"
+      max_storage: "100MB"
+  audit:
+    log_all_actions: true
+    alert_on_permission_escalation: true
+  review:
+    require_review_for: ["filesystem", "execute"]
+    auto_approve: ["network"]  # Si dans la liste blanche
+```
+
+### Vérification sur ClawHub
+
+Les compétences sur ClawHub passent par un processus de révision :
+
+- **Compétences officielles** (par l'équipe OpenClaw) sont entièrement auditées.
+- **Compétences vérifiées** (par des développeurs connus) font l'objet d'une revue de code.
+- **Compétences communautaires** sont examinées par les pairs et signalées si des problèmes surviennent.
+- **Compétences privées** ne sont pas soumises à révision (seul vous les utilisez).
+
+Vérifiez toujours les permissions d'une compétence avant de l'installer. Si une compétence météo demande l'accès au système de fichiers, c'est un signal d'alarme.
+
+## Gérer les Compétences Installées
+
+```bash
+# Mettre à jour toutes les compétences
+openclaw skill update
+
+# Mettre à jour une compétence spécifique
+openclaw skill update calendar
+
+# Désactiver une compétence sans la désinstaller
+openclaw skill disable music
+
+# Supprimer complètement une compétence
+openclaw skill uninstall shopping
+
+# Vérifier les avis de sécurité
+openclaw skill audit
+```
+
+## Conseils pour Tirer le Meilleur des Compétences
+
+1. **Commencez avec les quatre essentielles :** calendar, email, web_search et notes couvrent 80% de ce dont la plupart des gens ont besoin.
+2. **Configurez les permissions strictement.** Si une compétence peut supprimer des éléments, envisagez de désactiver cette fonctionnalité jusqu'à ce que vous lui fassiez confiance.
+3. **Vérifiez les mises à jour mensuellement.** Les compétences s'améliorent, les bugs sont corrigés et les correctifs de sécurité sont déployés.
+4. **Construisez avant de parcourir.** Si votre flux de travail est unique, une compétence personnalisée parfaitement adaptée vaut mieux qu'une générale qui fonctionne à peu près.
+5. **Lisez les permissions.** Cinq secondes de lecture peuvent empêcher une compétence d'accéder à des choses auxquelles elle ne devrait pas.

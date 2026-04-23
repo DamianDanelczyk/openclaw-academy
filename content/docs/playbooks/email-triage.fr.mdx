@@ -1,0 +1,213 @@
+---
+title: Tri et Priorisation des E-mails
+description: Laissez OpenClaw trier, prioriser et faire remonter automatiquement les e-mails qui comptent vraiment pour vous.
+---
+
+# Tri et Priorisation des E-mails
+
+Si vous ressemblez à la plupart des professionnels, votre boîte de réception est une zone de guerre. Des newsletters auxquelles vous avez voulu vous désabonner, des chaînes de copies carbone qui n'ont rien à voir avec vous, des argumentaires de vendeurs déguisés en messages personnels, et enfouis quelque part dans tout ça, les trois e-mails qui nécessitent vraiment votre attention aujourd'hui.
+
+Le playbook de Tri des E-mails apprend à OpenClaw à trier le bruit pour que vous ne traitiez que ce qui compte. Il ne supprime rien et n'envoie pas de réponses en votre nom (sauf si vous le voulez). Il lit simplement, catégorise et fait remonter les e-mails qui méritent votre temps et votre attention.
+
+## Comment Ça Fonctionne
+
+OpenClaw se connecte à votre boîte de réception avec un accès en lecture seule et analyse périodiquement les nouveaux messages. Pour chaque e-mail, il évalue plusieurs facteurs :
+
+- **Importance de l'expéditeur** : S'agit-il de quelqu'un avec qui vous interagissez régulièrement ? Un client ? Votre responsable ? Un inconnu ?
+- **Urgence du contenu** : L'e-mail contient-il des délais, des questions qui vous sont adressées directement, ou des demandes urgentes ?
+- **Contexte du fil** : S'agit-il d'une conversation en cours à laquelle vous avez participé ?
+- **Correspondance de modèles** : Sur la base de votre comportement passé, êtes-vous susceptible d'ouvrir et d'agir sur cet e-mail ?
+
+Sur la base de cette évaluation, OpenClaw attribue à chaque e-mail l'un des quatre compartiments :
+
+1. **Agir Maintenant** — E-mails nécessitant une réponse ou une action aujourd'hui
+2. **À Lire** — Vaut la peine d'être lu mais pas urgent
+3. **Pour Information** — Informatif, aucune action nécessaire
+4. **Bruit** — Newsletters, notifications automatiques, marketing
+
+Vous recevez un résumé livré sur votre canal préféré avec les éléments « Agir Maintenant » en premier plan. Tout le reste est organisé et en attente pour quand vous aurez le temps.
+
+## Pourquoi C'est Important
+
+La surcharge d'e-mails n'est pas seulement agaçante. C'est réellement coûteux. Des études suggèrent que le travailleur de la connaissance moyen passe plus de deux heures par jour sur les e-mails, et une grande partie de ce temps est consacrée à décider quoi lire plutôt qu'à le lire réellement. En automatisant l'étape de tri, vous récupérez une part significative de votre journée.
+
+Plus important encore, vous arrêtez de manquer des e-mails importants. Quand tout se trouve dans une pile indifférenciée, les messages critiques se retrouvent enfouis. Quand OpenClaw fait remonter les importants, rien ne passe à travers les mailles.
+
+## Configurer Vos Règles
+
+Avant de configurer le côté technique, prenez quelques minutes pour réfléchir à vos habitudes e-mail. Demandez-vous :
+
+- Quels expéditeurs doivent toujours être signalés comme haute priorité ?
+- Y a-t-il des domaines que vous voulez toujours déprioritiser (comme les outils marketing ou les notifications de réseaux sociaux) ?
+- Voulez-vous qu'OpenClaw traite les e-mails internes différemment des externes ?
+- Y a-t-il des mots-clés qui signalent toujours l'urgence pour vous (comme « délai », « approbation requise », ou un nom de projet spécifique) ?
+
+Notez-les. Vous les utiliserez dans votre configuration SOUL.md.
+
+## Ajouts à SOUL.md
+
+Ajoutez ces comportements à votre fichier SOUL.md :
+
+```markdown
+## Behaviors
+
+### Email Triage
+- Scan incoming emails every 30 minutes during business hours
+- Categorize each email into: Act Now, Review, FYI, or Noise
+- Always treat emails from direct reports, my manager, and active clients as high priority
+- Flag any email that contains a question directed at me or a deadline within 48 hours
+- Group newsletter and marketing emails into a weekly digest instead of showing them individually
+- Never mark an email as Noise if the sender has emailed me directly (not CC) more than 3 times this month
+- When summarizing an email, include: sender, subject, one-sentence summary, and suggested action
+- Do not include the full email body in summaries — just enough context to decide if I need to read it
+```
+
+## Compétences Recommandées
+
+```yaml
+skills:
+  - name: email-scanner
+    provider: gmail  # or outlook-mail
+    permissions: read-only
+    description: Reads incoming emails and metadata
+
+  - name: contact-resolver
+    provider: google-contacts  # or outlook-contacts
+    permissions: read-only
+    description: Identifies sender relationships and importance
+
+  - name: email-labeler
+    provider: gmail
+    permissions: read-write  # needed to apply labels/categories
+    description: Applies triage labels to emails in your inbox
+
+  - name: digest-composer
+    provider: openclaw-native
+    description: Compiles email summaries into formatted digests
+```
+
+<PremiumContent title="Configuration Complète du Playbook">
+
+## Configuration Cron
+
+Le playbook de tri des e-mails fonctionne selon deux planifications : des analyses fréquentes pendant les heures de bureau et un résumé quotidien :
+
+```yaml
+cron:
+  email-triage-scan:
+    schedule: "*/30 8-18 * * 1-5"  # Toutes les 30 minutes, de 8h à 18h, jours ouvrables
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: email-triage-scan
+    config:
+      mode: incremental  # only scan new emails since last run
+      label_in_inbox: true  # apply triage labels directly in Gmail/Outlook
+    retry:
+      attempts: 1
+      delay: 5m
+
+  email-triage-summary:
+    schedule: "0 9 * * 1-5"  # Résumé quotidien à 9h00
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: email-triage-summary
+    config:
+      lookback: 14h  # couvrir les e-mails de la nuit
+      include_stats: true  # montrer la répartition du volume d'e-mails
+```
+
+## Configuration des Canaux
+
+```yaml
+channels:
+  email-urgent:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: true  # envoyer une notification push pour les e-mails Agir Maintenant
+      batch_window: 15m  # regrouper les e-mails Agir Maintenant par fenêtres de 15 min pour réduire les interruptions
+
+  email-daily-digest:
+    type: email
+    config:
+      recipient: "you@yourcompany.com"
+      subject_prefix: "[OpenClaw Digest]"
+      format: html
+      include_categories: ["Review", "FYI"]
+
+  email-noise-weekly:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: compact
+      schedule: "weekly"  # remplace le cron — livré une fois par semaine
+```
+
+## Exemple de Sortie
+
+Voici à quoi ressemble une alerte d'e-mail urgent dans Slack :
+
+```
+TRI D'E-MAILS — 2 e-mails nécessitent votre attention
+
+AGIR MAINTENANT
+
+1. De : Lisa Park (VP Ventes)
+   Objet : "Approbation de contrat requise avant la fin de journée"
+   Résumé : Lisa a besoin de votre signature sur le contrat Meridian Corp.
+   Le client veut le finaliser avant 17h aujourd'hui.
+   Action suggérée : Réviser le contrat joint et répondre avec votre approbation.
+
+2. De : Équipe Dev (via Jira)
+   Objet : "Incident de production — pic de latence API"
+   Résumé : Les temps de réponse de l'API ont grimpé à 4s en moyenne dans la dernière heure.
+   L'ingénieur d'astreinte enquête mais vous a signalé en tant qu'escalade.
+   Action suggérée : Vérifier le canal d'incident et confirmer que vous êtes au courant.
+```
+
+Et voici un extrait de l'e-mail de digest quotidien :
+
+```
+DIGEST E-MAIL QUOTIDIEN — Mercredi 15 Avril
+
+Volume : 47 e-mails reçus depuis hier
+  Agir Maintenant : 3 (tous traités)
+  À Lire : 8
+  Pour Information : 14
+  Bruit : 22
+
+À LIRE (8 e-mails)
+
+  Équipe Marketing — "Aperçu des Résultats de la Campagne Q2"
+    Les premiers chiffres de la campagne de printemps semblent prometteurs. Rapport complet vendredi.
+
+  RH — "Politique de Congés Mise à Jour"
+    Modifications mineures aux règles de report. Vaut la peine d'être lu quand vous avez un moment.
+
+  Alex Rivera — "Vos Avis sur le Nouveau Design du Tableau de Bord ?"
+    Alex a partagé des maquettes et cherche des retours, aucune date limite mentionnée.
+
+  ... (5 autres dans la catégorie À Lire)
+
+POUR INFORMATION (14 e-mails)
+  Résumé : 6 annonces internes, 4 notifications d'outils,
+  3 newsletters sectorielles, 1 invitation à un événement (AI Summit, 12 juin).
+```
+
+## Affinage au Fil du Temps
+
+Le système de tri devient plus intelligent à mesure que vous l'utilisez. Voici quelques façons de l'aider à apprendre plus vite :
+
+- **Corriger les mauvaises classifications** : Si un e-mail atterrit dans « Bruit » alors qu'il aurait dû être « Agir Maintenant », dites-le à OpenClaw. Un simple « cet e-mail de Jean aurait dû être haute priorité » suffit.
+- **Ajouter des expéditeurs VIP** : Mettez à jour votre SOUL.md avec des noms ou domaines spécifiques qui doivent toujours être priorisés.
+- **Ajuster la fenêtre de regroupement** : Si le regroupement de 15 minutes semble trop lent pour les e-mails urgents, réduisez-le à 5 minutes. Si vous êtes interrompu trop souvent, augmentez-le à 30.
+- **Créer des catégories personnalisées** : Certains utilisateurs ajoutent un cinquième compartiment comme « Déléguer » pour les e-mails qu'un autre membre de leur équipe devrait traiter.
+
+L'objectif n'est pas d'automatiser complètement les e-mails. C'est de s'assurer que vous passez votre temps de messagerie sur les messages qui comptent vraiment, et d'en passer moins dans l'ensemble.
+
+</PremiumContent>
+
+<CTACard variant="community" />

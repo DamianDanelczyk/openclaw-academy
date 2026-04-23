@@ -1,0 +1,306 @@
+---
+title: Canal Telegram
+description: Configure um bot Telegram para o OpenClaw usando o BotFather e o framework grammY, com entrega por webhook ou polling.
+---
+
+# Canal Telegram
+
+O Telegram é um dos canais mais fáceis e ricos em recursos para configurar com o OpenClaw. A plataforma tem uma API de Bot bem documentada, limites de taxa generosos e suporte para formatação rica de mensagens. Se você está procurando uma maneira rápida de colocar seu assistente no mundo real, o Telegram é uma excelente primeira escolha.
+
+Este guia percorre a criação de um bot Telegram, sua conexão com o OpenClaw e a configuração do canal para uso em produção.
+
+## Passo 1: Crie Seu Bot com o BotFather
+
+Todo bot Telegram começa com uma conversa com o [@BotFather](https://t.me/BotFather), o bot oficial de gerenciamento de bots do Telegram. Abra o Telegram, pesquise pelo BotFather e inicie uma conversa.
+
+Envie o seguinte comando:
+
+```
+/newbot
+```
+
+O BotFather fará duas perguntas:
+
+1. **Um nome de exibição** para o seu bot (ex.: "OpenClaw Assistant"). Pode conter espaços e é o que os usuários veem no cabeçalho do chat.
+2. **Um nome de usuário** para o seu bot (ex.: `openclaw_assistant_bot`). Deve terminar em `bot` e não pode conter espaços. É o `@handle` que as pessoas usam para encontrar e mencionar seu bot.
+
+Depois de responder ambas, o BotFather entregará um **token de API** — uma longa string que se parece com:
+
+```
+7123456789:AAHfB3xJ9kWvQ_mNpL8r2s5tUvWxYz1a2b3
+```
+
+Copie este token e guarde-o com segurança. Qualquer pessoa com este token pode controlar seu bot.
+
+### Personalizando Seu Bot
+
+Enquanto estiver conversando com o BotFather, aproveite para aprimorar o perfil do seu bot:
+
+```
+/setdescription   — O texto que os usuários veem antes de iniciar um chat
+/setabouttext     — A breve bio visível no perfil do bot
+/setuserpic       — Fazer upload de uma foto de perfil
+/setcommands      — Definir o menu de comandos (mais sobre isso abaixo)
+```
+
+Para o menu de comandos, você pode configurar atalhos úteis:
+
+```
+/setcommands
+
+ajuda - Mostrar comandos disponíveis
+reiniciar - Iniciar uma nova conversa
+status - Verificar status do assistente
+configuracoes - Ver suas preferências
+```
+
+Esses comandos aparecem como um menu quando os usuários digitam `/` no chat.
+
+## Passo 2: Configure o OpenClaw
+
+Adicione o canal Telegram à sua configuração do OpenClaw:
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    telegram: {
+      enabled: true,
+      token: process.env.TELEGRAM_BOT_TOKEN,
+
+      // Escolha um: 'webhook' (recomendado para produção)
+      // ou 'polling' (mais fácil para desenvolvimento)
+      mode: 'webhook',
+
+      webhook: {
+        url: 'https://seu-servidor.com/hooks/telegram',
+        secret: process.env.TELEGRAM_WEBHOOK_SECRET, // Opcional mas recomendado
+        port: 3100, // Porta local que o OpenClaw escuta para entrega de webhook
+      },
+
+      // Comportamento do bot
+      commands: {
+        ajuda: 'Posso responder suas perguntas, resumir documentos e muito mais. Apenas escreva naturalmente!',
+        reiniciar: async (ctx) => {
+          await ctx.clearHistory();
+          return 'Conversa limpa. Vamos começar do zero!';
+        },
+      },
+    },
+  },
+});
+```
+
+E suas variáveis de ambiente:
+
+```bash title=".env"
+TELEGRAM_BOT_TOKEN=7123456789:AAHfB3xJ9kWvQ_mNpL8r2s5tUvWxYz1a2b3
+TELEGRAM_WEBHOOK_SECRET=uma-string-secreta-aleatória-que-você-gera
+```
+
+## Webhook vs. Polling
+
+O OpenClaw suporta dois modos para receber mensagens do Telegram. Veja como escolher:
+
+### Polling (Desenvolvimento)
+
+No modo polling, o OpenClaw pergunta repetidamente ao Telegram "alguma mensagem nova?" a cada poucos segundos. É simples, não requer URL pública e funciona atrás de firewalls.
+
+```typescript
+telegram: {
+  enabled: true,
+  token: process.env.TELEGRAM_BOT_TOKEN,
+  mode: 'polling',
+  polling: {
+    interval: 1500,  // Milissegundos entre verificações
+    timeout: 30,     // Tempo limite de long-polling em segundos
+  },
+},
+```
+
+Use polling quando estiver desenvolvendo localmente e não quiser lidar com túneis ou URLs públicas.
+
+### Webhook (Produção)
+
+No modo webhook, o Telegram envia atualizações para o seu servidor assim que chegam. É mais rápido, mais eficiente e a abordagem recomendada para qualquer coisa além de testes locais.
+
+```typescript
+telegram: {
+  enabled: true,
+  token: process.env.TELEGRAM_BOT_TOKEN,
+  mode: 'webhook',
+  webhook: {
+    url: 'https://seu-servidor.com/hooks/telegram',
+    secret: process.env.TELEGRAM_WEBHOOK_SECRET,
+  },
+},
+```
+
+O OpenClaw registra o webhook no Telegram automaticamente na inicialização. Você pode verificar se foi configurado corretamente:
+
+```bash
+curl https://api.telegram.org/bot<SEU_TOKEN>/getWebhookInfo
+```
+
+Você deve ver sua URL na resposta junto com `"has_custom_certificate": false` e `"pending_update_count": 0`.
+
+## O Framework grammY por Baixo dos Panos
+
+O canal Telegram do OpenClaw é construído em cima do [grammY](https://grammy.dev), um framework moderno e TypeScript-first para bots Telegram. Geralmente você não precisa interagir com o grammY diretamente — o OpenClaw o abstrai — mas saber que ele está lá é útil quando você quer fazer coisas avançadas.
+
+Por exemplo, você pode acessar a instância bruta do bot grammY para middleware personalizado:
+
+```typescript title="openclaw.config.ts"
+telegram: {
+  enabled: true,
+  token: process.env.TELEGRAM_BOT_TOKEN,
+  mode: 'webhook',
+  advanced: {
+    onBotCreated: (bot) => {
+      // 'bot' é uma instância de Bot do grammY
+      // Adicionar middleware personalizado antes dos handlers do OpenClaw
+      bot.use(async (ctx, next) => {
+        console.log(`Mensagem de ${ctx.from?.first_name}: ${ctx.message?.text}`);
+        await next();
+      });
+    },
+  },
+},
+```
+
+Isso lhe dá todo o poder do ecossistema grammY — plugins para limitação de taxa, gerenciamento de sessão, menus, teclados inline e muito mais — enquanto ainda permite que o OpenClaw lide com a interação principal de IA.
+
+## Formatação de Mensagens
+
+O Telegram suporta formatação rica de texto, e o OpenClaw aproveita isso. Por padrão, as respostas do assistente são enviadas usando o formato MarkdownV2 do Telegram:
+
+- **Texto em negrito** para ênfase
+- `Blocos de código` para conteúdo técnico
+- Listas com marcadores e numeradas
+- [Links inline](https://exemplo.com) para referências
+
+Você pode controlar o comportamento de formatação:
+
+```typescript
+telegram: {
+  formatting: {
+    parseMode: 'MarkdownV2',  // 'MarkdownV2' | 'HTML' | 'None'
+    codeBlockLanguage: true,   // Destacar sintaxe em blocos de código
+    linkPreviews: false,       // Desabilitar cartões de pré-visualização de link
+  },
+},
+```
+
+> **Atenção:** O MarkdownV2 do Telegram é notoriamente exigente com o escape de caracteres especiais (pontos, traços, parênteses, etc.). O OpenClaw lida com esse escape automaticamente, então você não precisa se preocupar com isso nas respostas do seu assistente.
+
+## Configuração de Chat em Grupo
+
+Bots Telegram podem participar de chats em grupo, mas geralmente você não quer que eles respondam a cada mensagem. Veja como controlar o comportamento em grupos:
+
+```typescript
+telegram: {
+  groups: {
+    enabled: true,
+    respondTo: 'mention',    // Responder apenas quando @mencionado
+    allowedGroups: [         // Opcional: restringir a grupos específicos
+      -1001234567890,
+      -1009876543210,
+    ],
+    adminOnly: false,        // Se true, apenas administradores do grupo podem interagir
+  },
+},
+```
+
+As opções de `respondTo` são:
+
+- `'mention'` — Responder apenas quando o bot é @mencionado pelo nome de usuário (recomendado).
+- `'reply'` — Responder a respostas diretas às mensagens do bot.
+- `'prefix'` — Responder a mensagens que começam com um prefixo configurável como `/perguntar` ou `!claw`.
+- `'all'` — Responder a cada mensagem no grupo (use com cautela em grupos ativos).
+
+### Modo de Privacidade
+
+Por padrão, bots Telegram em grupos só recebem mensagens que os mencionam ou são comandos. Isso é chamado de **modo de privacidade** e está habilitado por padrão. Se precisar que o bot veja todas as mensagens (para o modo `'all'`), você precisa desabilitar o modo de privacidade via BotFather:
+
+```
+/setprivacy
+@seu_bot_username
+Disable
+```
+
+## Tratamento de Mídia
+
+O canal Telegram suporta mídia rica em ambas as direções:
+
+**Recebendo dos usuários:**
+- Fotos (comprimidas e não comprimidas)
+- Vídeos e notas de vídeo (vídeos redondos)
+- Mensagens de voz (automaticamente transcritas para texto)
+- Documentos (PDFs, planilhas, etc.)
+- Figurinhas (convertidas para o equivalente emoji)
+- Compartilhamentos de localização (analisados para coordenadas)
+
+**Enviando para usuários:**
+- Imagens com legendas
+- Documentos como anexos de arquivo
+- Mensagens de voz (se seu assistente gerar áudio)
+
+O tratamento de mídia está habilitado por padrão. Arquivos recebidos são temporariamente baixados, processados pelo motor central e limpos depois.
+
+## Teclados Inline e Mensagens Interativas
+
+Você pode configurar seu assistente para enviar botões interativos via o recurso de teclado inline do Telegram:
+
+```typescript
+telegram: {
+  interactivity: {
+    enabled: true,
+    confirmActions: true,  // Pedir confirmação antes de ações destrutivas
+    feedbackButtons: true, // Adicionar polegar para cima/baixo em cada resposta
+  },
+},
+```
+
+Quando `feedbackButtons` está habilitado, cada resposta do assistente recebe uma pequena linha de botões de reação. Este feedback é registrado e pode ser usado para melhorar seu assistente ao longo do tempo.
+
+## Limites de Taxa e Cotas
+
+Os limites de taxa do Telegram são generosos, mas reais:
+
+- **Chats privados:** 30 mensagens por segundo em todos os chats.
+- **Chats em grupo:** 20 mensagens por minuto por grupo.
+- **Notificações em massa:** Máximo de 30 usuários por segundo para mensagens em broadcast.
+
+A fila integrada do OpenClaw respeita esses limites automaticamente. Se você atingi-los, as mensagens são armazenadas em buffer e enviadas assim que a janela abrir. Você verá um log como:
+
+```
+[telegram] Rate limit approaching, throttling outbound messages (24/30 used)
+```
+
+## Dicas por Ambiente
+
+**Desenvolvimento:** Use o modo polling. Sem necessidade de tunnel ou URL pública.
+
+**Staging:** Use um bot separado (crie outro com o BotFather) para que o tráfego de staging não interfira com a produção.
+
+**Produção:** Use o modo webhook com um certificado TLS adequado. Defina o campo `secret` para que as solicitações do Telegram sejam verificadas. Considere colocar um proxy reverso (nginx, Caddy) na frente do endpoint de webhook para segurança adicional.
+
+```typescript title="Configuração pronta para produção"
+telegram: {
+  enabled: true,
+  token: process.env.TELEGRAM_BOT_TOKEN,
+  mode: 'webhook',
+  webhook: {
+    url: 'https://api.suaempresa.com/hooks/telegram',
+    secret: process.env.TELEGRAM_WEBHOOK_SECRET,
+    maxConnections: 40,
+  },
+  rateLimit: {
+    windowMs: 60000,
+    maxPerUser: 20, // Impedir usuários individuais de inundar o bot
+  },
+},
+```
+
+O Telegram é um canal fantástico para o OpenClaw — rápido de configurar, rico em recursos e confiável em produção. Uma vez que estiver rodando, você vai se perguntar como testou seu assistente sem ele.

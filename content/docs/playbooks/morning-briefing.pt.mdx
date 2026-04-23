@@ -1,0 +1,179 @@
+---
+title: Resumo Matinal Diário
+description: Automatize um resumo matinal personalizado que resume seu dia à frente, principais atualizações e itens de ação.
+---
+
+# Resumo Matinal Diário
+
+Imagine acordar toda manhã com um resumo perfeitamente organizado de tudo que você precisa saber antes de começar seu dia. Sem mais correr por e-mails, calendários e mensagens no Slack enquanto seu café esfria. Com o playbook de Resumo Matinal do OpenClaw, seu assistente de IA reúne tudo durante a noite e entrega um briefing limpo e priorizado exatamente quando você precisa.
+
+Este é um dos playbooks mais populares entre os usuários do OpenClaw, e por boas razões. Leva cerca de dez minutos para configurar e economiza para a maioria das pessoas 30 a 45 minutos todas as manhãs.
+
+## O Que Você Recebe
+
+Seu resumo matinal reúne informações de múltiplas fontes e as apresenta em uma única mensagem fácil de ler. Aqui está o que um briefing típico cobre:
+
+- **Visão geral do calendário** para o dia, incluindo notas de preparação para reuniões
+- **E-mails prioritários** que chegaram durante a noite
+- **Resumo de tarefas** das suas ferramentas de gerenciamento de projetos
+- **Clima e deslocamento** (se configurado)
+- **Métricas principais** dos dashboards que você se importa
+- **Lembretes** que você definiu para si mesmo
+
+A beleza deste playbook é que ele se adapta ao seu ritmo. O OpenClaw aprende quais informações você realmente usa e gradualmente refina o que inclui. Depois de algumas semanas, seu briefing parece ter sido escrito por um assistente pessoal que trabalhou com você por anos.
+
+## Por Que Isso Funciona
+
+A maioria de nós começa as manhãs em modo reativo. Abrimos nossa caixa de entrada e imediatamente somos puxados para as prioridades de outra pessoa. O resumo matinal inverte essa dinâmica. Ao lhe dar uma visão geral estruturada antes de mergulhar, você começa o dia com intenção em vez de reação.
+
+Usuários que executam este playbook relatam que se sentem mais no controle de seus horários e têm menos probabilidade de perder prazos importantes ou esquecer reuniões. É uma pequena automação com um impacto desproporcional no seu fluxo de trabalho diário.
+
+## Começando
+
+Antes de configurar qualquer coisa, pense em quais fontes de informação mais importam para você pela manhã. Nem todo mundo precisa de dados de clima ou preços de ações. Comece com o essencial (calendário e e-mail) e adicione mais fontes com o tempo.
+
+Você também vai querer decidir onde seu briefing será entregue. A maioria das pessoas escolhe Slack DM ou e-mail, mas você também pode tê-lo postado em um canal específico se quiser que sua equipe o veja.
+
+## Adições ao SOUL.md
+
+Adicione o seguinte ao seu arquivo SOUL.md para moldar como seu assistente lida com o resumo matinal. Isso vai na seção `## Behaviors`:
+
+```markdown
+## Behaviors
+
+### Morning Briefing
+- Deliver a concise daily briefing every weekday morning
+- Lead with the most time-sensitive items (meetings starting soon, deadlines today)
+- Group information by category: Calendar, Email, Tasks, FYI
+- Use plain language, not corporate jargon
+- Flag anything that looks like a conflict or double-booking
+- Keep the entire briefing under 500 words unless there is an unusually busy day
+- If there are no notable updates in a category, skip it entirely rather than saying "nothing to report"
+- End with a one-sentence motivational note or fun fact on Fridays
+```
+
+## Habilidades Recomendadas
+
+Habilite essas habilidades no seu painel do OpenClaw para alimentar o resumo matinal:
+
+```yaml
+skills:
+  - name: calendar-reader
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-only
+    description: Reads your calendar events for the current day
+
+  - name: email-scanner
+    provider: gmail  # or outlook-mail
+    permissions: read-only
+    description: Scans for priority emails received since last briefing
+
+  - name: task-aggregator
+    provider: todoist  # or asana, linear, notion
+    permissions: read-only
+    description: Pulls tasks due today and overdue items
+
+  - name: weather-lookup
+    provider: openweather
+    config:
+      location: "auto-detect"
+    description: Gets current weather and forecast for your location
+```
+
+Você não precisa de todas essas desde o primeiro dia. O calendar-reader e o email-scanner são os pontos de partida mais valiosos. Adicione os outros conforme você fica confortável com o sistema.
+
+<PremiumContent title="Configuração Completa do Playbook">
+
+## Configuração de Cron
+
+Configure o agendamento para seu resumo matinal. Este cron job diz ao OpenClaw quando compilar e entregar seu briefing:
+
+```yaml
+cron:
+  morning-briefing:
+    schedule: "0 6 * * 1-5"  # 6:00, de segunda a sexta-feira
+    timezone: "America/Sao_Paulo"  # Mude para seu fuso horário
+    action: run-playbook
+    playbook: morning-briefing
+    retry:
+      attempts: 2
+      delay: 10m
+    notify_on_failure: true
+```
+
+Algumas coisas a observar sobre o agendamento. O `1-5` no final significa apenas dias úteis. Se você quiser briefings nos fins de semana também, mude para `*`. A configuração de retry significa que se algo der errado (talvez um dos seus serviços conectados esteja temporariamente fora do ar), o OpenClaw tentará novamente 10 minutos depois antes de desistir.
+
+Se você acorda cedo, pode querer adiantar o horário para as 5:00. Se prefere entrar devagar no seu dia, 7:30 pode ser melhor. O segredo é escolher um horário que seja pelo menos 30 minutos antes de você normalmente começar a trabalhar.
+
+## Configuração de Canal
+
+Configure onde seu briefing será entregue:
+
+```yaml
+channels:
+  morning-briefing-delivery:
+    type: slack-dm  # Options: slack-dm, slack-channel, email, webhook
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: rich  # formatação rica com seções e indicadores de emoji
+      thread: false  # entregar como mensagem independente, não como hilo
+
+  # Opcional: também enviar para um canal da equipe
+  team-briefing:
+    type: slack-channel
+    config:
+      workspace: "seu-workspace"
+      channel: "#standup-diario"
+      format: compact  # formato mais curto para visibilidade da equipe
+      thread: true
+```
+
+## Exemplo de Saída
+
+Aqui está como um resumo matinal típico parece quando chega nos seus DMs do Slack:
+
+```
+Bom dia! Aqui está seu briefing para terça-feira, 14 de Abril.
+
+CALENDÁRIO (4 eventos)
+  09:00 - Sprint Planning com Engenharia (Sala de Conferências B)
+          Nota: Revise o backlog antes desta — 3 novos itens adicionados ontem
+  11:30 - 1:1 com Sarah (Zoom)
+  14:00 - Chamada com cliente Acme Corp (Zoom)
+          Nota: Eles responderam sua proposta ontem à noite — veja e-mails abaixo
+  16:00 - Revisão de design (Sala de Conferências A)
+
+E-MAILS PRIORITÁRIOS (2 sinalizados)
+  De: Sarah Chen — "Re: Proposta de Orçamento Q2"
+    Recebido às 23:42 — Ela aprovou o orçamento com uma pequena alteração
+  De: James da Acme Corp — "Re: Proposta de Parceria"
+    Recebido às 20:15 — Resposta positiva, quer discutir preços na chamada de hoje
+
+TAREFAS COM VENCIMENTO HOJE (3 itens)
+  [ ] Finalizar apresentação do roadmap Q2 (alta prioridade)
+  [ ] Submeter relatório de despesas da viagem de março
+  [ ] Revisar e aprovar pull request #247
+
+CLIMA
+  Parcialmente nublado, 20°C. Sem previsão de chuva. Bom dia para caminhar até o almoço.
+
+Tenha uma terça produtiva!
+```
+
+Note como o briefing destaca conexões entre seus eventos e e-mails. Ele percebeu que o e-mail da Acme Corp é relevante para sua chamada da tarde e o sinalizou. Esse tipo de vinculação contextual é o que torna os briefings do OpenClaw mais úteis do que uma simples notificação do calendário.
+
+## Dicas de Personalização
+
+Uma vez que seu briefing esteja rodando, aqui estão algumas maneiras de torná-lo ainda melhor:
+
+- **Adicione uma seção "Esta Semana" às segundas** atualizando seu SOUL.md com: "Às segundas, inclua uma breve prévia dos principais eventos do resto da semana."
+- **Inclua métricas** se você administra um negócio. Conecte sua habilidade de analytics e adicione uma linha como: "Inclua as principais métricas de ontem: receita, cadastros e contagem de tickets de suporte."
+- **Ajuste a verbosidade** por dia. Alguns usuários preferem briefings mais curtos em dias com menos reuniões e mais detalhados em dias ocupados.
+- **Configure um comando de "feedback do briefing"** para que você possa dizer ao OpenClaw coisas como "pare de incluir clima" ou "sempre mostre minhas tarefas do Asana primeiro" e ele atualizará suas preferências automaticamente.
+
+O resumo matinal é um documento vivo. Quanto mais você interage com ele e fornece feedback, mais personalizado ele se torna para suas necessidades reais.
+
+</PremiumContent>
+
+<CTACard variant="community" />

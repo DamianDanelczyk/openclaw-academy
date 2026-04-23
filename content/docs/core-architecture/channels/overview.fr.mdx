@@ -1,0 +1,206 @@
+---
+title: Aperçu des Canaux
+description: Comprendre comment OpenClaw se connecte aux plateformes de messagerie, comment choisir le bon canal et comment les conversations persistent à travers eux.
+---
+
+# Aperçu des Canaux
+
+Pensez aux canaux comme aux portes d'entrée de votre assistant IA. Chaque canal est une connexion à une plateforme de messagerie — iMessage, Telegram, Slack, Discord, WhatsApp, Signal, ou le WebChat intégré. Vos utilisateurs parlent au même cerveau d'assistant peu importe par quelle porte ils entrent. C'est la promesse fondamentale de l'architecture de canaux d'OpenClaw.
+
+Cette page vous aidera à comprendre comment les canaux fonctionnent en coulisses, comment décider lesquels activer, et comment OpenClaw maintient des conversations fluides même quand quelqu'un change de plateforme en cours de conversation.
+
+## Qu'est-ce qu'un Canal, Exactement ?
+
+Un canal est un adaptateur léger qui se place entre une plateforme de messagerie et le moteur central d'OpenClaw. Il gère trois choses :
+
+1. **L'ingestion** — recevoir les messages de la plateforme (un message Telegram, un événement Slack, une notification iMessage).
+2. **La normalisation** — traduire ce message spécifique à la plateforme dans le format de message universel d'OpenClaw.
+3. **L'émission** — prendre la réponse de l'assistant et la formater en quelque chose que la plateforme comprend (Markdown pour Discord, texte brut pour SMS, cartes enrichies pour Slack).
+
+Voici une vue simplifiée du flux :
+
+```
+L'utilisateur envoie un message sur Telegram
+        │
+        ▼
+┌─────────────────┐
+│ Canal Telegram   │  ← Ingestion : reçoit la mise à jour via webhook
+│    (Adaptateur)  │  ← Normalisation : extrait texte, ID utilisateur, média
+└────────┬────────┘
+         │  Format de Message Universel
+         ▼
+┌─────────────────┐
+│  Moteur Central  │  ← Routage, recherche en mémoire, appel LLM
+│    OpenClaw      │
+└────────┬────────┘
+         │  Format de Réponse Universel
+         ▼
+┌─────────────────┐
+│ Canal Telegram   │  ← Émission : formate la réponse, envoie via Bot API
+│    (Adaptateur)  │
+└─────────────────┘
+```
+
+Chaque canal suit exactement ce schéma. Le moteur central ne sait jamais et ne se soucie jamais de quelle plateforme vient le message. Cette séparation est ce qui rend les configurations multi-canaux si propres.
+
+## La Matrice de Décision des Canaux
+
+Vous ne savez pas quels canaux activer ? Voici une matrice de décision pratique pour vous aider à choisir :
+
+| Canal      | Idéal pour                          | Difficulté d'installation | Nécessite un serveur ? | Support média | Chats de groupe |
+|------------|-------------------------------------|--------------------------|----------------------|---------------|-----------------|
+| WebChat    | Tests rapides, intégration site web | Trivial                  | Non (intégré)         | Images        | Non             |
+| Telegram   | Usage personnel, petites équipes    | Facile                   | Oui (webhook)         | Complet       | Oui             |
+| Discord    | Communautés, groupes de jeux        | Facile                   | Oui (gateway)         | Complet       | Oui             |
+| Slack      | Lieux de travail, outils internes   | Moyen                    | Oui (API événements)  | Complet       | Oui             |
+| iMessage   | Utilisateurs écosystème Apple       | Moyen                    | macOS uniquement      | Complet       | Oui             |
+| WhatsApp   | Portée mondiale, priorité mobile    | Moyen                    | Oui                   | Complet       | Oui             |
+| Signal     | Utilisateurs soucieux de la vie privée | Difficile              | Oui                   | Limité        | Oui             |
+
+En règle générale : commencez par **WebChat** pour valider que votre assistant fonctionne, puis ajoutez **Telegram** ou **Discord** comme premier "vrai" canal. Développez à partir de là selon les endroits où se trouvent réellement vos utilisateurs.
+
+## Activer les Canaux dans la Configuration
+
+Les canaux sont activés dans votre fichier `openclaw.config.ts`. Chaque canal obtient sa propre section avec les identifiants spécifiques à la plateforme et les options :
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    webchat: {
+      enabled: true,
+      port: 18789,
+    },
+    telegram: {
+      enabled: true,
+      token: process.env.TELEGRAM_BOT_TOKEN,
+      webhook: {
+        url: 'https://your-server.com/hooks/telegram',
+      },
+    },
+    discord: {
+      enabled: true,
+      token: process.env.DISCORD_BOT_TOKEN,
+      intents: ['Guilds', 'GuildMessages', 'MessageContent'],
+    },
+    slack: {
+      enabled: false, // passer à true quand vous êtes prêt
+      appToken: process.env.SLACK_APP_TOKEN,
+      botToken: process.env.SLACK_BOT_TOKEN,
+    },
+    // ...autres canaux
+  },
+});
+```
+
+Vous n'avez besoin de configurer que les canaux que vous souhaitez. Les canaux désactivés ou omis ne consomment aucune ressource.
+
+## Persistance Inter-Canaux
+
+C'est là que les choses deviennent intéressantes. OpenClaw maintient un **graphe d'identité unifié** qui associe les identifiants d'utilisateurs spécifiques à la plateforme à une identité interne unique. Quand la même personne envoie un message à votre assistant sur Telegram puis plus tard sur Discord, OpenClaw peut la reconnaître comme un seul utilisateur et transmettre le contexte.
+
+Comment ça fonctionne ? Il y a deux mécanismes :
+
+### Liaison Automatique via Secrets Partagés
+
+Quand un utilisateur interagit pour la première fois avec votre assistant sur n'importe quel canal, OpenClaw génère un **code de liaison** — un court mot de passe à usage unique. Si cet utilisateur envoie un message depuis un canal différent plus tard, il peut envoyer le code de liaison pour fusionner ses identités :
+
+```
+Utilisateur sur Telegram : /link
+Bot : Votre code de liaison est : claw-mango-7x. Envoyez ce code
+     depuis n'importe quel autre canal pour connecter vos comptes.
+
+Utilisateur sur Discord : /link claw-mango-7x
+Bot : Lié ! Je peux maintenant voir votre historique de conversation
+     Telegram ici aussi.
+```
+
+### Liaison Manuelle via Configuration
+
+Pour les utilisateurs connus (comme votre équipe), vous pouvez pré-lier les identités dans la configuration :
+
+```typescript title="openclaw.config.ts"
+export default defineConfig({
+  identity: {
+    links: [
+      {
+        name: 'Alice',
+        telegram: '123456789',
+        discord: '987654321098765432',
+        slack: 'U04ABCD1234',
+      },
+      {
+        name: 'Bob',
+        telegram: '987654321',
+        imessage: '+15551234567',
+      },
+    ],
+  },
+});
+```
+
+Une fois liés, la mémoire de l'assistant, l'historique des conversations et les préférences de l'utilisateur voyagent avec la personne — pas avec la plateforme.
+
+## Comment les Conversations Sont Stockées
+
+Chaque message — entrant et sortant — est stocké dans la boutique de conversations d'OpenClaw en tant qu'enregistrement normalisé :
+
+```typescript
+interface StoredMessage {
+  id: string;
+  userId: string;          // ID utilisateur interne (lié)
+  channelId: string;       // ex. "telegram", "discord"
+  platformUserId: string;  // ID spécifique à la plateforme
+  direction: 'inbound' | 'outbound';
+  content: string;
+  media?: MediaAttachment[];
+  timestamp: Date;
+  threadId?: string;       // Pour les plateformes avec fils comme Slack
+  metadata?: Record<string, unknown>;
+}
+```
+
+Cela signifie que vous pouvez interroger l'historique complet des conversations d'un utilisateur sur tous les canaux via une seule API, ce qui est particulièrement utile pour créer des tableaux de bord ou déboguer les interactions.
+
+## Cycle de Vie d'un Canal
+
+Chaque canal suit un cycle de vie prévisible au démarrage d'OpenClaw :
+
+1. **Initialisation** — Charger les identifiants, valider la configuration.
+2. **Connexion** — Établir la connexion à la plateforme (ouvrir un WebSocket, enregistrer un webhook, démarrer le sondage).
+3. **Prêt** — Commencer à accepter et envoyer des messages.
+4. **Reconnexion** — Si la connexion chute, réessayer automatiquement avec un backoff exponentiel.
+5. **Arrêt** — Fermer les connexions gracieusement à l'arrêt d'OpenClaw.
+
+Vous pouvez vous accrocher à ces événements du cycle de vie pour une logique personnalisée :
+
+```typescript title="openclaw.config.ts"
+export default defineConfig({
+  channels: {
+    telegram: {
+      enabled: true,
+      token: process.env.TELEGRAM_BOT_TOKEN,
+      hooks: {
+        onReady: () => console.log('Le canal Telegram est en direct !'),
+        onError: (err) => alertOpsTeam(err),
+        onReconnect: (attempt) => {
+          console.log(`Reconnexion à Telegram (tentative ${attempt})...`);
+        },
+      },
+    },
+  },
+});
+```
+
+## Note sur les Limites de Débit
+
+Chaque plateforme impose ses propres limites de débit. OpenClaw les gère de manière transparente — les messages sortants sont mis en file d'attente et envoyés à la cadence que chaque plateforme autorise. Si un canal atteint une limite de débit, les messages sont mis en mémoire tampon (pas abandonnés) et relancés. Vous n'avez généralement pas besoin d'y penser, mais si vous remarquez des réponses retardées sur un canal chargé, la limitation de débit est la cause la plus probable.
+
+## Que Lire Ensuite
+
+Chaque canal a sa propre page dédiée avec des instructions d'installation étape par étape, des particularités spécifiques à la plateforme et les meilleures pratiques. Choisissez celui que vous souhaitez configurer en premier et plongez-y.
+
+Si vous ne savez pas par où commencer, la page [WebChat](/docs/core-architecture/channels/webchat) est le moyen le plus rapide de voir votre assistant en action — elle ne nécessite aucun compte externe et fonctionne entièrement sur votre machine.
+
+<CTACard variant="channels" />

@@ -1,0 +1,351 @@
+---
+title: Lista de Verificação de Segurança
+description: Uma lista de verificação de segurança em linguagem simples para fortalecer sua instância do OpenClaw com configurações padrão recomendadas e orientação passo a passo.
+---
+
+# Lista de Verificação de Segurança
+
+Segurança não precisa ser complicada. Esta página fornece uma lista de verificação em linguagem simples que você pode percorrer para garantir que sua instância do OpenClaw esteja adequadamente protegida. Cada item inclui o que significa, por que importa e exatamente como configurá-lo.
+
+Você não precisa ser um especialista em segurança. Apenas percorra a lista de cima a baixo. Se concluir todos os itens, sua instância estará em excelente forma.
+
+## A Lista de Verificação em Resumo
+
+Aqui está a lista completa. Instruções detalhadas para cada item seguem abaixo.
+
+| # | Item | Prioridade |
+|---|------|------------|
+| 1 | Usar chaves de API fortes | Crítica |
+| 2 | Armazenar segredos em variáveis de ambiente | Crítica |
+| 3 | Habilitar sandboxing | Crítica |
+| 4 | Configurar políticas de ferramentas | Alta |
+| 5 | Configurar restrições de rede | Alta |
+| 6 | Habilitar log de auditoria | Alta |
+| 7 | Configurar rotação de chaves | Média |
+| 8 | Restringir acesso a webhooks | Média |
+| 9 | Configurar limitação de taxa | Média |
+| 10 | Revisar permissões trimestralmente | Média |
+| 11 | Habilitar autenticação de dois fatores | Alta |
+| 12 | Fazer backup da sua configuração | Média |
+
+---
+
+## 1. Usar Chaves de API Fortes
+
+**O que:** Cada chave de API deve ter pelo menos 32 caracteres, ser gerada aleatoriamente e ser única por serviço.
+
+**Por que:** Chaves curtas ou reutilizadas são fáceis de adivinhar ou comprometer. Uma chave vazada não deve desbloquear tudo.
+
+**Como:**
+
+```bash
+openclaw keys generate --length 48
+```
+
+```
+Generated key: oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+```
+
+Nunca crie chaves manualmente. Sempre use o gerador. Veja [Chaves de API](/docs/security/api-keys) para o guia completo.
+
+## 2. Armazenar Segredos em Variáveis de Ambiente
+
+**O que:** Chaves de API, segredos de webhook, senhas de banco de dados — qualquer coisa sensível — deve ficar no seu arquivo `.env`, não nos arquivos de configuração.
+
+**Por que:** Arquivos de configuração são commitados no controle de versão, compartilhados com colegas de equipe ou acidentalmente expostos. Variáveis de ambiente ficam na máquina.
+
+**Como:**
+
+```bash
+# .env
+OPENCLAW_API_KEY=oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+GITHUB_WEBHOOK_SECRET=whsec_a8f29c4e6b1d3f5a7e9c2b4d6f8a0e1c
+DATABASE_URL=postgresql://user:password@localhost:5432/openclaw
+```
+
+Depois referencie-os em sua configuração:
+
+```yaml
+# openclaw.config.yaml
+api_key: "${OPENCLAW_API_KEY}"
+```
+
+Adicione `.env` ao seu `.gitignore`:
+
+```bash
+echo ".env" >> .gitignore
+```
+
+## 3. Habilitar Sandboxing
+
+**O que:** O sandboxing executa as ações do seu assistente em um ambiente isolado para que não possam acessar seu sistema completo.
+
+**Por que:** Se seu assistente processa entradas não confiáveis (e provavelmente processa), o sandboxing evita que ações inesperadas causem danos reais.
+
+**Como:**
+
+```yaml
+# openclaw.config.yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+```
+
+Verifique se está ativo:
+
+```bash
+openclaw security status
+```
+
+```
+Sandbox: ENABLED (strict mode)
+```
+
+Veja [Sandboxing](/docs/security/sandboxing) para detalhes sobre modos e quando você pode precisar relaxar restrições.
+
+## 4. Configurar Políticas de Ferramentas
+
+**O que:** Políticas de ferramentas controlam quais ações seu assistente tem permissão de executar. Pense nelas como permissões.
+
+**Por que:** Você provavelmente não quer que seu assistente tenha acesso total a tudo. Restringir ferramentas ao que é realmente necessário limita o raio de danos se algo der errado.
+
+**Como:**
+
+```yaml
+# openclaw.config.yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      - tools: ["calendar.*", "weather.*", "news.*"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+      - tools: ["system.delete_*", "system.format_*"]
+        policy: "deny"
+```
+
+A política `"ask"` significa que o OpenClaw solicitará sua aprovação antes de executar aquela ferramenta. Veja [Políticas de Ferramentas](/docs/security/tool-policies) para configurações recomendadas por caso de uso.
+
+## 5. Configurar Restrições de Rede
+
+**O que:** Limite com quais endereços externos sua instância do OpenClaw pode se comunicar.
+
+**Por que:** Se seu assistente for comprometido, as restrições de rede impedem que ele entre em contato com servidores arbitrários.
+
+**Como:**
+
+```yaml
+# openclaw.config.yaml
+security:
+  network:
+    outbound:
+      mode: "allowlist"
+      allowed_domains:
+        - "api.openai.com"
+        - "api.github.com"
+        - "hooks.slack.com"
+        - "api.stripe.com"
+```
+
+Veja [Segurança de Rede](/docs/security/network-security) para configuração de firewall e configuração de VPN.
+
+## 6. Habilitar Log de Auditoria
+
+**O que:** Logs de auditoria registram cada ação significativa que seu assistente realiza — cada chamada de ferramenta, cada webhook recebido, cada alteração de configuração.
+
+**Por que:** Se algo der errado, os logs de auditoria são como você descobre o que aconteceu. Eles também são essenciais para conformidade.
+
+**Como:**
+
+```yaml
+# openclaw.config.yaml
+security:
+  audit:
+    enabled: true
+    retention_days: 90
+    log_level: "standard"
+    destinations:
+      - type: "file"
+        path: "/var/log/openclaw/audit.log"
+      - type: "webhook"
+        url: "${AUDIT_WEBHOOK_URL}"
+```
+
+Visualize entradas recentes de auditoria:
+
+```bash
+openclaw audit log --last 24h
+```
+
+## 7. Configurar Rotação de Chaves
+
+**O que:** Substitua regularmente suas chaves de API por novas em um cronograma definido.
+
+**Por que:** Mesmo que uma chave tenha sido comprometida silenciosamente, a rotação limita por quanto tempo ela pode ser usada.
+
+**Como:**
+
+```yaml
+# openclaw.config.yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    notify_before_days: 14
+    auto_rotate: false
+```
+
+Com `auto_rotate: false`, o OpenClaw o lembrará quando a rotação estiver vencida, mas não trocará as chaves automaticamente. Configure como `true` somente se suas integrações puderem lidar com atualizações automáticas de chaves. Veja [Chaves de API](/docs/security/api-keys) para o fluxo de trabalho de rotação.
+
+## 8. Restringir Acesso a Webhooks
+
+**O que:** Proteja cada endpoint de webhook com verificação HMAC e, quando possível, lista de permissões de IP.
+
+**Por que:** Webhooks sem segurança são uma porta aberta. Qualquer pessoa que conheça a URL pode acionar ações em sua instância.
+
+**Como:**
+
+```yaml
+webhooks:
+  - name: "github-events"
+    path: "/hooks/github"
+    secret: "${GITHUB_WEBHOOK_SECRET}"
+    signature_header: "X-Hub-Signature-256"
+    signature_algorithm: "sha256"
+    allowed_ips:
+      - "140.82.112.0/20"
+    rate_limit: "30/min"
+```
+
+Veja [Webhooks](/docs/automation/webhooks) para o guia completo de configuração.
+
+## 9. Configurar Limitação de Taxa
+
+**O que:** Limite quantas requisições sua instância processa por janela de tempo.
+
+**Por que:** Previne abuso, loops acidentais e automações descontroladas.
+
+**Como:**
+
+```yaml
+# openclaw.config.yaml
+security:
+  rate_limiting:
+    global:
+      requests_per_minute: 120
+    per_user:
+      requests_per_minute: 30
+    per_webhook:
+      requests_per_minute: 60
+```
+
+## 10. Revisar Permissões Trimestralmente
+
+**O que:** A cada 90 dias, revise quem tem acesso à sua instância e quais ferramentas estão habilitadas.
+
+**Por que:** Permissões tendem a se acumular. Pessoas saem das equipes, projetos terminam, mas o acesso permanece. Revisões regulares detectam permissões obsoletas antes que se tornem um problema.
+
+**Como:**
+
+```bash
+openclaw security review --generate-report
+```
+
+```
+Permission Review Report — 2026-04-22
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Users with access:        7
+Unused keys (>60 days):   2  ⚠️
+Tools with "allow-all":   1  ⚠️
+Webhooks without HMAC:    0  ✓
+Last key rotation:        52 days ago
+
+Recommendations:
+  • Revoke keys oc_sk_...4f8a and oc_sk_...2c6d (unused 73 and 91 days)
+  • Review "allow-all" policy on tool group "system.*"
+```
+
+## 11. Habilitar Autenticação de Dois Fatores
+
+**O que:** Exija uma segunda etapa de verificação (aplicativo autenticador ou chave de hardware) para acessar o painel do OpenClaw.
+
+**Por que:** Senhas sozinhas não são suficientes. Se alguém obtiver sua senha, o 2FA os impede de fazer login.
+
+**Como:**
+
+```yaml
+# openclaw.config.yaml
+security:
+  authentication:
+    two_factor:
+      enabled: true
+      methods: ["totp", "webauthn"]
+      enforce_for: "all_users"
+```
+
+## 12. Fazer Backup da Sua Configuração
+
+**O que:** Exporte regularmente sua configuração, definições de automação e segredos (criptografados) para um local seguro.
+
+**Por que:** Se sua instância ficar inativa ou for comprometida, você precisa ser capaz de reconstruir rapidamente.
+
+**Como:**
+
+```bash
+openclaw backup create --include config,automations,keys --encrypt --output /backups/
+```
+
+```
+Backup created: /backups/openclaw-backup-2026-04-22.enc
+  Includes: config, automations, keys (encrypted)
+  Size: 2.4 MB
+  Encryption: AES-256-GCM
+```
+
+Agende backups automáticos com um cron job:
+
+```yaml
+schedules:
+  - name: "config-backup"
+    cron: "0 2 * * 0"
+    action: "system.backup(include: ['config', 'automations', 'keys'], encrypt: true)"
+```
+
+## Configurações Padrão Recomendadas
+
+Se você está configurando uma nova instância e quer um ponto de partida seguro, aqui está um bloco de configuração combinado que você pode colar no seu `openclaw.config.yaml`:
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+  tool_policies:
+    default: "deny"
+  network:
+    outbound:
+      mode: "allowlist"
+  audit:
+    enabled: true
+    retention_days: 90
+  rate_limiting:
+    global:
+      requests_per_minute: 120
+  key_rotation:
+    enabled: true
+    interval_days: 90
+  authentication:
+    two_factor:
+      enabled: true
+      enforce_for: "all_users"
+```
+
+Depois personalize a partir daí com base nas suas necessidades.
+
+## Continue Avançando
+
+Segurança não é uma tarefa única. Revise esta lista de verificação sempre que fizer mudanças significativas em sua configuração, adicionar novas integrações ou integrar novos usuários.
+
+<CTACard variant="security" />

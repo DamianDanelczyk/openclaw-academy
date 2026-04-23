@@ -1,0 +1,285 @@
+---
+title: Klucze API
+description: Nietech\niczny przewodnik tworzenia, przechowywania i rotacji kluczy API w OpenClaw, żeby Twoje integracje były bezpieczne.
+---
+
+# Klucze API
+
+Jeśli kiedykolwiek używałeś hasła do logowania na stronie, rozumiesz już podstawową ideę stojącą za kluczami API. Klucz API jest jak hasło, ale zamiast osoby używającej go do logowania, jest używany przez oprogramowanie do potwierdzenia swojej tożsamości podczas komunikacji z innym oprogramowaniem.
+
+Gdy asystent OpenClaw łączy się z GitHub, wysyła wiadomość przez Slack lub przetwarza płatność przez Stripe, używa kluczy API, żeby powiedzieć „mam uprawnienia, żeby to zrobić." Ta strona obejmuje wszystko, co musisz wiedzieć o tworzeniu, przechowywaniu i bezpiecznym zarządzaniu tymi kluczami.
+
+## Czym Naprawdę Jest Klucz API?
+
+Klucz API to długi ciąg znaków — liter, cyfr i czasem znaków specjalnych — który działa jako poświadczenie. Oto jak wygląda jeden z nich:
+
+```
+oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+```
+
+Ten prefiks (`oc_sk_`) mówi Ci, że to sekretny klucz OpenClaw. Różne usługi używają różnych prefiksów:
+
+| Usługa | Prefiks klucza | Przykład |
+|--------|---------------|---------|
+| OpenClaw | `oc_sk_` | `oc_sk_9f8a2c4e...` |
+| GitHub | `ghp_` | `ghp_aBcDeFgHiJ...` |
+| Stripe | `sk_live_` | `sk_live_51Hx7y...` |
+| OpenAI | `sk-` | `sk-abc123def...` |
+
+Sam klucz jest losowy. Nie ma sposobu, żeby go odgadnąć, co sprawia, że jest bezpieczny — o ile pozostaje prywatny.
+
+### Klucze vs. Hasła
+
+Istnieje kilka ważnych różnic między kluczami API a hasłami:
+
+- **Nie wybierasz kluczy API.** Są generowane losowo przez system. To sprawia, że są znacznie trudniejsze do odgadnięcia niż hasło wybrane przez człowieka.
+- **Klucze API domyślnie nie wygasają.** O ile nie skonfigurujesz rotacji (więcej na ten temat poniżej), klucz działa wiecznie.
+- **Jedna usługa może mieć wiele kluczy.** Możesz mieć oddzielne klucze do tworzenia, stagingu i produkcji, każdy z różnymi uprawnieniami.
+- **Klucze mogą mieć zakres.** Klucz może być ograniczony do konkretnych działań (tylko odczyt, tylko zapis, pełny dostęp), żeby nawet jeśli wycieknie, szkody były ograniczone.
+
+## Tworzenie Kluczy API
+
+### Klucze Wewnętrzne OpenClaw
+
+Żeby wygenerować nowy klucz API dla instancji OpenClaw:
+
+```bash
+openclaw keys generate --name "production-main" --scope "full"
+```
+
+```
+Key generated successfully:
+
+  Name:    production-main
+  Key:     oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+  Scope:   full
+  Created: 2026-04-22
+
+⚠️  Copy this key now. It will not be shown again.
+```
+
+To ostatnie ostrzeżenie jest ważne. OpenClaw przechowuje hash klucza, nie sam klucz. Po zamknięciu tego ekranu nie ma możliwości odzyskania oryginalnego klucza. Jeśli go stracisz, będziesz musiał wygenerować nowy.
+
+### Klucze z Zakresem
+
+Zamiast dawać każdemu kluczowi pełny dostęp, twórz klucze z ograniczonymi uprawnieniami:
+
+```bash
+# Klucz tylko do odczytu dla dashboardów monitorowania
+openclaw keys generate --name "monitoring-readonly" --scope "read"
+
+# Klucz, który może uzyskać dostęp tylko do konkretnych narzędzi
+openclaw keys generate --name "calendar-bot" --scope "custom" \
+  --allowed-tools "calendar.*,weather.*"
+```
+
+Wylistuj istniejące klucze:
+
+```bash
+openclaw keys list
+```
+
+```
+NAME                  SCOPE    CREATED       LAST USED       STATUS
+production-main       full     2026-01-15    2026-04-22      active
+monitoring-readonly   read     2026-02-20    2026-04-22      active
+calendar-bot          custom   2026-03-08    2026-04-21      active
+old-test-key          full     2025-11-01    2025-12-15      active ⚠️
+```
+
+Zwróć uwagę na ostrzeżenie przy `old-test-key` — nie był używany od miesięcy. To kandydat do odwołania.
+
+## Bezpieczne Przechowywanie Kluczy
+
+To jest najważniejsza sekcja na tej stronie. Sposób przechowywania kluczy decyduje o tym, czy pozostają tajne.
+
+### Złota Zasada: Używaj Zmiennych Środowiskowych
+
+Nigdy nie wstawiaj kluczy API bezpośrednio do plików konfiguracyjnych, kodu źródłowego ani systemu kontroli wersji. Zamiast tego przechowuj je w pliku `.env`:
+
+```bash
+# .env — ten plik zostaje na Twoim komputerze i nigdy nie jest commitowany
+OPENCLAW_API_KEY=oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+GITHUB_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345
+STRIPE_SECRET_KEY=sk_live_YOUR_STRIPE_KEY_HERE
+OPENAI_API_KEY=sk-abc123def456ghi789jkl012mno345pqr
+SLACK_BOT_TOKEN=xoxb-YOUR-BOT-TOKEN-HERE
+```
+
+Następnie odwołuj się do nich w konfiguracji składnią `${}`:
+
+```yaml
+# openclaw.config.yaml — bezpieczny do commitowania
+integrations:
+  github:
+    token: "${GITHUB_TOKEN}"
+  stripe:
+    secret_key: "${STRIPE_SECRET_KEY}"
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+  slack:
+    bot_token: "${SLACK_BOT_TOKEN}"
+```
+
+### Upewnij Się, Że .env Jest Ignorowany przez Git
+
+Ten krok jest krytyczny. Uruchom to polecenie teraz, jeśli jeszcze tego nie zrobiłeś:
+
+```bash
+echo ".env" >> .gitignore
+echo ".env.local" >> .gitignore
+echo ".env.production" >> .gitignore
+```
+
+Zweryfikuj, czy zadziałało:
+
+```bash
+git status
+```
+
+Plik `.env` nie powinien pojawiać się w wynikach. Jeśli się pojawia, nie jest ignorowany — sprawdź plik `.gitignore`.
+
+### Co Jeśli Przypadkowo Zacommitowałem Klucz?
+
+Zdarza się. Oto co zrobić:
+
+1. **Natychmiast odwołaj klucz.** Nie czekaj. Wyciekły klucz to kompromitowany klucz.
+2. **Wygeneruj nowy klucz** i zaktualizuj plik `.env`.
+3. **Usuń klucz z historii git.** Samo usunięcie pliku w nowym commicie nie wystarczy — klucz nadal jest w starym commicie.
+
+```bash
+# Odwołaj kompromitowany klucz
+openclaw keys revoke "compromised-key-name"
+
+# Wygeneruj zamiennik
+openclaw keys generate --name "replacement-key" --scope "full"
+```
+
+### Używanie Menedżera Sekretów
+
+W przypadku wdrożeń produkcyjnych rozważ użycie dedykowanego menedżera sekretów zamiast plików `.env`:
+
+```yaml
+# openclaw.config.yaml
+secrets:
+  provider: "vault"
+  config:
+    address: "https://vault.internal.example.com"
+    path: "secret/openclaw"
+    auth_method: "approle"
+```
+
+OpenClaw obsługuje kilku dostawców:
+
+| Dostawca | Wartość konfiguracji | Najlepszy dla |
+|----------|---------------------|---------------|
+| Pliki `.env` | `"dotenv"` (domyślny) | Lokalne tworzenie, małe wdrożenia |
+| HashiCorp Vault | `"vault"` | Przedsiębiorstwa, zespoły |
+| AWS Secrets Manager | `"aws-secrets"` | Wdrożenia na AWS |
+| Google Secret Manager | `"gcp-secrets"` | Wdrożenia na GCP |
+| Azure Key Vault | `"azure-keyvault"` | Wdrożenia na Azure |
+
+## Rotacja Kluczy
+
+Rotacja kluczy oznacza okresowe zastępowanie kluczy nowymi. To jak wymiana zamków — nawet jeśli ktoś zrobił kopię starego klucza, przestaje działać.
+
+### Dlaczego Rotować?
+
+- Klucz mógł zostać ujawniony bez Twojej wiedzy.
+- Członkowie zespołu, którzy mieli dostęp, mogli odejść.
+- Ogranicza okno ekspozycji w przypadku naruszenia.
+
+### Konfigurowanie Harmonogramu Rotacji
+
+```yaml
+# openclaw.config.yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    notify_before_days: 14
+    auto_rotate: false
+```
+
+Ta konfiguracja mówi OpenClaw, żeby przypomniał Ci 14 dni przed tym, jak każdy klucz będzie miał 90 dni. Możesz sprawdzić status rotacji w dowolnym momencie:
+
+```bash
+openclaw keys rotation-status
+```
+
+```
+KEY ROTATION STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+production-main       Age: 97 days    ⚠️ OVERDUE (due 7 days ago)
+monitoring-readonly   Age: 61 days    ✓ OK (due in 29 days)
+calendar-bot          Age: 45 days    ✓ OK (due in 45 days)
+```
+
+### Proces Rotacji
+
+Gdy nadejdzie czas rotacji klucza, wykonaj następujące kroki:
+
+```bash
+# Krok 1: Wygeneruj nowy klucz
+openclaw keys generate --name "production-main-v2" --scope "full"
+
+# Krok 2: Zaktualizuj plik .env nowym kluczem
+# (edytuj .env ręcznie lub użyj menedżera sekretów)
+
+# Krok 3: Przeładuj konfigurację
+openclaw config reload
+
+# Krok 4: Zweryfikuj, że nowy klucz działa
+openclaw keys test "production-main-v2"
+
+# Krok 5: Odwołaj stary klucz
+openclaw keys revoke "production-main"
+```
+
+Powód, dla którego nie odwołujesz starego klucza dopóki nie potwierdzisz, że nowy działa, to uniknięcie zablokowania sobie dostępu. Istnieje krótkie okno, w którym oba klucze są aktywne, co jest normalne i oczekiwane podczas rotacji.
+
+### Automatyczna Rotacja
+
+Jeśli Twoja konfiguracja to obsługuje, włącz automatyczną rotację:
+
+```yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    auto_rotate: true
+    on_rotate:
+      - action: "system.notify"
+        params:
+          message: "API key rotated automatically"
+          channel: "security-alerts"
+```
+
+Przy `auto_rotate: true`, OpenClaw generuje nowy klucz, aktualizuje wewnętrzne odwołanie i odwołuje stary klucz — wszystko bez ręcznej interwencji. Jednak działa to tylko dla własnych kluczy OpenClaw. Klucze zewnętrznych usług (GitHub, Stripe itp.) muszą być rotowane przez ich odpowiednie panele.
+
+## Odwoływanie Kluczy
+
+Gdy klucz nie jest już potrzebny lub mógł zostać skompromitowany:
+
+```bash
+openclaw keys revoke "old-test-key"
+```
+
+```
+Key "old-test-key" revoked.
+  Status: revoked
+  Revoked at: 2026-04-22 14:30 UTC
+  Any requests using this key will now receive 401 Unauthorized.
+```
+
+Odwołanie jest natychmiastowe i nieodwracalne. Nie ma opcji cofnięcia. Jeśli przez pomyłkę odwołasz klucz, wygeneruj nowy.
+
+## Podsumowanie Najlepszych Praktyk
+
+1. **Generuj klucze za pomocą CLI**, nigdy ręcznie.
+2. **Przechowuj klucze w plikach `.env`** lub menedżerze sekretów, nigdy w kodzie ani plikach konfiguracyjnych.
+3. **Ogranicz zakres kluczy.** Daj każdemu kluczowi tylko te uprawnienia, których potrzebuje.
+4. **Rotuj co 90 dni.** Ustaw przypomnienia, żeby nie zapomnieć.
+5. **Odwołuj nieużywane klucze.** Jeśli klucz nie był używany przez 60 dni, prawdopodobnie nie powinien istnieć.
+6. **Traktuj wyciekły klucz jako skompromitowany.** Najpierw odwołaj, pytania zadawaj później.
+7. **Regularnie sprawdzaj.** Uruchamiaj `openclaw keys list` co miesiąc i usuwaj wszystko, co jest nieaktualne.

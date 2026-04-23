@@ -1,0 +1,300 @@
+---
+title: Voz
+description: Configure palavras de ativação, Modo de Conversa e interações práticas por voz com seu assistente OpenClaw.
+---
+
+# Voz
+
+Digitar é ótimo para precisão. Mas às vezes você só quer falar. O sistema de voz do OpenClaw permite que você tenha conversas faladas naturais com seu agente — sem usar as mãos, em qualquer dispositivo. Seja cozinhando jantar, dirigindo ou apenas confortável demais no sofá para alcançar o teclado, a voz torna seu assistente verdadeiramente acessível.
+
+## Configuração de Palavra de Ativação
+
+A palavra de ativação é como você chama a atenção do seu agente sem tocar em um dispositivo. Por padrão, é **"Hey Claw"**, mas você pode personalizá-la.
+
+```yaml
+# voice/wake-word.yaml
+wake_word:
+  phrase: "Hey Claw"
+  sensitivity: 0.7          # 0.0 (nunca aciona) até 1.0 (aciona com qualquer coisa)
+  processing: "on_device"   # Detecção de palavra de ativação nunca sai do seu dispositivo
+
+  alternatives:
+    - "OK Claw"
+    - "Claw"                 # Palavra única, funciona mas mais falsos positivos
+
+  custom:
+    enabled: true
+    phrase: "Hey Atlas"      # Use o nome do seu agente como palavra de ativação
+    training_samples: 10     # Diga 10 vezes para treinar o modelo
+
+  behavior:
+    confirmation_sound: true          # Chime quando ativado
+    confirmation_sound_file: "soft_chime.wav"
+    listen_timeout: 10                # Segundos para esperar por fala
+    cancel_phrase: "deixa pra lá"
+    ambient_noise_adaptation: true    # Ajusta ao ruído de fundo
+```
+
+Algumas notas sobre sensibilidade:
+
+- **0.5 - 0.6** — raramente aciona por acidente, mas você pode precisar falar claramente e diretamente para o dispositivo.
+- **0.7** — o ponto ideal para a maioria das pessoas. Confiável sem muitos falsos positivos.
+- **0.8 - 0.9** — muito sensível. Bom em ambientes silenciosos, mas pode acionar com TV ou conversas próximas.
+
+### Treinamento de Palavra de Ativação Personalizada
+
+Se você quiser uma palavra de ativação personalizada (como o nome do seu agente), o OpenClaw treina um pequeno modelo no dispositivo:
+
+```bash
+# Iniciar treinamento de palavra de ativação
+openclaw voice train-wake-word "Hey Atlas"
+
+# A CLI pedirá que você diga a frase 10 vezes em diferentes
+# condições (silencioso, barulhento, perto, longe).
+
+# Testar a nova palavra de ativação
+openclaw voice test-wake-word
+
+# Redefinir para o padrão
+openclaw voice reset-wake-word
+```
+
+O treinamento leva cerca de dois minutos. Diga sua palavra de ativação em diferentes distâncias e volumes para melhores resultados. O modelo roda inteiramente no seu dispositivo — suas amostras de voz nunca saem dele.
+
+## Modo de Conversa
+
+O Modo de Conversa é um modo de conversa contínua onde você não precisa da palavra de ativação para cada troca. Ative uma vez e você pode ter uma conversa de vai e vem naturalmente, como falar com outra pessoa.
+
+```yaml
+# voice/talk-mode.yaml
+talk_mode:
+  activation:
+    trigger: "Hey Claw, vamos conversar"
+    hotkey: "hold_volume_button"     # Dependente de plataforma
+    auto_activate: false
+
+  behavior:
+    continuous_listening: true
+    turn_detection: "voice_activity"  # Detecta quando você para de falar
+    pause_threshold: 1.5              # Segundos de silêncio = seu turno terminou
+    interrupt_allowed: true           # Você pode interromper no meio da resposta
+
+  response:
+    voice: "ember"                    # Opções: ember, sage, nova, flint
+    speed: 1.0                        # 0.5 (lento) até 2.0 (rápido)
+    pitch: "natural"
+    language: "auto_detect"
+
+  deactivation:
+    phrase: "Pode parar, obrigado"
+    auto_timeout: 300                 # Encerrar Modo de Conversa após 5 min de silêncio
+    explicit_only: false              # Também encerra no timeout
+```
+
+### Opções de Voz
+
+O OpenClaw vem com várias personas de voz:
+
+```yaml
+voices:
+  ember:
+    description: "Calorosa, registro médio, conversacional"
+    best_for: "uso diário, assistente pessoal"
+    gender_presentation: "neutral"
+
+  sage:
+    description: "Calma, medida, autoritativa"
+    best_for: "contextos profissionais, briefings"
+    gender_presentation: "neutral"
+
+  nova:
+    description: "Brilhante, energética, animada"
+    best_for: "sessões criativas, brainstorming"
+    gender_presentation: "neutral"
+
+  flint:
+    description: "Grave, constante, mínima"
+    best_for: "ambientes silenciosos, uso noturno"
+    gender_presentation: "neutral"
+```
+
+Você pode trocar de voz dinamicamente:
+
+```
+Você: Mude para a voz sage.
+OpenClaw (agora na voz sage): Pronto. Usarei esta voz daqui em diante.
+```
+
+## Configuração de Fala para Texto
+
+Quando você fala, o OpenClaw converte sua voz em texto antes de processar. Você tem controle sobre como isso funciona:
+
+```yaml
+speech_to_text:
+  engine: "whisper-large-v3"
+  processing: "hybrid"       # no dispositivo para curtos, nuvem para longos
+  threshold:
+    on_device_max: 30        # Segundos — processar no dispositivo até 30s
+    cloud_above: 30          # Áudio mais longo vai para a nuvem
+
+  language:
+    primary: "pt"
+    secondary: "en"
+    auto_detect: true
+    code_switching: true     # Lidar com trocas de idioma no meio da frase
+
+  enhancements:
+    punctuation: true        # Adicionar pontuação automaticamente
+    profanity_filter: false  # Não censurar
+    domain_vocabulary:
+      - "OpenClaw"
+      - "ClawHub"
+      - "SOUL.md"
+      - "Pi runtime"
+
+  privacy:
+    audio_retention: "none"  # Não armazenar áudio bruto
+    transcription_retention: "session"  # Mantido para a sessão, depois deletado
+```
+
+A configuração `domain_vocabulary` é importante. Ela ensina o motor de fala para texto a transcrever corretamente palavras que ele pode não conhecer — como "OpenClaw" em vez de "open claw" ou "SOUL.md" em vez de "soul MD."
+
+## Casos de Uso Práticos de Voz
+
+### Briefing Matinal
+
+```
+Você: Hey Claw, bom dia. Como está meu dia?
+
+OpenClaw: Bom dia. Você tem três reuniões hoje.
+A primeira é um standup às 10 com a equipe de produto.
+Depois, almoço com Sarah às 12h30 — ela sugeriu aquele lugar novo
+na Rua Augusta. Sua reunião individual com Dr. Chen é às 15h.
+Entre as reuniões, você tem cerca de duas horas de tempo de foco.
+Ah, e está 18 graus e parcialmente nublado — talvez queira um casaco.
+```
+
+Isso funciona lindamente como uma interação por voz enquanto você toma café. Sem necessidade de tela.
+
+### Culinária Sem as Mãos
+
+```
+Você: Hey Claw, vamos conversar.
+
+OpenClaw: Modo de Conversa ativo. O que há?
+
+Você: Estou fazendo aquele risoto de cogumelos. Me guie passo a passo.
+
+OpenClaw: Claro. Primeiro, corte seus cogumelos e deixe o caldo
+esquentando em um queimador de trás. Pronto para o passo um?
+
+Você: Pronto.
+
+OpenClaw: Aqueça duas colheres de sopa de azeite em uma frigideira
+larga em fogo médio. Adicione uma cebola picada e cozinhe até amolecer,
+cerca de cinco minutos.
+
+Você: Pronto, e agora?
+
+OpenClaw: Adicione o arroz arbóreo — cerca de uma xícara e meia. Mexa
+por um minuto até os grãos estarem cobertos e ligeiramente translúcidos
+nas bordas.
+
+Você: Espera, devo adicionar alho?
+
+OpenClaw: Boa ideia. Adicione dois dentes picados logo após a cebola
+amolecer, antes do arroz. Cozinhe o alho por apenas 30 segundos para
+não queimar.
+```
+
+Observe como o Modo de Conversa permite uma troca natural sem dizer a palavra de ativação toda vez. E você pode interromper ou fazer perguntas no meio da receita.
+
+### Modo de Direção
+
+```yaml
+# voice/driving-mode.yaml
+driving_mode:
+  activation: "Hey Claw, estou dirigindo"
+  behavior:
+    responses: "voice_only"      # Nunca mostrar conteúdo visual
+    length: "extra_concise"      # Manter respostas muito curtas
+    confirmations: "verbal"      # "Devo enviar isso?" em vez de mostrar um rascunho
+    no_questions: true            # Não fazer perguntas de esclarecimento, adivinhar melhor
+    emergency_override: true     # Sempre alertar para mensagens urgentes
+
+  allowed_skills:
+    - navigation
+    - music
+    - calls
+    - messages_read_only
+  blocked_skills:
+    - email_compose
+    - code_exec
+    - file_manager
+```
+
+O modo de direção é um recurso de segurança. Ele restringe o que o agente pode fazer, força saída somente por voz e mantém as respostas ultra-curtas. Seu agente não vai pedir que você olhe para uma tela.
+
+### Notas Rápidas em Reunião
+
+```
+Você: Hey Claw, nota rápida. Sarah quer mover o prazo
+para 15 de maio. Mike resistiu, mas concordou se cortarmos
+o escopo do painel de analytics. Decisão: vamos lançar sem
+os gráficos em tempo real e adicioná-los na v2.
+
+OpenClaw: Entendido. Salvo:
+  - Sarah propôs mudança de prazo para 15 de maio
+  - Mike concordou com condição: cortar escopo do painel de analytics
+  - Decisão: lançar sem gráficos em tempo real, adicionar na v2
+  Quer que eu envie esse resumo para a equipe?
+```
+
+Notas de voz capturadas, estruturadas e prontas para compartilhar — tudo enquanto você volta da sala de conferências.
+
+### Relaxamento na Hora de Dormir
+
+```yaml
+# voice/night-mode.yaml
+night_mode:
+  activation:
+    time: "22:00"
+    manual: "Hey Claw, modo noturno"
+
+  behavior:
+    voice: "flint"             # Voz grave e tranquila
+    volume: 0.4                # Volume reduzido
+    responses: "minimal"       # Respostas muito curtas
+    no_proactive: true         # Não ofereça informações voluntariamente
+
+  sleep_sounds:
+    enabled: true
+    trigger: "tocar sons para dormir"
+    options: ["rain", "ocean", "forest", "white_noise"]
+    timer: 30                  # Parar automaticamente após 30 minutos
+```
+
+## Solução de Problemas de Voz
+
+Problemas comuns e soluções:
+
+```bash
+# Testar seu microfone
+openclaw voice mic-test
+
+# Verificar detecção de palavra de ativação
+openclaw voice debug-wake-word
+# Mostra pontuações de confiança em tempo real à medida que você fala
+
+# Recalibrar para um novo ambiente
+openclaw voice calibrate
+# Ajusta o nível de ruído e sensibilidade para seu espaço atual
+
+# Verificar latência de voz
+openclaw voice latency-test
+# Mostra detalhamento do tempo de processamento: STT → processamento → TTS
+```
+
+Se sua palavra de ativação aciona com muita frequência, diminua a sensibilidade. Se ela perde sua voz, aumente. Se o reconhecimento de fala está errando palavras, adicione-as à lista `domain_vocabulary`. A maioria dos problemas de voz se resume a esses três ajustes.
+
+A voz é um dos recursos que parece supérfluo até você usá-lo no contexto certo. Culinária, direção, rotinas matinais, notas rápidas em movimento — uma vez que você encontra seus casos de uso, vai se perguntar como digitava tudo antes.

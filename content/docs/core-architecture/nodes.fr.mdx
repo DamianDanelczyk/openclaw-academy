@@ -1,0 +1,316 @@
+---
+title: Nœuds
+description: Comment OpenClaw fonctionne sur tous vos appareils — iOS, Android, macOS — et garde tout synchronisé.
+---
+
+# Nœuds
+
+Dans OpenClaw, chaque appareil que vous utilisez est un **nœud**. Votre iPhone est un nœud. Votre MacBook est un nœud. Votre tablette Android est un nœud. Les nœuds sont la façon dont OpenClaw s'étend dans le monde physique — donnant à votre agent accès à vos appareils, leurs capteurs et leurs capacités. La magie réside dans le fait que tous vos nœuds fonctionnent ensemble comme un système unifié et transparent.
+
+## Qu'est-ce qu'un Nœud ?
+
+Un nœud est tout appareil exécutant le client OpenClaw et connecté à votre Gateway. Chaque nœud a ses propres capacités (un téléphone a une caméra et un GPS ; un ordinateur portable a un clavier et un grand écran), et votre agent connaît tous. Cela signifie que votre agent peut faire des choses comme :
+
+- Vous rappeler sur votre téléphone quand vous quittez la maison
+- Afficher une feuille de calcul détaillée sur votre ordinateur portable car l'écran est plus grand
+- Jouer de la musique sur l'appareil le plus proche de vous
+- Prendre une photo sur votre téléphone et l'envoyer à votre ordinateur pour édition
+
+Les nœuds ne sont pas de simples récepteurs passifs d'informations. Ils rapportent activement leur statut — niveau de batterie, connexion réseau, localisation, applications actives — pour que votre agent puisse prendre des décisions intelligentes sur quel appareil utiliser pour quoi.
+
+## Support des Appareils
+
+### iOS
+
+Le nœud iOS fonctionne comme un service en arrière-plan avec une intégration système approfondie :
+
+```yaml
+# nodes/ios.yaml
+node:
+  platform: "ios"
+  name: "iPhone de Damian"
+  id: "node_iphone_15_pro"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - camera
+    - gps
+    - notifications
+    - haptics
+    - health_kit
+    - shortcuts_integration
+    - focus_modes
+
+  always_listening:
+    enabled: true
+    wake_word: "Hey Claw"
+    processing: "on_device"  # La détection du mot de réveil reste locale
+
+  notifications:
+    priority_levels: true
+    grouped: true
+    actionable: true
+
+  background:
+    location_updates: "significant_changes"
+    health_sync: "hourly"
+    battery_optimization: true
+```
+
+Sur iOS, OpenClaw s'intègre avec Shortcuts, vous permettant de déclencher des actions d'agent depuis l'application Shortcuts ou depuis des widgets. Il se connecte également avec HealthKit pour les compétences liées au fitness et respecte vos modes Focus — il ne vous alertera pas pendant Ne Pas Déranger sauf si quelque chose est vraiment urgent.
+
+### Android
+
+Le nœud Android offre des capacités similaires avec quelques extras spécifiques à la plateforme :
+
+```yaml
+# nodes/android.yaml
+node:
+  platform: "android"
+  name: "Pixel de Damian"
+  id: "node_pixel_9"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - camera
+    - gps
+    - notifications
+    - nfc
+    - tasker_integration
+    - digital_wellbeing
+
+  permissions:
+    accessibility_service: true   # Active la lecture à l'écran
+    notification_listener: true   # Peut lire et agir sur les notifications
+    overlay: true                 # Bulle d'assistant flottante
+
+  widget:
+    enabled: true
+    size: "4x2"
+    show: ["quick_actions", "next_event", "active_tasks"]
+
+  automation:
+    tasker_integration: true
+    intents:
+      - action: "com.openclaw.TRIGGER"
+        extras: ["command", "context"]
+```
+
+L'ouverture d'Android donne à OpenClaw plus d'accès au système. Le service d'accessibilité permet à votre agent de lire ce qui est à l'écran (avec votre permission), ce qui permet des choses comme "Sur quelle application suis-je ?" ou "Résume cet article." L'intégration Tasker permet des chaînes d'automatisation complexes.
+
+### macOS
+
+Le nœud macOS est là où les utilisateurs avancés passent la plupart de leur temps :
+
+```yaml
+# nodes/macos.yaml
+node:
+  platform: "macos"
+  name: "MacBook de Damian"
+  id: "node_macbook_pro_m4"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - screen_sharing
+    - file_system
+    - terminal
+    - clipboard
+    - menu_bar
+    - spotlight_integration
+
+  interface:
+    mode: "menu_bar"  # Options : menu_bar, floating, dock, fullscreen
+    hotkey: "Cmd+Shift+Space"
+    quick_actions:
+      - "Nouvelle note"
+      - "Vérifier le calendrier"
+      - "Rechercher des fichiers"
+
+  file_access:
+    allowed_paths:
+      - "~/Documents"
+      - "~/Desktop"
+      - "~/Downloads"
+    denied_paths:
+      - "~/Library"
+      - "/System"
+    watch_folders:
+      - path: "~/Downloads"
+        action: "notify_new_files"
+
+  terminal:
+    enabled: true
+    shell: "zsh"
+    allowed_commands: ["git", "npm", "python", "docker"]
+    require_confirmation: true
+```
+
+Sur macOS, OpenClaw se trouve dans votre barre de menus pour un accès rapide. Appuyez sur le raccourci clavier et commencez à parler ou à taper. Il peut accéder à votre système de fichiers (dans les chemins que vous autorisez), exécuter des commandes terminal (avec votre confirmation) et même surveiller les dossiers pour détecter des changements.
+
+## Capacités Multi-Appareils
+
+La vraie puissance des nœuds ne tient pas à un seul appareil — c'est dans la façon dont ils travaillent ensemble.
+
+### Transfert de Session
+
+Commencez une conversation sur un appareil, continuez sur un autre :
+
+```yaml
+cross_device:
+  session_sync:
+    enabled: true
+    latency: "< 500ms"
+    handoff:
+      trigger: "automatic"   # Options : automatic, manual, ask
+      notification: true
+
+  # Exemple de flux :
+  # 1. Vous chattez sur votre MacBook à votre bureau
+  # 2. Vous prenez votre téléphone et vous éloignez
+  # 3. OpenClaw détecte le changement d'appareil
+  # 4. Le téléphone affiche : "Continuation depuis votre MacBook..."
+  # 5. Le contexte de conversation complet est disponible
+```
+
+### Réponses Adaptées à l'Appareil
+
+Votre agent adapte sa sortie à l'appareil que vous utilisez :
+
+```yaml
+adaptive_output:
+  rules:
+    - device: "phone"
+      formatting:
+        max_length: "concise"
+        prefer: "bullet_points"
+        tables: "simplified"
+        code_blocks: "collapsible"
+
+    - device: "laptop"
+      formatting:
+        max_length: "full"
+        prefer: "mixed"
+        tables: "full_width"
+        code_blocks: "expanded"
+
+    - device: "tablet"
+      formatting:
+        max_length: "moderate"
+        prefer: "visual"
+        tables: "full_width"
+        code_blocks: "expanded"
+```
+
+Posez la même question sur votre téléphone et sur votre ordinateur, et vous obtenez des présentations différentes des mêmes informations. Le téléphone reçoit un résumé concis. L'ordinateur reçoit le détail complet avec tableaux et blocs de code.
+
+### Actions Multi-Appareils
+
+Votre agent peut orchestrer des actions sur plusieurs appareils :
+
+```
+Vous (sur téléphone) : Prends ce rapport que j'ai téléchargé sur mon ordinateur
+et envoie-le à Sarah.
+
+OpenClaw :
+  1. Accède au nœud MacBook → trouve "Q2_Report.pdf" dans Téléchargements
+  2. Accède à la compétence e-mail → rédige un e-mail pour Sarah
+  3. Joint le fichier
+  4. Revient au téléphone → "C'est fait. J'ai envoyé Q2_Report.pdf à Sarah. Voulez-vous voir l'e-mail ?"
+```
+
+Cela fonctionne parce que tous vos nœuds sont connectés à la même Gateway, et votre agent a une visibilité sur tous.
+
+## Gestion des Nœuds
+
+```bash
+# Lister tous les nœuds enregistrés
+openclaw node list
+
+# Sortie :
+# NOM                 PLATEFORME   STATUT    DERNIÈRE CONNEXION
+# iPhone de Damian    ios          en ligne   à l'instant
+# MacBook de Damian   macos        en ligne   à l'instant
+# Pixel de Damian     android      hors ligne il y a 2 heures
+
+# Enregistrer un nouvel appareil
+openclaw node add
+
+# Supprimer un appareil
+openclaw node remove node_pixel_9
+
+# Vérifier la santé d'un nœud
+openclaw node health --all
+
+# Définir l'appareil principal
+openclaw node set-primary node_macbook_pro_m4
+```
+
+### Priorité des Nœuds
+
+Quand votre agent doit choisir un appareil pour quelque chose, il suit des règles de priorité :
+
+```yaml
+node_priority:
+  notification_delivery:
+    - rule: "active_device"       # Envoyer à l'appareil que vous utilisez
+      fallback: "primary_device"  # Si aucun actif, utiliser l'appareil principal
+
+  file_operations:
+    - rule: "device_with_file"    # Utiliser l'appareil qui a le fichier
+      fallback: "primary_device"
+
+  voice_interactions:
+    - rule: "device_with_wake"    # L'appareil qui a entendu le mot de réveil
+      fallback: "nearest_device"  # Basé sur la proximité géographique
+
+  heavy_processing:
+    - rule: "most_capable"        # Router vers l'appareil avec le plus de ressources
+      prefer: "macos"
+```
+
+## Sécurité et Confidentialité
+
+Les nœuds ont accès à vos appareils physiques, donc la sécurité est primordiale :
+
+```yaml
+node_security:
+  authentication:
+    method: "device_certificate"
+    biometric_required: true
+    session_token_expiry: "24h"
+
+  encryption:
+    in_transit: "TLS 1.3"
+    at_rest: "AES-256"
+
+  remote_actions:
+    require_confirmation: true
+    confirmation_timeout: 30  # secondes
+    allowed_remote_actions:
+      - read_files
+      - send_notifications
+    denied_remote_actions:
+      - delete_files
+      - install_apps
+      - access_camera_without_prompt
+
+  lost_device:
+    action: "revoke_access"
+    wipe_local_data: true
+    notify_other_nodes: true
+```
+
+Si un appareil est perdu, OpenClaw révoque immédiatement son accès, efface toutes les données OpenClaw locales et notifie vos autres appareils. Les lectures de fichiers à distance nécessitent une confirmation biométrique, et l'accès à la caméra à distance affiche toujours une invite à l'écran.
+
+## Démarrer avec les Nœuds
+
+1. **Installez OpenClaw sur votre appareil principal** et terminez la configuration.
+2. **Ajoutez votre second appareil** — `openclaw node add` génère un QR code à scanner avec le nouvel appareil.
+3. **Configurez les capacités** — décidez ce que chaque appareil peut faire et ce qu'il ne peut pas faire.
+4. **Définissez votre appareil principal** — c'est là où vont les notifications par défaut.
+5. **Testez le transfert** — commencez une conversation sur un appareil, changez pour un autre et confirmez qu'elle vous suit.
+
+La plupart des gens commencent avec deux nœuds (téléphone et ordinateur portable) et en ajoutent d'autres à mesure qu'ils voient la valeur. Même avec seulement deux appareils, les fonctionnalités de transfert et d'actions multi-appareils donnent à OpenClaw l'impression d'être un assistant unique qui vit partout, pas des applications séparées sur des appareils distincts.

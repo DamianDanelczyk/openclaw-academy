@@ -1,0 +1,285 @@
+---
+title: Claves API
+description: Una guía no técnica para crear, almacenar y rotar claves API en OpenClaw para mantener tus integraciones seguras.
+---
+
+# Claves API
+
+Si alguna vez has usado una contraseña para iniciar sesión en un sitio web, ya entiendes la idea básica detrás de las claves API. Una clave API es como una contraseña, pero en lugar de que una persona la use para iniciar sesión, es utilizada por software para probar su identidad cuando habla con otro software.
+
+Cuando tu asistente de OpenClaw se conecta a GitHub, envía un mensaje a través de Slack o procesa un pago a través de Stripe, usa claves API para decir "tengo permiso para hacer esto". Esta página cubre todo lo que necesitas saber sobre crear, almacenar y gestionar esas claves de forma segura.
+
+## ¿Qué Es Exactamente una Clave API?
+
+Una clave API es una larga cadena de caracteres -- letras, números y a veces caracteres especiales -- que actúa como credencial. Así es como se ve una:
+
+```
+oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+```
+
+Ese prefijo (`oc_sk_`) te dice que es una clave secreta de OpenClaw. Diferentes servicios usan diferentes prefijos:
+
+| Servicio | Prefijo de clave | Ejemplo |
+|---------|-----------|---------|
+| OpenClaw | `oc_sk_` | `oc_sk_9f8a2c4e...` |
+| GitHub | `ghp_` | `ghp_aBcDeFgHiJ...` |
+| Stripe | `sk_live_` | `sk_live_51Hx7y...` |
+| OpenAI | `sk-` | `sk-abc123def...` |
+
+La clave en sí es aleatoria. No hay forma de adivinarla, lo que la hace segura -- siempre que la mantengas privada.
+
+### Claves vs. Contraseñas
+
+Hay algunas diferencias importantes entre las claves API y las contraseñas:
+
+- **No eliges las claves API.** Se generan aleatoriamente por el sistema. Esto las hace mucho más difíciles de adivinar que una contraseña elegida por un humano.
+- **Las claves API no expiran por defecto.** A menos que configures la rotación (más sobre eso a continuación), una clave funciona indefinidamente.
+- **Un servicio puede tener múltiples claves.** Podrías tener claves separadas para desarrollo, staging y producción, cada una con diferentes permisos.
+- **Las claves pueden tener alcance.** Una clave puede limitarse a acciones específicas (solo lectura, solo escritura, acceso completo) para que incluso si se filtra, el daño esté contenido.
+
+## Crear Claves API
+
+### Claves Internas de OpenClaw
+
+Para generar una nueva clave API para tu instancia de OpenClaw:
+
+```bash
+openclaw keys generate --name "production-main" --scope "full"
+```
+
+```
+Key generated successfully:
+
+  Name:    production-main
+  Key:     oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+  Scope:   full
+  Created: 2026-04-22
+
+⚠️  Copy this key now. It will not be shown again.
+```
+
+Esa última advertencia es importante. OpenClaw almacena un hash de la clave, no la clave en sí. Una vez que cierres esta pantalla, no hay forma de recuperar la clave original. Si la pierdes, necesitarás generar una nueva.
+
+### Claves con Alcance
+
+En lugar de dar acceso completo a cada clave, crea claves con permisos limitados:
+
+```bash
+# Read-only key for monitoring dashboards
+openclaw keys generate --name "monitoring-readonly" --scope "read"
+
+# Key that can only access specific tools
+openclaw keys generate --name "calendar-bot" --scope "custom" \
+  --allowed-tools "calendar.*,weather.*"
+```
+
+Lista tus claves existentes:
+
+```bash
+openclaw keys list
+```
+
+```
+NAME                  SCOPE    CREATED       LAST USED       STATUS
+production-main       full     2026-01-15    2026-04-22      active
+monitoring-readonly   read     2026-02-20    2026-04-22      active
+calendar-bot          custom   2026-03-08    2026-04-21      active
+old-test-key          full     2025-11-01    2025-12-15      active ⚠️
+```
+
+Observa la advertencia en `old-test-key` -- no se ha usado en meses. Esa es una candidata para revocación.
+
+## Almacenar Claves de Forma Segura
+
+Esta es la sección más importante de esta página. Cómo almacenas tus claves determina si permanecen secretas.
+
+### La Regla de Oro: Usa Variables de Entorno
+
+Nunca pongas claves API directamente en tus archivos de configuración, código fuente o control de versiones. En cambio, guárdalas en un archivo `.env`:
+
+```bash
+# .env — this file stays on your machine and never gets committed
+OPENCLAW_API_KEY=oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+GITHUB_TOKEN=ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ012345
+STRIPE_SECRET_KEY=sk_live_YOUR_STRIPE_KEY_HERE
+OPENAI_API_KEY=sk-abc123def456ghi789jkl012mno345pqr
+SLACK_BOT_TOKEN=xoxb-YOUR-BOT-TOKEN-HERE
+```
+
+Luego referenciarlas en tu configuración con la sintaxis `${}`:
+
+```yaml
+# openclaw.config.yaml — safe to commit
+integrations:
+  github:
+    token: "${GITHUB_TOKEN}"
+  stripe:
+    secret_key: "${STRIPE_SECRET_KEY}"
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+  slack:
+    bot_token: "${SLACK_BOT_TOKEN}"
+```
+
+### Asegúrate de que .env Esté en Git-Ignore
+
+Este paso es crítico. Ejecuta este comando ahora mismo si aún no lo has hecho:
+
+```bash
+echo ".env" >> .gitignore
+echo ".env.local" >> .gitignore
+echo ".env.production" >> .gitignore
+```
+
+Verifica que funcionó:
+
+```bash
+git status
+```
+
+Tu archivo `.env` no debería aparecer en la salida. Si aparece, no está siendo ignorado -- revisa tu archivo `.gitignore`.
+
+### ¿Qué Pasa Si Accidentalmente Confirmé una Clave?
+
+Ocurre. Esto es lo que debes hacer:
+
+1. **Revoca la clave inmediatamente.** No esperes. Una clave filtrada es una clave comprometida.
+2. **Genera una nueva clave** y actualiza tu archivo `.env`.
+3. **Elimina la clave del historial de git.** Simplemente eliminar el archivo en un nuevo commit no es suficiente -- la clave sigue estando en el commit anterior.
+
+```bash
+# Revoke the compromised key
+openclaw keys revoke "compromised-key-name"
+
+# Generate a replacement
+openclaw keys generate --name "replacement-key" --scope "full"
+```
+
+### Usar un Gestor de Secretos
+
+Para implementaciones en producción, considera usar un gestor de secretos dedicado en lugar de archivos `.env`:
+
+```yaml
+# openclaw.config.yaml
+secrets:
+  provider: "vault"
+  config:
+    address: "https://vault.internal.example.com"
+    path: "secret/openclaw"
+    auth_method: "approle"
+```
+
+OpenClaw admite varios proveedores:
+
+| Proveedor | Valor de configuración | Mejor para |
+|----------|-------------|----------|
+| Archivos `.env` | `"dotenv"` (predeterminado) | Desarrollo local, implementaciones pequeñas |
+| HashiCorp Vault | `"vault"` | Empresas, equipos |
+| AWS Secrets Manager | `"aws-secrets"` | Implementaciones alojadas en AWS |
+| Google Secret Manager | `"gcp-secrets"` | Implementaciones alojadas en GCP |
+| Azure Key Vault | `"azure-keyvault"` | Implementaciones alojadas en Azure |
+
+## Rotación de Claves
+
+La rotación de claves significa reemplazar periódicamente tus claves por nuevas. Es como cambiar las cerraduras -- incluso si alguien hizo una copia de la clave antigua, deja de funcionar.
+
+### ¿Por Qué Rotar?
+
+- Una clave puede haber sido expuesta sin tu conocimiento.
+- Los miembros del equipo que tenían acceso pueden haberse ido.
+- Limita la ventana de exposición si ocurre una brecha.
+
+### Configurar un Calendario de Rotación
+
+```yaml
+# openclaw.config.yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    notify_before_days: 14
+    auto_rotate: false
+```
+
+Esta configuración le dice a OpenClaw que te recuerde 14 días antes de que cada clave tenga 90 días de antigüedad. Puedes comprobar el estado de rotación en cualquier momento:
+
+```bash
+openclaw keys rotation-status
+```
+
+```
+KEY ROTATION STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+production-main       Age: 97 days    ⚠️ OVERDUE (due 7 days ago)
+monitoring-readonly   Age: 61 days    ✓ OK (due in 29 days)
+calendar-bot          Age: 45 days    ✓ OK (due in 45 days)
+```
+
+### El Proceso de Rotación
+
+Cuando es hora de rotar una clave, sigue estos pasos:
+
+```bash
+# Step 1: Generate the new key
+openclaw keys generate --name "production-main-v2" --scope "full"
+
+# Step 2: Update your .env file with the new key
+# (edit .env manually or use your secrets manager)
+
+# Step 3: Reload the configuration
+openclaw config reload
+
+# Step 4: Verify the new key works
+openclaw keys test "production-main-v2"
+
+# Step 5: Revoke the old key
+openclaw keys revoke "production-main"
+```
+
+La razón por la que no revocas la clave antigua hasta confirmar que la nueva funciona es para evitar bloquearte. Hay una breve ventana donde ambas claves están activas, lo que es normal y esperado durante la rotación.
+
+### Rotación Automática
+
+Si tu configuración puede manejarlo, habilita la rotación automática:
+
+```yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    auto_rotate: true
+    on_rotate:
+      - action: "system.notify"
+        params:
+          message: "API key rotated automatically"
+          channel: "security-alerts"
+```
+
+Con `auto_rotate: true`, OpenClaw genera una nueva clave, actualiza la referencia interna y revoca la antigua -- todo sin intervención manual. Sin embargo, esto solo funciona para las propias claves de OpenClaw. Las claves de servicios externos (GitHub, Stripe, etc.) deben rotarse a través de sus respectivos paneles de control.
+
+## Revocar Claves
+
+Cuando una clave ya no es necesaria o puede haber sido comprometida:
+
+```bash
+openclaw keys revoke "old-test-key"
+```
+
+```
+Key "old-test-key" revoked.
+  Status: revoked
+  Revoked at: 2026-04-22 14:30 UTC
+  Any requests using this key will now receive 401 Unauthorized.
+```
+
+La revocación es inmediata e irreversible. No hay deshacer. Si revocas una clave por error, genera una nueva.
+
+## Resumen de Mejores Prácticas
+
+1. **Genera claves con la CLI**, nunca a mano.
+2. **Almacena las claves en archivos `.env`** o en un gestor de secretos, nunca en código o archivos de configuración.
+3. **Establece alcances estrechos para las claves.** Da a cada clave solo los permisos que necesita.
+4. **Rota cada 90 días.** Configura recordatorios para no olvidarlo.
+5. **Revoca las claves no utilizadas.** Si una clave no se ha utilizado en 60 días, probablemente no debería existir.
+6. **Trata una clave filtrada como comprometida.** Revoca primero, haz preguntas después.
+7. **Audita regularmente.** Ejecuta `openclaw keys list` mensualmente y limpia todo lo que esté obsoleto.

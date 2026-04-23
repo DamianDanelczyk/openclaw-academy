@@ -1,0 +1,180 @@
+---
+title: Gateway
+description: Jak centralny Gateway OpenClaw łączy Twojego asystenta AI z modelami, urządzeniami i światem.
+---
+
+# Gateway
+
+Gdyby OpenClaw był miastem, Gateway byłby jego centralnym dworcem kolejowym. Każda wiadomość, którą wysyłasz, każda odpowiedź, którą otrzymujesz, każda umiejętność, która się uruchamia — wszystko to przechodzi przez Gateway. Zrozumienie go daje Ci mentalną mapę tego, jak wszystko w OpenClaw do siebie pasuje.
+
+## Co Gateway Faktycznie Robi
+
+W swojej istocie Gateway to **serwer WebSocket**. Jeśli brzmi to onieśmielająco, pomyśl o nim jak o linii telefonicznej, która pozostaje otwarta. W przeciwieństwie do tradycyjnego żądania webowego (pukasz, zadajesz pytanie, dostajesz odpowiedź, rozłączasz się), połączenie WebSocket pozostaje aktywne. Oznacza to, że Twoja rozmowa z OpenClaw przebiega naturalnie, w czasie rzeczywistym, bez ciągłego ponownego łączenia.
+
+Oto co Gateway obsługuje przy każdej interakcji:
+
+- **Odbiera Twoje dane wejściowe** — czy wpisane, wypowiedziane, czy wywołane przez automatyzację.
+- **Kieruje je do odpowiedniego modelu AI** — może GPT-4o do złożonego pytania lub mniejszy model do szybkiego wyszukiwania.
+- **Zarządza Twoją sesją** — śledzi, kim jesteś, o czym rozmawiałeś i co ma znaczenie.
+- **Uruchamia umiejętności** — jeśli Twoja wiadomość wywołuje umiejętność (np. sprawdzenie kalendarza), Gateway to koordynuje.
+- **Dostarcza odpowiedź** — przesyła ją strumieniowo do używanego urządzenia.
+
+Pomyśl o tym jak o kontroli ruchu lotniczego. Samoloty (Twoje wiadomości) przylatują, są kierowane na właściwy pas startowy (model AI) i ponownie odlatują (odpowiedź do Ciebie).
+
+## Routing Modeli
+
+Jedną z najpotężniejszych funkcji Gateway jest **routing modeli**. Nie jesteś ograniczony do jednego modelu AI. Gateway może wysyłać różne typy żądań do różnych modeli na podstawie zdefiniowanych przez Ciebie reguł.
+
+Oto podstawowa konfiguracja routingu:
+
+```yaml
+# gateway.yaml
+routing:
+  default_model: "gpt-4o"
+  rules:
+    - match:
+        intent: "quick_answer"
+      model: "gpt-4o-mini"
+      reason: "Simple questions don't need the heavy model"
+
+    - match:
+        intent: "code_generation"
+      model: "claude-sonnet"
+      reason: "Strong at structured code output"
+
+    - match:
+        intent: "creative_writing"
+      model: "gpt-4o"
+      temperature: 0.9
+      reason: "Higher creativity setting for writing tasks"
+
+    - match:
+        skill: "image_*"
+      model: "dall-e-3"
+      reason: "Route image skills to the image model"
+```
+
+Co się tu dzieje? Mówisz Gateway: „Gdy ktoś zadaje proste pytanie, użyj tańszego, szybszego modelu. Gdy chcą kodu, użyj modelu dobrego w kodzie. Gdy chcą obrazów, użyj modelu obrazów." To oszczędza Ci pieniędzy i jednocześnie daje lepsze wyniki.
+
+## Konfiguracja Połączenia
+
+Gateway musi wiedzieć kilka rzeczy, żeby zacząć: gdzie nasłuchiwać, jak się uwierzytelniać i jakie limity egzekwować.
+
+```json
+{
+  "gateway": {
+    "host": "0.0.0.0",
+    "port": 8340,
+    "websocket": {
+      "path": "/ws",
+      "ping_interval": 30,
+      "max_message_size": "1MB"
+    },
+    "auth": {
+      "method": "token",
+      "token_expiry": "24h",
+      "refresh_enabled": true
+    },
+    "rate_limiting": {
+      "messages_per_minute": 60,
+      "burst_allowance": 10
+    },
+    "cors": {
+      "allowed_origins": ["https://yourdomain.com"],
+      "allow_credentials": true
+    }
+  }
+}
+```
+
+Wyjaśnijmy to prostym językiem:
+
+- **host i port** — gdzie Gateway nasłuchuje. `0.0.0.0` oznacza, że akceptuje połączenia skądkolwiek (należy to ograniczyć w produkcji).
+- **ustawienia websocket** — `ping_interval` utrzymuje połączenie aktywne, wysyłając sygnał pulsu co 30 sekund. `max_message_size` zapobiega wysyłaniu absurdalnie dużych wiadomości.
+- **auth** — tokeny wygasają po 24 godzinach ze względów bezpieczeństwa. Tokeny odświeżające pozwalają pozostać zalogowanym bez ponownego wprowadzania danych.
+- **rate_limiting** — zapobiega nadużyciom. 60 wiadomości na minutę z skokiem 10 oznacza, że możesz wysłać szybką serię, ale nie możesz zalać systemu.
+
+## Jak Gateway Łączy Wszystko
+
+Oto przepływ typowej interakcji, krok po kroku:
+
+```
+Ty (telefon/laptop/komputer)
+    │
+    ▼
+┌──────────┐
+│ Gateway  │ ← połączenie WebSocket pozostaje otwarte
+└──────────┘
+    │
+    ├──→ Menedżer Sesji (ładuje Twój kontekst)
+    ├──→ SOUL.md + USER.md (ładuje osobowość + Twój profil)
+    ├──→ Warstwa Pamięci (przypomina sobie odpowiednie przeszłe rozmowy)
+    ├──→ Router Modeli (wybiera odpowiedni model AI)
+    ├──→ Dispatcher Umiejętności (wywołuje potrzebne umiejętności)
+    │
+    ▼
+┌──────────┐
+│ Odpowiedź│ ← przesyłana strumieniowo do Twojego urządzenia
+└──────────┘
+```
+
+Wszystko rozchodzi się z Gateway i zbiega z powrotem przez niego. Żaden komponent nie komunikuje się bezpośrednio z innym — Gateway jest zawsze pośrodku, koordynując.
+
+## Awaryjne Przełączanie Modeli
+
+Co się dzieje, gdy model przestaje działać? Gateway chroni Cię łańcuchami awaryjnymi:
+
+```yaml
+routing:
+  fallback:
+    enabled: true
+    chain:
+      - model: "gpt-4o"
+        timeout: 10s
+      - model: "claude-sonnet"
+        timeout: 15s
+      - model: "gpt-4o-mini"
+        timeout: 5s
+    on_all_failed: "queue_and_retry"
+    retry_delay: 30s
+```
+
+Gateway najpierw próbuje głównego modelu. Jeśli przekroczy limit czasu lub wystąpi błąd, przechodzi do następnego. Jeśli wszystko zawiedzie, kolejkuje Twoją wiadomość i próbuje ponownie po 30 sekundach. Nigdy nie widzisz błędu — tylko nieco dłuższe oczekiwanie.
+
+## Monitorowanie Gateway
+
+Możesz w każdej chwili sprawdzić stan Gateway:
+
+```yaml
+monitoring:
+  health_check:
+    endpoint: "/health"
+    interval: 10s
+  metrics:
+    enabled: true
+    export: "prometheus"
+    track:
+      - request_latency
+      - model_usage
+      - active_connections
+      - error_rate
+  alerts:
+    - condition: "error_rate > 5%"
+      notify: "email"
+    - condition: "latency_p95 > 3s"
+      notify: "slack"
+```
+
+Jest to opcjonalne, ale jeśli uruchamiasz OpenClaw dla zespołu lub firmy, wiedza o tym, że wskaźnik błędów wzrósł lub opóźnienie skoczyło, może zaoszczędzić Ci bólu głowy.
+
+## Praktyczne Wskazówki
+
+**Zacznij prosto.** Nie potrzebujesz niestandardowych reguł routingu od pierwszego dnia. Domyślna konfiguracja działa dobrze dla większości ludzi. Dodawaj reguły routingu, gdy zauważysz, że pewne zadania skorzystałyby na innym modelu.
+
+**Obserwuj limity szybkości.** Jeśli budujesz automatyzacje, które uruchamiają się szybko, zwiększ `messages_per_minute` lub napotkasz ograniczenie prędkości.
+
+**Używaj awaryjnych przełączeń.** Dostawcy modeli mają przerwy. Łańcuch awaryjny nic nie kosztuje, gdy wszystko działa, i ratuje Cię, gdy nie działa.
+
+**Aktualizuj Gateway.** OpenClaw regularnie wydaje aktualizacje Gateway z ulepszeniami wydajności i obsługą nowych modeli. Szybkie `openclaw update gateway` utrzymuje Cię na bieżąco.
+
+Gateway to jedna z tych rzeczy, które konfigurujesz raz i w większości zapominasz o nich. Ale gdy rozumiesz, co robi, reszta architektury OpenClaw ma o wiele więcej sensu. Wszystko przez to przepływa — i to jest zamierzone.

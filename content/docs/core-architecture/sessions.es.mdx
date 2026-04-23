@@ -1,0 +1,232 @@
+---
+title: Sesiones
+description: Cómo las sesiones de OpenClaw rastrean el contexto, gestionan los reinicios diarios y mantienen conversaciones coherentes.
+---
+
+# Sesiones
+
+Cada vez que empiezas a hablar con OpenClaw, estás dentro de una **sesión**. Las sesiones son cómo OpenClaw lleva el registro de lo que has estado discutiendo, lo que preguntaste hace cinco minutos y lo que importa ahora mismo. Sin sesiones, cada mensaje se sentiría como hablar con un extraño.
+
+## ¿Qué Es una Sesión?
+
+Una sesión es un contexto de conversación delimitado. Comienza cuando empiezas a interactuar y termina según reglas que tú defines — generalmente al final del día o después de un período de inactividad. Durante una sesión, todo lo que dices y todo lo que dice OpenClaw se mantiene en la memoria de trabajo.
+
+Piensa en ello como un escritorio. Cuando te sientas a trabajar, sacas los documentos que necesitas. A lo largo del día, agregas papeles, consultas notas anteriores y todo permanece a tu alcance. Al final del día, ordenas — algunas cosas se archivan para más tarde, otras se desechan. Eso es una sesión.
+
+## Ciclo de Vida de una Sesión
+
+Así es como fluye una sesión de principio a fin:
+
+```
+Inicio de Sesión
+    │
+    ├─ Cargar SOUL.md (personalidad)
+    ├─ Cargar USER.md (tu perfil)
+    ├─ Recuperar memorias a largo plazo relevantes
+    ├─ Verificar tareas pendientes de sesiones anteriores
+    │
+    ▼
+Sesión Activa
+    │
+    ├─ Cada mensaje se añade al contexto de sesión
+    ├─ Las memorias se etiquetan y ponderan
+    ├─ Las habilidades se activan y los resultados se capturan
+    │
+    ▼
+Fin de Sesión (reinicio diario o tiempo de espera)
+    │
+    ├─ Contexto importante → memoria a largo plazo
+    ├─ Se genera resumen de sesión
+    ├─ Datos temporales descartados
+    └─ Sesión archivada
+```
+
+## Seguimiento de Contexto
+
+Durante una sesión activa, OpenClaw rastrea mucho más que solo tus mensajes. Mantiene un contexto estructurado que incluye:
+
+```yaml
+# Cómo se ve un contexto de sesión internamente
+session:
+  id: "ses_20260422_a8f3c"
+  user: "damian"
+  agent: "Atlas"
+  started_at: "2026-04-22T09:15:00Z"
+  messages: 23
+  context:
+    topics:
+      - "revisión del presupuesto trimestral"
+      - "agenda de reunión del equipo"
+    entities:
+      people: ["Sarah", "Mike", "Dr. Chen"]
+      projects: ["Proyecto Falcon", "Lanzamiento T2"]
+      dates: ["el próximo martes", "30 de abril"]
+    active_tasks:
+      - "redactar correo a Sarah sobre el cronograma"
+      - "encontrar los números de ingresos del trimestre pasado"
+    mood_signals: "concentrado, ligeramente apresurado"
+    skills_used: ["calendar", "email", "web_search"]
+```
+
+Este seguimiento de contexto es por qué OpenClaw puede manejar preguntas de seguimiento de manera natural. Cuando dices "¿Qué hay de lo que mencionó Mike?", OpenClaw sabe quién es Mike y a qué se refiere "lo que" porque ha estado rastreando entidades y temas a lo largo de la sesión.
+
+## Reinicios Diarios
+
+Por defecto, las sesiones se reinician cada 24 horas. Esto es intencional. Una sesión nueva significa que tu asistente empieza de cero sin arrastrar contexto irrelevante de las conversaciones de ayer.
+
+Pero "reinicio" no significa "olvidar." Antes de que una sesión termine, OpenClaw ejecuta un proceso de destilación:
+
+```yaml
+session_management:
+  daily_reset:
+    time: "04:00"
+    timezone: "user_local"
+
+  distillation:
+    enabled: true
+    preserve:
+      - ongoing_tasks
+      - important_decisions
+      - user_preferences_learned
+      - follow_up_items
+    discard:
+      - casual_chitchat
+      - one_off_lookups
+      - superseded_information
+
+  summary:
+    generate: true
+    max_length: 500
+    store_in: "daily_memories"
+```
+
+A las 4 AM (tu hora local), la sesión concluye. OpenClaw escribe un resumen, guarda los elementos importantes en la memoria a largo plazo y descarta el ruido. Cuando empiezas a hablar a la mañana siguiente, obtienes un contexto nuevo — pero tu agente sigue recordando que tienes un seguimiento con Sarah el martes.
+
+## Reglas de Alcance
+
+No todo en tu sesión se trata de la misma manera. OpenClaw usa **reglas de alcance** para determinar qué contexto está disponible y cuánto tiempo persiste.
+
+```yaml
+scope_rules:
+  levels:
+    - scope: "turn"
+      description: "Par de mensaje-respuesta único"
+      persists: "solo el turno actual"
+      example: "Resultados de cálculos intermedios"
+
+    - scope: "conversation"
+      description: "Hilo de conversación actual"
+      persists: "hasta que el tema cambie o la sesión termine"
+      example: "Los números de presupuesto que estás discutiendo"
+
+    - scope: "session"
+      description: "Sesión actual completa"
+      persists: "hasta el reinicio diario"
+      example: "Que tuviste una mañana difícil"
+
+    - scope: "persistent"
+      description: "Cruza los límites de sesión"
+      persists: "hasta que se elimine explícitamente"
+      example: "Tu preferencia por unidades métricas"
+```
+
+También puedes establecer el alcance manualmente cuando quieras que algo se recuerde u olvide:
+
+```
+Tú: Recuerda que mi nuevo número de teléfono es 555-0142
+→ Alcance: persistent (guardado en USER.md)
+
+Tú: Para esta conversación, asume que todos los precios están en EUR
+→ Alcance: conversation (olvidado cuando el tema cambie)
+
+Tú: No recuerdes nada de esta conversación
+→ Alcance: turn (todo tiene alcance de turno, nada persiste)
+```
+
+## Configuración de Sesión
+
+Tienes control sobre cómo se comportan las sesiones:
+
+```json
+{
+  "sessions": {
+    "timeout": {
+      "idle_minutes": 120,
+      "action": "pause",
+      "resume_greeting": true
+    },
+    "context_window": {
+      "strategy": "sliding",
+      "max_messages": 100,
+      "summarize_after": 50,
+      "priority_retain": ["user_instructions", "task_context", "recent_messages"]
+    },
+    "multi_device": {
+      "sync": true,
+      "conflict_resolution": "latest_wins",
+      "handoff_notification": true
+    },
+    "privacy": {
+      "auto_redact": ["credit_card", "ssn", "password"],
+      "session_encryption": true,
+      "retention_days": 30
+    }
+  }
+}
+```
+
+Vamos a repasar las partes interesantes:
+
+**Tiempo de espera** — después de 2 horas de silencio, la sesión se pausa (no termina). Cuando regresas, OpenClaw te saluda con un breve resumen: "¡Bienvenido de vuelta! Estábamos trabajando en la revisión del presupuesto. ¿Quieres retomar donde lo dejamos?"
+
+**Estrategia de ventana de contexto** — "sliding" (deslizante) significa que los mensajes más antiguos gradualmente se eliminan a medida que entran nuevos, pero se genera un resumen para que el contexto no se pierda. El ajuste `priority_retain` garantiza que tus instrucciones explícitas nunca sean resumidas.
+
+**Sincronización multi-dispositivo** — si inicias una conversación en tu teléfono y cambias a tu portátil, la sesión te sigue. `handoff_notification` te da un rápido mensaje "Continuando desde tu teléfono..." para que sepas que todo se transfirió.
+
+**Privacidad** — los números de tarjetas de crédito, números de seguro social y contraseñas se redactan automáticamente de los registros de sesión. Las sesiones están encriptadas y los datos de sesión antiguos se eliminan después de 30 días.
+
+## Inspeccionar Tu Sesión
+
+¿Curioso sobre qué hay en tu sesión actual? Puedes preguntar:
+
+```
+Tú: /session status
+
+OpenClaw: La sesión actual comenzó hace 3 horas.
+  Mensajes: 47
+  Temas: planificación de proyectos, recomendación de almuerzo, depuración de API
+  Tareas activas: 2
+  Uso del contexto: 34% de la ventana
+  Habilidades usadas: calendar, web_search, code_exec
+```
+
+O obtener más detalle:
+
+```
+Tú: /session context
+
+OpenClaw: Esto es lo que estoy rastreando:
+  - Estás planificando el lanzamiento del T2 (en curso)
+  - Sarah se encarga del diseño, Mike está en el backend
+  - El plazo es el 30 de abril (en 8 días)
+  - Prefieres actualizaciones concisas
+  - Me pediste que te recordara la llamada con el proveedor mañana
+```
+
+## Controles Manuales de Sesión
+
+A veces quieres tomar el control:
+
+```
+/session new         — Iniciar una sesión nueva ahora mismo
+/session save        — Forzar el guardado de la sesión actual en la memoria
+/session export      — Descargar la sesión como JSON o Markdown
+/session privacy     — Ver qué datos se están reteniendo
+/session forget      — Borrar la sesión actual sin guardar
+```
+
+El comando `/session forget` vale la pena conocer. Si discutiste algo sensible y no quieres ningún rastro de ello, esto limpia completamente la sesión actual — sin resumen, sin almacenamiento de memoria, nada.
+
+## Por Qué Importan las Sesiones
+
+Las sesiones pueden parecer plomería — algo que simplemente funciona en segundo plano. Pero las sesiones bien configuradas son la diferencia entre una IA que se siente como si te conociera y una que se siente como un extraño cada vez. Le dan a OpenClaw la capacidad de seguir un hilo de pensamiento a través de docenas de mensajes, hacer traspasos sin problemas entre dispositivos y comenzar cada día de manera fresca sin perder lo que importa.

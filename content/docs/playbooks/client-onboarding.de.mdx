@@ -1,0 +1,217 @@
+---
+title: Client-Onboarding-Workflow
+description: Schaffe ein reibungsloses, automatisiertes Client-Onboarding-Erlebnis, das einen großartigen ersten Eindruck hinterlässt und nichts durch die Maschen fallen lässt.
+---
+
+# Client-Onboarding-Workflow
+
+Die ersten Tage einer Kundenbeziehung geben den Ton für alles vor, was folgt. Ein reibungsloses Onboarding-Erlebnis baut Vertrauen auf, reduziert Abwanderung und lässt Kunden das Gefühl haben, die richtige Wahl getroffen zu haben. Ein unorganisiertes — verpasste Follow-ups, vergessene Zugriffsanfragen, verspätete Willkommensmaterialien — pflanzt Zweifelssamen, die schwer auszurotten sind.
+
+Das Client-Onboarding-Playbook verwandelt OpenClaw in deinen Onboarding-Koordinator. Es verfolgt jeden Schritt des Prozesses, sendet Erinnerungen bei Verzögerungen und stellt sicher, dass kein Kunde durch die Ritzen fällt. Ob du einen neuen Kunden pro Monat oder zehn pro Woche onboardest — dieses Playbook skaliert mit dir.
+
+## Die Onboarding-Reise
+
+Jedes Unternehmen hat einen etwas anderen Onboarding-Prozess, aber die meisten folgen einem ähnlichen Bogen. Dieses Playbook organisiert das Onboarding in fünf Phasen:
+
+1. **Willkommen** (Tag 0) — Willkommens-E-Mail senden, Schlüsselkontakte vorstellen, erste Dokumentation teilen
+2. **Einrichtung** (Tage 1–3) — Notwendige Informationen einholen, Zugriff bereitstellen, Account konfigurieren
+3. **Kickoff** (Tage 3–5) — Kickoff-Meeting planen und durchführen, Erwartungen setzen, Meilensteine festlegen
+4. **Aktivierung** (Tage 5–14) — Kunden durch die erste Nutzung führen, Schulungsmaterialien bereitstellen, Fragen beantworten
+5. **Übergabe** (Tage 14–30) — Von Onboarding zu laufendem Support übergehen, ersten Check-in planen
+
+OpenClaw verfolgt, wo sich jeder Kunde in dieser Reise befindet, und treibt Dinge proaktiv voran. Wenn ein Kunde seinen Einrichtungsfragebogen nicht bis Tag 2 ausgefüllt hat, erinnert OpenClaw dich (oder den Kunden, wenn du möchtest). Wenn das Kickoff-Meeting bis Tag 4 noch nicht geplant ist, markiert es das.
+
+## Warum Onboarding automatisieren?
+
+Manuelles Onboarding funktioniert gut, wenn du zwei oder drei Kunden hast. Aber wenn dein Unternehmen wächst, beginnen Dinge zu entgleisen. Du vergisst, das Willkommenspaket an einen Kunden zu senden. Die Zugangsdaten eines anderen Kunden stecken im Posteingang von jemandem fest. Ein dritter Kunde bekommt nie sein Kickoff-Meeting, weil jeder annahm, dass jemand anderes es planen würde.
+
+Das sind keine Katastrophen für sich allein. Aber zusammen schaffen sie ein Muster der Schlampigkeit, das das Vertrauen der Kunden untergräbt. Die Automatisierung des Prozesses gewährleistet Konsistenz. Jeder Kunde bekommt das gleiche hochwertige Erlebnis, unabhängig davon, wie beschäftigt dein Team ist.
+
+## Bevor du anfängst
+
+Um dieses Playbook effektiv einzurichten, musst du deinen aktuellen Onboarding-Prozess dokumentieren. Schreibe jeden Schritt auf, jede E-Mail, jedes Formular, jedes Meeting. Gib an, wer für jeden Schritt verantwortlich ist und wie lange er dauern sollte. Diese Übung ist wertvoll, auch wenn du es nie automatisierst — die meisten Menschen entdecken Lücken in ihrem Prozess, indem sie ihn einfach aufschreiben.
+
+Sobald du deinen Prozess dokumentiert hast, kannst du ihn den Onboarding-Phasen von OpenClaw zuordnen.
+
+## SOUL.md-Ergänzungen
+
+```markdown
+## Behaviors
+
+### Client Onboarding
+- When I say "new client: [name]" start the onboarding workflow for that client
+- Track each client through five phases: Welcome, Setup, Kickoff, Activation, Handoff
+- Each phase has a target timeline — flag any phase that is more than 1 day behind schedule
+- Send me a daily status update for all clients currently in onboarding
+- For each client, track: current phase, days in onboarding, pending actions, blockers
+- Remind me about pending actions 24 hours before they become overdue
+- When a client completes all phases, archive the onboarding and suggest scheduling a 30-day check-in
+- Keep a log of all client communications during onboarding for reference
+- If multiple clients are onboarding simultaneously, prioritize status updates by who is most at risk of falling behind
+- Never contact clients directly — always route communications through me or the designated team member
+```
+
+## Empfohlene Skills
+
+```yaml
+skills:
+  - name: workflow-engine
+    provider: openclaw-native
+    description: Manages multi-step workflows with dependencies and timelines
+
+  - name: email-sender
+    provider: gmail  # or outlook-mail
+    permissions: draft-only  # creates drafts, does not send
+    description: Drafts onboarding emails for your review before sending
+
+  - name: calendar-scheduler
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-write
+    config:
+      booking_link: "your-calendly-or-cal-link"
+    description: Schedules kickoff meetings and check-ins
+
+  - name: form-tracker
+    provider: typeform  # or google-forms, jotform
+    permissions: read-only
+    description: Monitors form submissions for client questionnaires
+
+  - name: project-creator
+    provider: notion  # or asana, monday
+    permissions: read-write
+    description: Creates onboarding project boards for each new client
+```
+
+<PremiumContent title="Vollständige Playbook-Konfiguration">
+
+## Cron-Konfiguration
+
+```yaml
+cron:
+  onboarding-daily-check:
+    schedule: "0 9 * * 1-5"  # Every weekday at 9:00 AM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: onboarding-status-check
+    config:
+      flag_overdue: true  # highlight any overdue actions
+      suggest_next_steps: true
+    retry:
+      attempts: 2
+      delay: 10m
+
+  onboarding-reminder:
+    schedule: "0 14 * * 1-5"  # Every weekday at 2:00 PM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: onboarding-pending-actions
+    config:
+      remind_threshold: 24h  # remind about actions due within 24 hours
+      escalate_threshold: 48h  # escalate if overdue by more than 48 hours
+
+  onboarding-weekly-summary:
+    schedule: "0 17 * * 5"  # Friday at 5:00 PM
+    timezone: "America/New_York"
+    action: run-playbook
+    playbook: onboarding-weekly-report
+    config:
+      include_completed: true  # show clients who finished onboarding this week
+      include_metrics: true
+```
+
+## Channel-Einrichtung
+
+```yaml
+channels:
+  onboarding-alerts:
+    type: slack-channel
+    config:
+      workspace: "your-workspace"
+      channel: "#client-onboarding"
+      format: rich
+      notify: true
+      description: "Real-time updates on client onboarding progress"
+
+  onboarding-personal:
+    type: slack-dm
+    config:
+      workspace: "your-workspace"
+      recipient: "@your-username"
+      format: rich
+      notify: true  # push notifications for overdue items
+
+  onboarding-report:
+    type: email
+    config:
+      recipient: "you@yourcompany.com"
+      subject_prefix: "[Onboarding]"
+      format: html
+```
+
+## Beispielausgabe
+
+Hier ist ein tägliches Onboarding-Statusupdate:
+
+```
+CLIENT ONBOARDING STATUS — Thursday, April 16
+
+ACTIVE CLIENTS (3)
+
+1. Meridian Corp — Phase: Setup (Day 2 of 3)
+   Status: On track
+   Completed: Welcome email sent, intro call done
+   Pending: Waiting for their completed questionnaire (sent yesterday)
+   Next: Schedule kickoff meeting once questionnaire is received
+   Risk: Low
+
+2. BlueHarbor LLC — Phase: Kickoff (Day 5 of 5)
+   Status: BEHIND SCHEDULE
+   Completed: Welcome, setup, questionnaire received
+   Pending: Kickoff meeting not yet scheduled
+   Blocker: Their CEO is traveling this week — assistant suggested next Tuesday
+   Next: Confirm Tuesday 10 AM for kickoff
+   Risk: Medium — suggest sending a brief async kickoff document in the meantime
+
+3. Cascade Digital — Phase: Activation (Day 8 of 14)
+   Status: On track
+   Completed: Welcome, setup, kickoff meeting (went great)
+   Pending: They have not logged into the platform yet
+   Next: Send a guided walkthrough email with video tutorial link
+   Risk: Low-Medium — first login is a critical activation moment, follow up today
+
+RECENTLY COMPLETED
+  Northwind Partners — Completed onboarding on April 14 (12 days total)
+  30-day check-in scheduled for May 14 at 3:00 PM
+```
+
+Hier ist ein Beispiel für eine Überfälligkeits-Benachrichtigung:
+
+```
+ONBOARDING ALERT — Action Overdue
+
+Client: BlueHarbor LLC
+Phase: Kickoff
+Overdue item: Kickoff meeting (should have been scheduled by Day 4)
+Days overdue: 1
+
+Context: Their CEO Marcus is traveling. His assistant Jen offered
+next Tuesday at 10 AM.
+
+Suggested actions:
+  1. Confirm the Tuesday slot with Jen
+  2. Send Marcus a brief async kickoff summary to keep momentum
+  3. Share the platform login credentials so they can explore independently
+
+Reply "confirm Tuesday 10am with BlueHarbor" to proceed.
+```
+
+## Anpassen ans eigene Unternehmen
+
+- **Individuelle Phasen**: Das Fünf-Phasen-Modell ist ein Ausgangspunkt. Füge Phasen hinzu, entferne sie oder benenne sie um, um deinen tatsächlichen Prozess abzubilden. Einige Unternehmen brauchen eine „Rechtsprüfungs"-Phase. Andere können „Aktivierung" überspringen, weil ihr Produkt Self-Service ist.
+- **Template-Bibliothek**: Erstelle E-Mail-Vorlagen für jede Phase. OpenClaw personalisiert sie mit dem Namen, dem Unternehmen und relevanten Details des Kunden, bevor es Entwürfe für deine Überprüfung erstellt.
+- **Kundenseitige Updates**: Einige Nutzer richten einen gemeinsamen Kanal oder eine E-Mail-Sequenz ein, über die Kunden ihren eigenen Onboarding-Fortschritt sehen können. Das schafft Transparenz und reduziert „Wo stehen wir?"-Fragen.
+- **Metrikverfolgung**: Mit der Zeit zeigt OpenClaw dir die durchschnittliche Onboarding-Dauer, häufigste Engpässe und welche Phasen tendenziell länger dauern als erwartet. Nutze diese Daten, um deinen Prozess zu verbessern.
+
+</PremiumContent>
+
+<CTACard variant="community" />

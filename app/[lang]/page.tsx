@@ -1,87 +1,350 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useParams } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
 import { SKOOL_URL } from '@/lib/constants';
 
-const sections = [
-  {
-    title: 'Getting Started',
-    description: 'Install OpenClaw and build your first AI agent in under an hour.',
-    href: '/docs/getting-started/what-is-openclaw',
-  },
-  {
-    title: 'Core Architecture',
-    description: 'Understand the Gateway, channels, agents, memory, and SOUL.md.',
-    href: '/docs/core-architecture/gateway',
-  },
-  {
-    title: 'Automation',
-    description: 'Cron jobs, webhooks, and end-to-end automation walkthroughs.',
-    href: '/docs/automation/cron-jobs',
-  },
-  {
-    title: 'Security',
-    description: 'Lock down your deployment with production-ready security practices.',
-    href: '/docs/security/checklist',
-  },
-  {
-    title: 'Playbooks',
-    description: 'Copy-paste configurations for 10 real-world use cases.',
-    href: '/docs/playbooks/morning-briefing',
-  },
-  {
-    title: 'Making Money',
-    description: 'Turn your OpenClaw skills into a profitable AI agent business.',
-    href: '/docs/making-money/agency-model',
-  },
-  {
-    title: 'Advanced',
-    description: 'Sub-agents, deployment, cost optimization, and troubleshooting.',
-    href: '/docs/advanced/sub-agents',
-  },
-  {
-    title: 'Resources',
-    description: 'Cheat sheets, templates, glossary, and recommended tools.',
-    href: '/docs/resources/cheat-sheet',
-  },
+const languages = [
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'pt', label: 'Português', flag: '🇧🇷' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
 ];
 
-const stats = [
-  { value: '56', label: 'In-Depth Guides' },
-  { value: '10', label: 'Ready-Made Playbooks' },
-  { value: '30+', label: 'SOUL.md Templates' },
-  { value: '100%', label: 'Free' },
+type Lang = 'en' | 'es' | 'pt' | 'fr' | 'de' | 'pl';
+
+const t: Record<Lang, {
+  docs: string;
+  heroEyebrow: string;
+  heroTitle: [string, string]; // [before-openclaw, after-openclaw]
+  heroSubtitle: string;
+  heroQuote: string;
+  heroCta: string;
+  statsLabels: [string, string, string, string];
+  whatsInsideTitle: string;
+  whatsInsideSubtitle: string;
+  sections: [string, string][];
+  forYouTitle: string;
+  personas: [string, string][];
+  ctaTitle: string;
+  ctaSubtitle: string;
+  ctaButton: string;
+  footerRights: string;
+  footerPoweredBy: string;
+  footerDisclaimer: string;
+}> = {
+  en: {
+    docs: 'Docs',
+    heroEyebrow: 'OpenClaw Academy',
+    heroTitle: ['The Complete ', ' Guide'],
+    heroSubtitle: 'Your plain-English introduction to the AI agent that actually does things for you. From zero to production — no coding experience required.',
+    heroQuote: '"The lobster way" — your personal assistant, running on your own hardware, answering messages from anywhere.',
+    heroCta: 'Start Learning',
+    statsLabels: ['In-Depth Guides', 'Ready-Made Playbooks', 'SOUL.md Templates', 'Free'],
+    whatsInsideTitle: "What's Inside",
+    whatsInsideSubtitle: '8 sections covering everything from your first install to building a profitable AI agent business.',
+    sections: [
+      ['Getting Started', 'Install OpenClaw and build your first AI agent in under an hour.'],
+      ['Core Architecture', 'Understand the Gateway, channels, agents, memory, and SOUL.md.'],
+      ['Automation', 'Cron jobs, webhooks, and end-to-end automation walkthroughs.'],
+      ['Security', 'Lock down your deployment with production-ready security practices.'],
+      ['Playbooks', 'Copy-paste configurations for 10 real-world use cases.'],
+      ['Making Money', 'Turn your OpenClaw skills into a profitable AI agent business.'],
+      ['Advanced', 'Sub-agents, deployment, cost optimization, and troubleshooting.'],
+      ['Resources', 'Cheat sheets, templates, glossary, and recommended tools.'],
+    ],
+    forYouTitle: 'This Is For You If...',
+    personas: [
+      ['Non-Technical Builders', "You want AI automations but don't want to write code. Every guide uses plain English with copy-paste configs."],
+      ['Agency Owners', 'You want to offer AI agent services to clients. Get pricing templates, SOPs, and case studies with real numbers.'],
+      ['Developers', 'You want the deep technical reference. Architecture docs, sub-agent patterns, deployment guides, and cost optimization.'],
+    ],
+    ctaTitle: 'Ready to get started?',
+    ctaSubtitle: 'Everything you need to go from zero to a working AI agent setup.',
+    ctaButton: 'Start Learning',
+    footerRights: 'All rights reserved.',
+    footerPoweredBy: 'Powered by',
+    footerDisclaimer: 'OpenClaw Academy is an independent, community-built resource and is not affiliated with, endorsed by, or officially connected to OpenClaw or its creators. All content is written independently for educational purposes.',
+  },
+  es: {
+    docs: 'Docs',
+    heroEyebrow: 'OpenClaw Academy',
+    heroTitle: ['La Guía Completa de ', ''],
+    heroSubtitle: 'Tu introducción en español al agente de IA que realmente hace cosas por ti. De cero a producción — sin experiencia en programación.',
+    heroQuote: '"El camino langosta" — tu asistente personal, ejecutándose en tu propio hardware, respondiendo mensajes desde cualquier lugar.',
+    heroCta: 'Empezar a Aprender',
+    statsLabels: ['Guías Detalladas', 'Playbooks Listos', 'Plantillas SOUL.md', 'Gratis'],
+    whatsInsideTitle: 'Qué Contiene',
+    whatsInsideSubtitle: '8 secciones que cubren todo, desde tu primera instalación hasta construir un negocio rentable con agentes de IA.',
+    sections: [
+      ['Primeros Pasos', 'Instala OpenClaw y crea tu primer agente de IA en menos de una hora.'],
+      ['Arquitectura Principal', 'Comprende el Gateway, canales, agentes, memoria y SOUL.md.'],
+      ['Automatización', 'Cron jobs, webhooks y guías completas de automatización.'],
+      ['Seguridad', 'Protege tu despliegue con prácticas de seguridad listas para producción.'],
+      ['Playbooks', 'Configuraciones de copiar y pegar para 10 casos de uso reales.'],
+      ['Ganar Dinero', 'Convierte tus habilidades de OpenClaw en un negocio de agentes de IA rentable.'],
+      ['Avanzado', 'Sub-agentes, despliegue, optimización de costes y resolución de problemas.'],
+      ['Recursos', 'Hojas de trucos, plantillas, glosario y herramientas recomendadas.'],
+    ],
+    forYouTitle: 'Esto Es Para Ti Si...',
+    personas: [
+      ['Constructores No Técnicos', 'Quieres automatizaciones de IA pero no quieres escribir código. Cada guía usa español sencillo con configuraciones de copiar y pegar.'],
+      ['Dueños de Agencias', 'Quieres ofrecer servicios de agentes de IA a clientes. Obtén plantillas de precios, SOPs y casos de estudio con números reales.'],
+      ['Desarrolladores', 'Quieres la referencia técnica profunda. Documentación de arquitectura, patrones de sub-agentes, guías de despliegue y optimización de costes.'],
+    ],
+    ctaTitle: '¿Listo para empezar?',
+    ctaSubtitle: 'Todo lo que necesitas para pasar de cero a una configuración de agente de IA funcional.',
+    ctaButton: 'Empezar a Aprender',
+    footerRights: 'Todos los derechos reservados.',
+    footerPoweredBy: 'Desarrollado por',
+    footerDisclaimer: 'OpenClaw Academy es un recurso independiente creado por la comunidad y no está afiliado, respaldado ni conectado oficialmente a OpenClaw o sus creadores. Todo el contenido es escrito de forma independiente con fines educativos.',
+  },
+  pt: {
+    docs: 'Docs',
+    heroEyebrow: 'OpenClaw Academy',
+    heroTitle: ['O Guia Completo do ', ''],
+    heroSubtitle: 'Sua introdução em português ao agente de IA que realmente faz coisas por você. Do zero à produção — sem experiência em programação.',
+    heroQuote: '"O jeito lagosta" — seu assistente pessoal, rodando no seu próprio hardware, respondendo mensagens de qualquer lugar.',
+    heroCta: 'Começar a Aprender',
+    statsLabels: ['Guias Detalhados', 'Playbooks Prontos', 'Templates SOUL.md', 'Grátis'],
+    whatsInsideTitle: 'O Que Há Dentro',
+    whatsInsideSubtitle: '8 seções cobrindo tudo, desde sua primeira instalação até construir um negócio lucrativo com agentes de IA.',
+    sections: [
+      ['Primeiros Passos', 'Instale o OpenClaw e crie seu primeiro agente de IA em menos de uma hora.'],
+      ['Arquitetura Principal', 'Entenda o Gateway, canais, agentes, memória e SOUL.md.'],
+      ['Automação', 'Cron jobs, webhooks e tutoriais completos de automação.'],
+      ['Segurança', 'Proteja seu deployment com práticas de segurança prontas para produção.'],
+      ['Playbooks', 'Configurações de copiar e colar para 10 casos de uso reais.'],
+      ['Ganhar Dinheiro', 'Transforme suas habilidades com OpenClaw em um negócio lucrativo de agentes de IA.'],
+      ['Avançado', 'Sub-agentes, deployment, otimização de custos e solução de problemas.'],
+      ['Recursos', 'Cheat sheets, templates, glossário e ferramentas recomendadas.'],
+    ],
+    forYouTitle: 'Isso É Para Você Se...',
+    personas: [
+      ['Construtores Não-Técnicos', 'Você quer automações de IA mas não quer escrever código. Cada guia usa português simples com configurações de copiar e colar.'],
+      ['Donos de Agências', 'Você quer oferecer serviços de agentes de IA para clientes. Obtenha templates de preços, SOPs e estudos de caso com números reais.'],
+      ['Desenvolvedores', 'Você quer a referência técnica aprofundada. Docs de arquitetura, padrões de sub-agentes, guias de deployment e otimização de custos.'],
+    ],
+    ctaTitle: 'Pronto para começar?',
+    ctaSubtitle: 'Tudo que você precisa para ir do zero a uma configuração funcional de agente de IA.',
+    ctaButton: 'Começar a Aprender',
+    footerRights: 'Todos os direitos reservados.',
+    footerPoweredBy: 'Desenvolvido por',
+    footerDisclaimer: 'OpenClaw Academy é um recurso independente criado pela comunidade e não é afiliado, endossado nem oficialmente conectado ao OpenClaw ou seus criadores. Todo o conteúdo é escrito de forma independente para fins educacionais.',
+  },
+  fr: {
+    docs: 'Docs',
+    heroEyebrow: 'OpenClaw Academy',
+    heroTitle: ['Le Guide Complet ', ''],
+    heroSubtitle: "Votre introduction en français à l'agent IA qui fait vraiment des choses pour vous. De zéro à la production — aucune expérience en programmation requise.",
+    heroQuote: '"La voie du homard" — votre assistant personnel, fonctionnant sur votre propre matériel, répondant à vos messages depuis n\'importe où.',
+    heroCta: 'Commencer à Apprendre',
+    statsLabels: ['Guides Approfondis', 'Playbooks Prêts', 'Templates SOUL.md', 'Gratuit'],
+    whatsInsideTitle: 'Ce Qui est Inclus',
+    whatsInsideSubtitle: '8 sections couvrant tout, de votre première installation à la création d\'une entreprise rentable d\'agents IA.',
+    sections: [
+      ['Démarrage', 'Installez OpenClaw et créez votre premier agent IA en moins d\'une heure.'],
+      ['Architecture Principale', 'Comprenez la Gateway, les canaux, les agents, la mémoire et SOUL.md.'],
+      ['Automatisation', 'Cron jobs, webhooks et tutoriels d\'automatisation complets.'],
+      ['Sécurité', 'Sécurisez votre déploiement avec des pratiques de sécurité prêtes pour la production.'],
+      ['Playbooks', 'Configurations à copier-coller pour 10 cas d\'usage réels.'],
+      ['Gagner de l\'Argent', 'Transformez vos compétences OpenClaw en une entreprise d\'agents IA rentable.'],
+      ['Avancé', 'Sous-agents, déploiement, optimisation des coûts et dépannage.'],
+      ['Ressources', 'Aide-mémoires, templates, glossaire et outils recommandés.'],
+    ],
+    forYouTitle: 'C\'est Pour Vous Si...',
+    personas: [
+      ['Créateurs Non-Techniques', 'Vous voulez des automatisations IA sans écrire de code. Chaque guide utilise un français simple avec des configurations à copier-coller.'],
+      ['Propriétaires d\'Agences', 'Vous voulez proposer des services d\'agents IA à vos clients. Obtenez des templates de tarification, des SOPs et des études de cas avec de vrais chiffres.'],
+      ['Développeurs', 'Vous voulez la référence technique approfondie. Docs d\'architecture, patterns de sous-agents, guides de déploiement et optimisation des coûts.'],
+    ],
+    ctaTitle: 'Prêt à commencer ?',
+    ctaSubtitle: 'Tout ce dont vous avez besoin pour passer de zéro à une configuration d\'agent IA fonctionnelle.',
+    ctaButton: 'Commencer à Apprendre',
+    footerRights: 'Tous droits réservés.',
+    footerPoweredBy: 'Propulsé par',
+    footerDisclaimer: 'OpenClaw Academy est une ressource indépendante créée par la communauté et n\'est pas affiliée, approuvée ni officiellement connectée à OpenClaw ou ses créateurs. Tout le contenu est rédigé de manière indépendante à des fins éducatives.',
+  },
+  de: {
+    docs: 'Docs',
+    heroEyebrow: 'OpenClaw Academy',
+    heroTitle: ['Der vollständige ', '-Leitfaden'],
+    heroSubtitle: 'Ihre verständliche Einführung in den KI-Agenten, der wirklich Dinge für Sie erledigt. Von null zur Produktion — keine Programmierkenntnisse erforderlich.',
+    heroQuote: '"Der Hummer-Weg" — Ihr persönlicher Assistent, läuft auf Ihrer eigenen Hardware und beantwortet Nachrichten von überall.',
+    heroCta: 'Jetzt Lernen',
+    statsLabels: ['Ausführliche Leitfäden', 'Fertige Playbooks', 'SOUL.md-Vorlagen', 'Kostenlos'],
+    whatsInsideTitle: 'Was Enthalten Ist',
+    whatsInsideSubtitle: '8 Abschnitte, die alles von der ersten Installation bis zum Aufbau eines profitablen KI-Agenten-Unternehmens abdecken.',
+    sections: [
+      ['Erste Schritte', 'Installieren Sie OpenClaw und erstellen Sie Ihren ersten KI-Agenten in weniger als einer Stunde.'],
+      ['Kernarchitektur', 'Verstehen Sie Gateway, Kanäle, Agenten, Speicher und SOUL.md.'],
+      ['Automatisierung', 'Cron-Jobs, Webhooks und vollständige Automatisierungs-Walkthroughs.'],
+      ['Sicherheit', 'Sichern Sie Ihre Bereitstellung mit produktionsreifen Sicherheitspraktiken.'],
+      ['Playbooks', 'Kopier-Einfüge-Konfigurationen für 10 reale Anwendungsfälle.'],
+      ['Geld Verdienen', 'Verwandeln Sie Ihre OpenClaw-Kenntnisse in ein profitables KI-Agenten-Unternehmen.'],
+      ['Fortgeschritten', 'Unteragenten, Bereitstellung, Kostenoptimierung und Fehlerbehebung.'],
+      ['Ressourcen', 'Spickzettel, Vorlagen, Glossar und empfohlene Tools.'],
+    ],
+    forYouTitle: 'Das Ist Für Sie, Wenn...',
+    personas: [
+      ['Nicht-Technische Entwickler', 'Sie möchten KI-Automatisierungen, ohne Code schreiben zu müssen. Jeder Leitfaden verwendet verständliches Deutsch mit Kopier-Einfüge-Konfigurationen.'],
+      ['Agentur-Inhaber', 'Sie möchten KI-Agenten-Dienste für Kunden anbieten. Erhalten Sie Preisvorlagen, SOPs und Fallstudien mit echten Zahlen.'],
+      ['Entwickler', 'Sie möchten die technische Tiefenreferenz. Architekturdokumentation, Unteragenten-Muster, Bereitstellungsleitfäden und Kostenoptimierung.'],
+    ],
+    ctaTitle: 'Bereit anzufangen?',
+    ctaSubtitle: 'Alles, was Sie brauchen, um von null zu einem funktionierenden KI-Agenten-Setup zu gelangen.',
+    ctaButton: 'Jetzt Lernen',
+    footerRights: 'Alle Rechte vorbehalten.',
+    footerPoweredBy: 'Unterstützt von',
+    footerDisclaimer: 'OpenClaw Academy ist eine unabhängige, community-erstellte Ressource und ist nicht mit OpenClaw oder seinen Erstellern verbunden, wird nicht von ihnen unterstützt oder ist offiziell mit ihnen verbunden. Alle Inhalte wurden unabhängig für Bildungszwecke verfasst.',
+  },
+  pl: {
+    docs: 'Dokumenty',
+    heroEyebrow: 'OpenClaw Academy',
+    heroTitle: ['Kompletny Przewodnik po ', ''],
+    heroSubtitle: 'Twoje przystępne wprowadzenie do agenta AI, który naprawdę robi rzeczy za Ciebie. Od zera do produkcji — bez doświadczenia w programowaniu.',
+    heroQuote: '"Droga homara" — Twój osobisty asystent, działający na Twoim własnym sprzęcie, odpowiadający na wiadomości z dowolnego miejsca.',
+    heroCta: 'Zacznij Naukę',
+    statsLabels: ['Szczegółowych Poradników', 'Gotowych Playbooków', 'Szablonów SOUL.md', 'Bezpłatnie'],
+    whatsInsideTitle: 'Co Jest W Środku',
+    whatsInsideSubtitle: '8 sekcji obejmujących wszystko — od pierwszej instalacji po zbudowanie dochodowego biznesu z agentami AI.',
+    sections: [
+      ['Pierwsze Kroki', 'Zainstaluj OpenClaw i stwórz swojego pierwszego agenta AI w mniej niż godzinę.'],
+      ['Architektura Główna', 'Zrozum Gateway, kanały, agentów, pamięć i SOUL.md.'],
+      ['Automatyzacja', 'Zadania cron, webhooki i kompletne instrukcje automatyzacji.'],
+      ['Bezpieczeństwo', 'Zabezpiecz swoje wdrożenie za pomocą gotowych do produkcji praktyk bezpieczeństwa.'],
+      ['Playbooki', 'Konfiguracje kopiuj-wklej dla 10 rzeczywistych przypadków użycia.'],
+      ['Zarabianie', 'Zamień swoje umiejętności OpenClaw w dochodowy biznes z agentami AI.'],
+      ['Zaawansowane', 'Podagenci, wdrożenie, optymalizacja kosztów i rozwiązywanie problemów.'],
+      ['Zasoby', 'Ściągawki, szablony, słowniczek i polecane narzędzia.'],
+    ],
+    forYouTitle: 'To Jest Dla Ciebie, Jeśli...',
+    personas: [
+      ['Twórcy Bez Kodowania', 'Chcesz automatyzacji AI, ale nie chcesz pisać kodu. Każdy poradnik używa prostego języka z konfiguracjami kopiuj-wklej.'],
+      ['Właściciele Agencji', 'Chcesz oferować usługi agentów AI klientom. Uzyskaj szablony cenników, SOPy i studia przypadków z prawdziwymi liczbami.'],
+      ['Deweloperzy', 'Chcesz dogłębnej referencji technicznej. Dokumentacja architektury, wzorce podagentów, przewodniki wdrożenia i optymalizacja kosztów.'],
+    ],
+    ctaTitle: 'Gotowy na start?',
+    ctaSubtitle: 'Wszystko, czego potrzebujesz, żeby przejść od zera do działającego agenta AI.',
+    ctaButton: 'Zacznij Naukę',
+    footerRights: 'Wszelkie prawa zastrzeżone.',
+    footerPoweredBy: 'Napędzane przez',
+    footerDisclaimer: 'OpenClaw Academy to niezależny zasób stworzony przez społeczność. Nie jest powiązany, wspierany ani oficjalnie połączony z OpenClaw ani jego twórcami. Wszystkie treści są napisane niezależnie w celach edukacyjnych.',
+  },
+};
+
+const sectionSlugs = [
+  'getting-started/what-is-openclaw',
+  'core-architecture/gateway',
+  'automation/cron-jobs',
+  'security/checklist',
+  'playbooks/morning-briefing',
+  'making-money/agency-model',
+  'advanced/sub-agents',
+  'resources/cheat-sheet',
 ];
+
+function LanguageSwitcher({ lang }: { lang: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = languages.find((l) => l.code === lang) ?? languages[0];
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-md border border-fd-border bg-fd-card px-3 py-1.5 text-sm text-fd-foreground transition-colors hover:border-[hsl(0,65%,50%)]/40 hover:text-[hsl(0,65%,50%)]"
+        aria-label="Switch language"
+      >
+        <span>{current.flag}</span>
+        <span>{current.label}</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1.5 w-40 overflow-hidden rounded-md border border-fd-border bg-fd-card shadow-lg">
+          {languages.map((l) => (
+            <Link
+              key={l.code}
+              href={`/${l.code}`}
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-fd-accent ${
+                l.code === lang ? 'text-[hsl(0,65%,50%)] font-medium' : 'text-fd-foreground'
+              }`}
+            >
+              <span>{l.flag}</span>
+              <span>{l.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function HomePage() {
+  const params = useParams<{ lang: string }>();
+  const lang = (params?.lang ?? 'en') as Lang;
+  const tr = t[lang] ?? t.en;
+
   return (
     <main className="flex min-h-screen flex-col">
+      {/* Navbar */}
+      <nav className="sticky top-0 z-40 border-b border-fd-border bg-fd-background/80 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+          <Link href={`/${lang}`} className="flex items-center gap-2">
+            <Image src="/logo.png" alt="OpenClaw Academy" width={28} height={28} />
+            <span className="font-semibold text-fd-foreground">OpenClaw Academy</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/${lang}/docs/getting-started/what-is-openclaw`}
+              className="hidden text-sm text-fd-muted-foreground transition-colors hover:text-fd-foreground sm:block"
+            >
+              {tr.docs}
+            </Link>
+            <LanguageSwitcher lang={lang} />
+          </div>
+        </div>
+      </nav>
+
       {/* Hero */}
-      <section className="px-6 pb-12 pt-20 md:pb-16 md:pt-28">
+      <section className="px-6 pb-12 pt-16 md:pb-16 md:pt-24">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-12 md:flex-row md:items-center md:gap-16">
           <div className="flex-1 text-center md:text-left">
             <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-[hsl(0,65%,50%)]">
-              OpenClaw Academy
+              {tr.heroEyebrow}
             </p>
             <h1 className="text-4xl font-bold leading-tight tracking-tight text-fd-foreground md:text-5xl lg:text-6xl">
-              The Complete{' '}
-              <span className="text-[hsl(0,65%,50%)]">OpenClaw</span>{' '}
-              Guide
+              {tr.heroTitle[0]}
+              <span className="text-[hsl(0,65%,50%)]">OpenClaw</span>
+              {tr.heroTitle[1]}
             </h1>
             <p className="mt-6 max-w-lg text-lg text-fd-muted-foreground">
-              Your plain-English introduction to the AI agent that actually does
-              things for you. From zero to production — no coding experience
-              required.
+              {tr.heroSubtitle}
             </p>
             <p className="mt-3 text-sm italic text-fd-muted-foreground">
-              &ldquo;The lobster way&rdquo; — your personal assistant, running on
-              your own hardware, answering messages from anywhere.
+              {tr.heroQuote}
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-start justify-center">
               <Link
-                href="/docs/getting-started/what-is-openclaw"
+                href={`/${lang}/docs/getting-started/what-is-openclaw`}
                 className="rounded-lg bg-[hsl(0,65%,50%)] px-8 py-3 font-semibold text-white transition-all hover:bg-[hsl(0,65%,45%)]"
               >
-                Start Learning
+                {tr.heroCta}
               </Link>
             </div>
           </div>
@@ -98,17 +361,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats bar — separated from hero */}
+      {/* Stats bar */}
       <section className="mt-8 border-y border-fd-border bg-fd-card">
         <div className="mx-auto grid max-w-5xl grid-cols-2 divide-x divide-fd-border md:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="px-6 py-8 text-center">
-              <p className="text-3xl font-bold text-[hsl(0,65%,50%)]">
-                {stat.value}
-              </p>
-              <p className="mt-1 text-sm text-fd-muted-foreground">
-                {stat.label}
-              </p>
+          {(['56', '10', '30+', '100%'] as const).map((value, i) => (
+            <div key={i} className="px-6 py-8 text-center">
+              <p className="text-3xl font-bold text-[hsl(0,65%,50%)]">{value}</p>
+              <p className="mt-1 text-sm text-fd-muted-foreground">{tr.statsLabels[i]}</p>
             </div>
           ))}
         </div>
@@ -118,17 +377,16 @@ export default function HomePage() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-4 text-center text-3xl font-bold text-fd-foreground">
-            What&apos;s Inside
+            {tr.whatsInsideTitle}
           </h2>
           <p className="mx-auto mb-12 max-w-2xl text-center text-fd-muted-foreground">
-            8 sections covering everything from your first install to building a
-            profitable AI agent business.
+            {tr.whatsInsideSubtitle}
           </p>
           <div className="grid gap-4 md:grid-cols-2">
-            {sections.map((section, i) => (
+            {tr.sections.map(([title, description], i) => (
               <Link
-                key={section.title}
-                href={section.href}
+                key={title}
+                href={`/${lang}/docs/${sectionSlugs[i]}`}
                 className="group flex items-start gap-4 rounded-xl border border-fd-border bg-fd-card p-5 transition-all hover:border-[hsl(0,65%,50%)]/50 hover:bg-fd-accent"
               >
                 <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[hsl(0,65%,50%)]/10 text-sm font-bold text-[hsl(0,65%,50%)]">
@@ -136,10 +394,10 @@ export default function HomePage() {
                 </span>
                 <div>
                   <h3 className="font-semibold text-fd-foreground group-hover:text-[hsl(0,65%,50%)]">
-                    {section.title}
+                    {title}
                   </h3>
                   <p className="mt-1 text-sm text-fd-muted-foreground">
-                    {section.description}
+                    {description}
                   </p>
                 </div>
               </Link>
@@ -152,36 +410,16 @@ export default function HomePage() {
       <section className="border-t border-fd-border bg-fd-card px-6 py-20">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-12 text-center text-3xl font-bold text-fd-foreground">
-            This Is For You If...
+            {tr.forYouTitle}
           </h2>
           <div className="grid gap-6 md:grid-cols-3">
-            {[
-              {
-                title: 'Non-Technical Builders',
-                description:
-                  "You want AI automations but don't want to write code. Every guide uses plain English with copy-paste configs.",
-              },
-              {
-                title: 'Agency Owners',
-                description:
-                  'You want to offer AI agent services to clients. Get pricing templates, SOPs, and case studies with real numbers.',
-              },
-              {
-                title: 'Developers',
-                description:
-                  'You want the deep technical reference. Architecture docs, sub-agent patterns, deployment guides, and cost optimization.',
-              },
-            ].map((persona) => (
+            {tr.personas.map(([title, description]) => (
               <div
-                key={persona.title}
+                key={title}
                 className="rounded-xl border border-fd-border bg-fd-background p-6"
               >
-                <h3 className="mb-2 font-semibold text-fd-foreground">
-                  {persona.title}
-                </h3>
-                <p className="text-sm text-fd-muted-foreground">
-                  {persona.description}
-                </p>
+                <h3 className="mb-2 font-semibold text-fd-foreground">{title}</h3>
+                <p className="text-sm text-fd-muted-foreground">{description}</p>
               </div>
             ))}
           </div>
@@ -199,16 +437,16 @@ export default function HomePage() {
             className="mx-auto mb-6"
           />
           <h2 className="mb-4 text-3xl font-bold text-fd-foreground">
-            Ready to get started?
+            {tr.ctaTitle}
           </h2>
           <p className="mb-8 text-fd-muted-foreground">
-            Everything you need to go from zero to a working AI agent setup.
+            {tr.ctaSubtitle}
           </p>
           <Link
-            href="/docs/getting-started/what-is-openclaw"
+            href={`/${lang}/docs/getting-started/what-is-openclaw`}
             className="inline-block rounded-lg bg-[hsl(0,65%,50%)] px-8 py-3 font-semibold text-white transition-all hover:bg-[hsl(0,65%,45%)]"
           >
-            Start Learning
+            {tr.ctaButton}
           </Link>
         </div>
       </section>
@@ -216,10 +454,10 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-fd-border px-6 py-10 text-center text-sm text-fd-muted-foreground">
         <p className="mb-3">
-          &copy; {new Date().getFullYear()} OpenClaw Academy. All rights reserved.
+          &copy; {new Date().getFullYear()} OpenClaw Academy. {tr.footerRights}
         </p>
         <p className="mb-3">
-          Powered by{' '}
+          {tr.footerPoweredBy}{' '}
           <a
             href={SKOOL_URL}
             target="_blank"
@@ -230,9 +468,7 @@ export default function HomePage() {
           </a>
         </p>
         <p className="mx-auto max-w-xl text-xs leading-relaxed opacity-60">
-          OpenClaw Academy is an independent, community-built resource and is not affiliated with,
-          endorsed by, or officially connected to OpenClaw or its creators. All content is original
-          and written independently for educational purposes.
+          {tr.footerDisclaimer}
         </p>
       </footer>
     </main>

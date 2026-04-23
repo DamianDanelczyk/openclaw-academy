@@ -1,0 +1,335 @@
+---
+title: Skills & ClawHub
+description: OpenClaw mit Skills aus ClawHub erweitern oder eigene entwickeln — ein Leitfaden zu den Top-Skills, Installation und benutzerdefinierter Entwicklung.
+---
+
+# Skills & ClawHub
+
+Standardmäßig kann OpenClaw reden. Mit **Skills** kann es *handeln*. Skills sind modulare Fähigkeiten, die deinem Agenten ermöglichen, mit der Außenwelt zu interagieren — deinen Kalender prüfen, E-Mails senden, im Web suchen, Smart-Home-Geräte steuern, Code ausführen und vieles mehr. **ClawHub** ist der Marktplatz, auf dem du sie findest, installierst und teilst.
+
+## Was ist ein Skill?
+
+Ein Skill ist ein eigenständiges Paket, das deinem Agenten eine neue Fähigkeit gibt. Es definiert:
+
+- **Was er tun kann** — die unterstützten Aktionen
+- **Was er benötigt** — API-Schlüssel, Berechtigungen oder Konfigurationen
+- **Wann er verwendet werden soll** — Auslösebedingungen und Intent-Matching
+
+Wenn du sagst "Was steht heute in meinem Kalender?", kennt dein Agent deinen Terminplan nicht magisch. Der `calendar`-Skill verbindet sich mit Google Calendar (oder Outlook oder Apple Calendar), ruft deine Termine ab und gibt sie in einem Format zurück, das dein Agent dir präsentieren kann.
+
+## Die 20 meistinstallierten Skills auf ClawHub
+
+Hier sind die beliebtesten Skills, nach Installationen geordnet:
+
+| # | Skill | Was er tut | Installationen |
+|---|-------|-------------|---------------|
+| 1 | `calendar` | Ereignisse in Google, Outlook, Apple verwalten | 284T |
+| 2 | `email` | E-Mails lesen, entwerfen, senden und organisieren | 261T |
+| 3 | `web_search` | Web durchsuchen mit Quellenangabe | 249T |
+| 4 | `notes` | Notizen erstellen und verwalten (Notion, Obsidian, Apple Notes) | 198T |
+| 5 | `reminders` | Erinnerungen setzen, verwalten und liefern | 187T |
+| 6 | `weather` | Aktuelles und Vorhersage-Wetter | 176T |
+| 7 | `smart_home` | Lichter, Thermostate, Schlösser steuern (HomeKit, Hue usw.) | 164T |
+| 8 | `music` | Musik abspielen, pausieren, einreihen (Spotify, Apple Music) | 152T |
+| 9 | `code_exec` | Code in isolierten Umgebungen ausführen | 143T |
+| 10 | `file_manager` | Dateien auf deinen Geräten lesen, schreiben, organisieren | 138T |
+| 11 | `translator` | Echtzeit-Übersetzung in 95 Sprachen | 127T |
+| 12 | `finance` | Ausgaben, Budgets und Investitionen verfolgen | 119T |
+| 13 | `github` | Repos, PRs, Issues verwalten | 112T |
+| 14 | `shopping` | Preisvergleich und Einkaufslisten | 104T |
+| 15 | `recipes` | Mahlzeitenplanung und Rezeptverwaltung | 97T |
+| 16 | `travel` | Flugsuche, Hotelbuchung, Reiseplanung | 89T |
+| 17 | `fitness` | Trainings-Tracking und Gesundheitsdaten-Integration | 82T |
+| 18 | `news` | Kuratierte Nachrichten aus bevorzugten Quellen | 78T |
+| 19 | `slack` | Slack-Nachrichten lesen und senden | 71T |
+| 20 | `pdf` | PDFs lesen, zusammenfassen und Daten extrahieren | 65T |
+
+## Skills von ClawHub installieren
+
+Einen Skill zu installieren ist ein Einzeiler:
+
+```bash
+# Einen einzelnen Skill installieren
+openclaw skill install calendar
+
+# Mehrere Skills auf einmal installieren
+openclaw skill install calendar email web_search notes
+
+# Eine bestimmte Version installieren
+openclaw skill install github@2.4.1
+
+# Verfügbare Skills durchsuchen
+openclaw skill search "Projektmanagement"
+
+# Installierte Skills anzeigen
+openclaw skill list
+```
+
+Nach der Installation benötigen die meisten Skills Konfiguration — normalerweise einen API-Schlüssel oder eine Kontoverbindung:
+
+```bash
+# Einen Skill interaktiv konfigurieren
+openclaw skill setup calendar
+```
+
+Das startet eine geführte Einrichtung, die dich durch die Kontoverbindung, die Berechtigungseinstellungen und das Testen der Verbindung führt.
+
+### Skill-Konfigurationsdatei
+
+Im Hintergrund leben Skill-Konfigurationen in einer YAML-Datei:
+
+```yaml
+# skills/calendar.yaml
+skill: calendar
+version: "3.2.0"
+source: "clawhub/official"
+
+auth:
+  provider: "google"
+  credentials: "${GOOGLE_OAUTH_TOKEN}"
+  scopes:
+    - "calendar.readonly"
+    - "calendar.events"
+
+settings:
+  default_calendar: "Work"
+  time_format: "24h"
+  timezone: "Europe/Warsaw"
+  reminder_default: 15  # Minuten vor dem Ereignis
+
+permissions:
+  can_create_events: true
+  can_delete_events: false  # Sicherheit: Bestätigung erforderlich
+  can_invite_others: true
+  can_access_other_calendars: false
+
+triggers:
+  - intent: "check_schedule"
+    examples: ["was steht in meinem kalender", "habe ich heute meetings", "bin ich um 15 uhr frei"]
+  - intent: "create_event"
+    examples: ["ein Meeting planen", "zum kalender hinzufügen", "zeit buchen für"]
+```
+
+Beachte die Einstellung `can_delete_events: false`. Du kannst genau steuern, was ein Skill tun darf, auch wenn der Skill *mehr* unterstützt. So verhinderst du, dass dein Agent versehentlich dein 15-Uhr-Meeting löscht.
+
+## Benutzerdefinierte Skills erstellen
+
+ClawHub hat Hunderte von Skills, aber manchmal brauchst du etwas Spezifisches für deinen Workflow. Einen benutzerdefinierten Skill zu entwickeln ist unkompliziert.
+
+### Skill-Struktur
+
+```
+my-custom-skill/
+├── manifest.yaml      # Metadaten und Konfiguration
+├── handler.py         # Hauptlogik
+├── triggers.yaml      # Wann der Skill aktiviert wird
+├── test/
+│   └── test_handler.py
+└── README.md
+```
+
+### Das Manifest
+
+```yaml
+# manifest.yaml
+name: "jira-standup"
+version: "1.0.0"
+author: "damian"
+description: "Generiert tägliche Standup-Zusammenfassungen aus Jira"
+runtime: "python3.11"
+
+dependencies:
+  - jira-client>=3.0
+  - markdown2>=2.4
+
+auth:
+  required:
+    - name: "JIRA_API_TOKEN"
+      description: "Dein Jira-API-Token"
+    - name: "JIRA_URL"
+      description: "Deine Jira-Instanz-URL"
+
+permissions:
+  network: true        # Muss die Jira-API aufrufen
+  filesystem: false    # Kein Dateizugriff erforderlich
+  execute: false       # Keine Shell-Ausführung
+```
+
+### Der Handler
+
+```python
+# handler.py
+from openclaw_sdk import Skill, SkillResponse
+from jira import JIRA
+
+class JiraStandupSkill(Skill):
+    def setup(self):
+        self.jira = JIRA(
+            server=self.config["JIRA_URL"],
+            token_auth=self.config["JIRA_API_TOKEN"]
+        )
+
+    def handle(self, intent: str, params: dict) -> SkillResponse:
+        if intent == "generate_standup":
+            return self.generate_standup(params.get("user", "currentUser()"))
+
+    def generate_standup(self, user: str) -> SkillResponse:
+        # Issues von gestern abrufen
+        yesterday_issues = self.jira.search_issues(
+            f'assignee = {user} AND updated >= -1d ORDER BY updated DESC'
+        )
+
+        # Aktuelle Sprint-Issues abrufen
+        in_progress = self.jira.search_issues(
+            f'assignee = {user} AND status = "In Progress"'
+        )
+
+        standup = {
+            "completed_yesterday": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in yesterday_issues
+                if i.fields.status.name == "Done"
+            ],
+            "working_on_today": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+            ],
+            "blockers": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+                if hasattr(i.fields, 'flagged') and i.fields.flagged
+            ]
+        }
+
+        return SkillResponse(
+            data=standup,
+            display="standup_template",
+            summary=f"Gefunden: {len(standup['completed_yesterday'])} abgeschlossen, "
+                    f"{len(standup['working_on_today'])} in Bearbeitung"
+        )
+```
+
+### Auslöser
+
+```yaml
+# triggers.yaml
+triggers:
+  - intent: "generate_standup"
+    examples:
+      - "mein standup generieren"
+      - "woran habe ich gestern gearbeitet"
+      - "standup-bericht"
+      - "tägliches Update aus Jira"
+    params:
+      user:
+        type: "string"
+        default: "currentUser()"
+        description: "Jira-Benutzername"
+```
+
+### Testen und Veröffentlichen
+
+```bash
+# Lokal testen
+openclaw skill test ./my-custom-skill
+
+# Die Testsuite ausführen
+openclaw skill test ./my-custom-skill --run-tests
+
+# Auf ClawHub veröffentlichen
+openclaw skill publish ./my-custom-skill
+
+# Privat veröffentlichen (nur du kannst ihn installieren)
+openclaw skill publish ./my-custom-skill --private
+```
+
+## Sicherheitsüberlegungen
+
+Skills können mächtig sein, was bedeutet, dass sie Leitplanken brauchen.
+
+### Berechtigungsmodell
+
+Jeder Skill deklariert, was er benötigt, und du genehmigst oder verweigerst:
+
+```yaml
+# Was ein Skill anfordert vs. was du gewährst
+skill: smart_home
+requested_permissions:
+  network: true        # Muss mit Smart-Home-Hub kommunizieren
+  filesystem: false
+  execute: false
+  location: true       # Möchte Standort für Geofencing
+
+granted_permissions:
+  network: true        # Genehmigt
+  location: false      # Verweigert — ich möchte kein Geofencing
+```
+
+### Sandboxing
+
+Skills laufen in isolierten Sandboxen. Ein fehlerhafter Skill kann nicht:
+
+- Auf Daten anderer Skills zugreifen
+- Deine USER.md oder SOUL.md direkt lesen
+- Netzwerkaufrufe über seine deklarierten Endpunkte hinaus machen
+- Systembefehle ausführen (außer wenn explizit erlaubt)
+- Daten außerhalb seines zugewiesenen Speichers persistieren
+
+```yaml
+# Sicherheitsrichtlinie für Skills
+security:
+  sandbox:
+    enabled: true
+    network_allowlist:
+      calendar: ["*.googleapis.com"]
+      email: ["*.gmail.com", "*.outlook.com"]
+      smart_home: ["192.168.1.0/24"]  # Nur lokales Netzwerk
+    resource_limits:
+      max_memory: "256MB"
+      max_cpu_time: "10s"
+      max_storage: "100MB"
+  audit:
+    log_all_actions: true
+    alert_on_permission_escalation: true
+  review:
+    require_review_for: ["filesystem", "execute"]
+    auto_approve: ["network"]  # Wenn in der Allowlist
+```
+
+### Überprüfung auf ClawHub
+
+Skills auf ClawHub durchlaufen einen Überprüfungsprozess:
+
+- **Offizielle Skills** (vom OpenClaw-Team) sind vollständig geprüft.
+- **Verifizierte Skills** (von bekannten Entwicklern) werden code-reviewed.
+- **Community-Skills** werden von Gleichgesinnten überprüft und bei Problemen markiert.
+- **Private Skills** überspringen die Überprüfung (nur du verwendest sie).
+
+Überprüfe immer die Berechtigungen eines Skills vor der Installation. Wenn ein Wetter-Skill nach Dateisystemzugriff fragt, ist das ein Warnsignal.
+
+## Installierte Skills verwalten
+
+```bash
+# Alle Skills aktualisieren
+openclaw skill update
+
+# Einen bestimmten Skill aktualisieren
+openclaw skill update calendar
+
+# Einen Skill deaktivieren ohne Deinstallation
+openclaw skill disable music
+
+# Einen Skill vollständig entfernen
+openclaw skill uninstall shopping
+
+# Auf Sicherheitsempfehlungen prüfen
+openclaw skill audit
+```
+
+## Tipps für den maximalen Nutzen aus Skills
+
+1. **Beginne mit den vier Kern-Skills:** calendar, email, web_search und notes decken 80% dessen ab, was die meisten Menschen brauchen.
+2. **Berechtigungen streng konfigurieren.** Wenn ein Skill Dinge löschen kann, erwäge, das zu deaktivieren, bis du ihm vertraust.
+3. **Monatlich nach Updates suchen.** Skills verbessern sich, Fehler werden behoben und Sicherheits-Patches werden veröffentlicht.
+4. **Erst entwickeln, dann durchsuchen.** Wenn dein Workflow einzigartig ist, schlägt ein maßgeschneiderter Skill, der perfekt passt, einen allgemeinen, der ungefähr funktioniert.
+5. **Berechtigungen lesen.** Fünf Sekunden Lesen können verhindern, dass ein Skill auf Dinge zugreift, auf die er nicht sollte.

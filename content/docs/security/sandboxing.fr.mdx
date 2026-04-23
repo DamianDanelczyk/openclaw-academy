@@ -1,0 +1,313 @@
+---
+title: Sandboxing
+description: Comprenez comment le sandboxing d'OpenClaw isole les actions de votre assistant, comment vérifier qu'il fonctionne et quand vous pourriez avoir besoin d'assouplir les restrictions.
+---
+
+# Sandboxing
+
+Quand votre assistant OpenClaw exécute une action -- lire un fichier, appeler une API, exécuter un script -- vous voulez probablement vous assurer qu'il ne peut pas accidentellement (ou malicieusement) dépasser ce qu'il est censé faire. C'est exactement ce que fait le sandboxing. Il trace une frontière autour de l'environnement d'exécution de votre assistant pour que les actions restent contenues et prévisibles.
+
+Considérez ça comme un parc de jeu pour votre assistant. À l'intérieur du sandbox, il a tout ce dont il a besoin pour faire son travail. En dehors du sandbox, votre système, vos fichiers et votre réseau sont hors limites.
+
+## Comment Fonctionne le Sandboxing
+
+Sous le capot, OpenClaw utilise l'isolation au niveau du système d'exploitation pour créer un environnement restreint pour chaque exécution d'action. Voici ce qui se passe quand votre assistant exécute un outil :
+
+1. OpenClaw crée un conteneur temporaire et isolé.
+2. L'action s'exécute à l'intérieur de ce conteneur avec des permissions limitées.
+3. Le conteneur n'a accès qu'aux ressources explicitement autorisées (fichiers, endpoints réseau, variables d'environnement).
+4. Quand l'action se termine, le conteneur est détruit avec tous les fichiers temporaires qu'il a créés.
+
+Cela signifie que même si une action tente de faire quelque chose qu'elle ne devrait pas -- comme lire des fichiers en dehors de son répertoire de travail ou se connecter à un serveur inattendu -- le sandbox le bloque.
+
+## Modes de Sandbox
+
+OpenClaw propose trois modes de sandbox, du plus restrictif au moins restrictif :
+
+### Mode Strict (Par Défaut Recommandé)
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+```
+
+En mode strict :
+- Pas d'accès au système de fichiers en dehors du répertoire de travail désigné
+- Pas d'accès réseau sauf si explicitement autorisé dans votre config réseau
+- Pas d'accès aux variables d'environnement sauf si explicitement listées
+- Pas de possibilité de créer des processus enfants
+- La mémoire et le temps CPU sont plafonnés
+
+C'est le bon choix pour la plupart des utilisateurs. Commencez ici et n'assouplissez les restrictions que si vous avez une raison spécifique.
+
+### Mode Standard
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "standard"
+```
+
+En mode standard :
+- Accès en lecture seule au système de fichiers (mais pas aux répertoires sensibles comme `/etc`, les répertoires home ou les clés SSH)
+- L'accès réseau suit votre configuration de liste blanche
+- Les variables d'environnement listées dans `sandbox.allowed_env` sont accessibles
+- Les processus enfants sont autorisés mais surveillés
+- Les plafonds mémoire et CPU s'appliquent toujours
+
+Le mode standard est approprié quand votre assistant a besoin de lire des fichiers de projet ou des données de configuration dans le cadre de ses tâches.
+
+### Mode Permissif
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "permissive"
+```
+
+En mode permissif :
+- Accès en lecture et écriture aux répertoires autorisés
+- L'accès réseau suit votre liste blanche
+- Toutes les variables d'environnement sont accessibles
+- Les processus enfants sont autorisés
+- Plafonds mémoire et CPU plus élevés
+
+Utilisez le mode permissif uniquement quand votre assistant a besoin d'écrire des fichiers, d'installer des packages ou d'effectuer des tâches de développement. Même en mode permissif, certains chemins système critiques restent protégés.
+
+### Sandbox Désactivé
+
+```yaml
+security:
+  sandbox:
+    enabled: false
+```
+
+Quand le sandboxing est désactivé, votre assistant s'exécute avec les mêmes permissions que le processus OpenClaw lui-même. **Ce n'est pas recommandé pour une utilisation en production.** Cela peut être acceptable pour le développement local ou les tests, mais vous devez être conscient qu'il n'y a pas de garde-fous.
+
+## Vérifier que Votre Sandbox Fonctionne
+
+Faire confiance mais vérifier. Voici plusieurs façons de confirmer que le sandboxing est actif et fonctionne correctement.
+
+### Vérifier le Statut
+
+```bash
+openclaw security status
+```
+
+```
+Statut de Sécurité
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Sandbox :          ACTIVÉ (strict)
+Politique réseau : allowlist (4 domaines)
+Politiques outils : active (3 règles)
+Journalisation audit : activée
+Dernière vérification : 2026-04-22 09:14 UTC
+```
+
+### Exécuter le Test de Sécurité Intégré
+
+OpenClaw inclut un auto-test qui tente plusieurs opérations restreintes et confirme qu'elles sont bloquées :
+
+```bash
+openclaw security test sandbox
+```
+
+```
+Résultats du Test Sandbox
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[PASS] Lecture de fichier hors répertoire de travail .... bloqué
+[PASS] Écriture de fichier hors répertoire de travail ... bloqué
+[PASS] Requête réseau vers hôte non listé ............ bloqué
+[PASS] Accès aux variables d'environnement ............. bloqué
+[PASS] Création de processus ....................... bloqué
+[PASS] Allocation mémoire (512 Mo) ................. plafonné
+[PASS] Temps CPU (30s) ............................ plafonné
+
+Les 7 tests ont réussi. Le sandbox fonctionne correctement.
+```
+
+### Inspecter une Action Spécifique
+
+Vous pouvez voir exactement quelles restrictions sandbox ont été appliquées à une exécution d'action particulière :
+
+```bash
+openclaw audit inspect --action-id act_7f8a2c4e
+```
+
+```
+Action : assistant.analyze (act_7f8a2c4e)
+Sandbox : strict
+Horodatage : 2026-04-22 10:31:04 UTC
+
+Ressources accordées :
+  Système de fichiers : /var/openclaw/workdir (lecture seule)
+  Réseau : aucun
+  Vars d'env : aucune
+  Mémoire max : 256 Mo
+  Temps CPU max : 15s
+
+Tentatives bloquées : 0
+```
+
+## Affiner les Permissions Sandbox
+
+Parfois le mode par défaut est presque juste, mais vous avez besoin d'accorder l'accès à une ressource spécifique. Au lieu de changer tout le mode, vous pouvez ajouter des exceptions ciblées.
+
+### Autoriser des Répertoires Spécifiques
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    filesystem:
+      allowed_paths:
+        - path: "/data/project-files"
+          access: "read"
+        - path: "/var/openclaw/output"
+          access: "read-write"
+      denied_paths:
+        - "/data/project-files/secrets"
+```
+
+### Autoriser des Variables d'Environnement Spécifiques
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    allowed_env:
+      - "NODE_ENV"
+      - "API_BASE_URL"
+      - "LOG_LEVEL"
+```
+
+Notez que les variables sensibles comme `OPENCLAW_API_KEY` ou `DATABASE_URL` ne sont *pas* dans cette liste. Exposez uniquement ce dont l'assistant a genuinement besoin.
+
+### Ajuster les Limites de Ressources
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    resource_limits:
+      max_memory_mb: 512
+      max_cpu_seconds: 60
+      max_output_size_mb: 10
+```
+
+## Quand Assouplir le Sandboxing
+
+Il existe des scénarios légitimes où vous pourriez avoir besoin de réduire les restrictions sandbox. Voici les plus courants, avec l'approche recommandée pour chacun.
+
+### Votre Assistant a Besoin de Lire des Fichiers de Projet
+
+**Scénario :** Vous voulez que votre assistant analyse du code, révise des documents ou traite des fichiers de données stockés sur votre serveur.
+
+**Recommandation :** Restez en mode `strict` mais ajoutez le répertoire spécifique à `allowed_paths` avec l'accès `read`.
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    filesystem:
+      allowed_paths:
+        - path: "/home/user/projects/my-project"
+          access: "read"
+```
+
+### Votre Assistant a Besoin d'Écrire des Fichiers de Sortie
+
+**Scénario :** Votre assistant génère des rapports, exporte des données ou crée des fichiers dans le cadre de son flux de travail.
+
+**Recommandation :** Restez en mode `strict` mais ajoutez un répertoire de sortie désigné avec l'accès `read-write`.
+
+```yaml
+filesystem:
+  allowed_paths:
+    - path: "/var/openclaw/output"
+      access: "read-write"
+```
+
+Ne donnez pas d'accès en écriture au même répertoire où se trouvent vos données sources. Gardez les entrées et les sorties séparées.
+
+### Votre Assistant Exécute des Outils de Développement
+
+**Scénario :** Vous utilisez OpenClaw comme assistant de codage et il a besoin d'exécuter des linters, des tests ou des commandes de build.
+
+**Recommandation :** Utilisez le mode `standard` ou `permissive`, mais limitez-le à une automatisation ou un outil spécifique plutôt que de changer le paramètre global.
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+    overrides:
+      - automation: "code-review"
+        mode: "standard"
+        filesystem:
+          allowed_paths:
+            - path: "/home/user/projects"
+              access: "read"
+      - automation: "run-tests"
+        mode: "permissive"
+        filesystem:
+          allowed_paths:
+            - path: "/home/user/projects/my-app"
+              access: "read-write"
+```
+
+Ainsi, votre sandbox global reste strict tandis que les automatisations spécifiques obtiennent l'accès dont elles ont besoin.
+
+### Vous Développez Localement
+
+**Scénario :** Vous développez et testez sur votre propre machine et la friction du sandboxing strict vous ralentit.
+
+**Recommandation :** Il est raisonnable d'utiliser le mode `permissive` voire de désactiver le sandboxing pendant le développement local. Mais **ne jamais** porter ce paramètre en production. Utilisez des configs spécifiques à l'environnement :
+
+```yaml
+# openclaw.config.development.yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "permissive"
+
+# openclaw.config.production.yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+```
+
+## Signaux d'Alarme
+
+Si vous vous trouvez à faire l'une des choses suivantes, arrêtez et reconsidérez :
+
+- **Désactiver le sandboxing en production** parce qu'une automatisation "ne fonctionne pas" avec lui activé. L'automatisation a probablement besoin d'être restructurée, pas le sandbox désactivé.
+- **Définir le mode sur permissif globalement** par commodité. Utilisez plutôt des surcharges par automatisation.
+- **Ajouter `/` ou tout votre répertoire home à `allowed_paths`**. Cela annule totalement le but du sandboxing.
+- **Ignorer les logs de violation du sandbox.** Si vous voyez des tentatives bloquées dans votre journal d'audit, investiguez-les. Elles pourraient indiquer une mauvaise configuration ou quelque chose de plus sérieux.
+
+Révisez régulièrement les tentatives bloquées :
+
+```bash
+openclaw audit log --filter "sandbox.blocked" --last 7d
+```
+
+```
+HORODATAGE            ACTION                  TENTATIVE                  RÉSULTAT
+2026-04-19 14:22:01   assistant.analyze       read /etc/passwd           BLOCKED
+2026-04-20 08:44:33   automations.export      write /tmp/data.csv        BLOCKED
+2026-04-21 16:11:09   assistant.run_script    spawn process: curl        BLOCKED
+```
+
+Chacun de ces éléments raconte une histoire. Le premier pourrait être une tentative d'injection de prompt. Le deuxième pourrait signifier que vous avez oublié d'ajouter un répertoire de sortie. Le troisième pourrait signifier que votre script a besoin d'un accès réseau configuré au niveau de la politique réseau plutôt qu'en créant curl.
+
+Le sandboxing est l'une des fonctionnalités de sécurité les plus importantes d'OpenClaw. Gardez-le activé, gardez-le serré et ajustez-le chirurgicalement quand nécessaire.

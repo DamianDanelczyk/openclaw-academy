@@ -1,0 +1,351 @@
+---
+title: Liste de Vérification de Sécurité
+description: Une liste de vérification de sécurité en langage clair pour renforcer votre instance OpenClaw avec des paramètres recommandés et des instructions étape par étape.
+---
+
+# Liste de Vérification de Sécurité
+
+La sécurité ne doit pas être compliquée. Cette page vous donne une liste de vérification en langage clair que vous pouvez parcourir pour vous assurer que votre instance OpenClaw est correctement verrouillée. Chaque élément inclut ce que ça signifie, pourquoi c'est important et exactement comment le configurer.
+
+Vous n'avez pas besoin d'être un expert en sécurité. Parcourez simplement la liste de haut en bas. Si vous complétez chaque élément, votre instance sera en excellent état.
+
+## La Liste de Vérification en Un Coup d'Œil
+
+Voici la liste complète. Des instructions détaillées pour chaque élément suivent ci-dessous.
+
+| # | Élément | Priorité |
+|---|------|----------|
+| 1 | Utiliser des clés API solides | Critique |
+| 2 | Stocker les secrets dans des variables d'environnement | Critique |
+| 3 | Activer le sandboxing | Critique |
+| 4 | Configurer des politiques d'outils | Haute |
+| 5 | Configurer des restrictions réseau | Haute |
+| 6 | Activer la journalisation d'audit | Haute |
+| 7 | Configurer la rotation des clés | Moyenne |
+| 8 | Restreindre l'accès aux webhooks | Moyenne |
+| 9 | Configurer la limitation de débit | Moyenne |
+| 10 | Revoir les permissions trimestriellement | Moyenne |
+| 11 | Activer l'authentification à deux facteurs | Haute |
+| 12 | Sauvegarder votre configuration | Moyenne |
+
+---
+
+## 1. Utiliser des Clés API Solides
+
+**Quoi :** Chaque clé API doit faire au moins 32 caractères, être générée aléatoirement et unique par service.
+
+**Pourquoi :** Les clés courtes ou réutilisées sont faciles à deviner ou à compromettre. Une clé exposée ne devrait pas tout déverrouiller.
+
+**Comment :**
+
+```bash
+openclaw keys generate --length 48
+```
+
+```
+Generated key: oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+```
+
+Ne créez jamais de clés à la main. Utilisez toujours le générateur. Voir [Clés API](/docs/security/api-keys) pour le guide complet.
+
+## 2. Stocker les Secrets dans des Variables d'Environnement
+
+**Quoi :** Les clés API, les secrets webhook, les mots de passe de base de données -- tout ce qui est sensible -- doit se trouver dans votre fichier `.env`, pas dans vos fichiers de configuration.
+
+**Pourquoi :** Les fichiers de configuration se retrouvent dans le contrôle de version, partagés avec des coéquipiers ou exposés accidentellement. Les variables d'environnement restent sur la machine.
+
+**Comment :**
+
+```bash
+# .env
+OPENCLAW_API_KEY=oc_sk_9f8a2c4e6b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a1c3e5b
+GITHUB_WEBHOOK_SECRET=whsec_a8f29c4e6b1d3f5a7e9c2b4d6f8a0e1c
+DATABASE_URL=postgresql://user:password@localhost:5432/openclaw
+```
+
+Puis référencez-les dans votre config :
+
+```yaml
+# openclaw.config.yaml
+api_key: "${OPENCLAW_API_KEY}"
+```
+
+Ajoutez `.env` à votre `.gitignore` :
+
+```bash
+echo ".env" >> .gitignore
+```
+
+## 3. Activer le Sandboxing
+
+**Quoi :** Le sandboxing exécute les actions de votre assistant dans un environnement isolé pour qu'elles ne puissent pas accéder à tout votre système.
+
+**Pourquoi :** Si votre assistant traite des entrées non fiables (et il le fait probablement), le sandboxing empêche les actions inattendues de causer des dommages réels.
+
+**Comment :**
+
+```yaml
+# openclaw.config.yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+```
+
+Vérifiez qu'il est actif :
+
+```bash
+openclaw security status
+```
+
+```
+Sandbox: ENABLED (strict mode)
+```
+
+Voir [Sandboxing](/docs/security/sandboxing) pour des détails sur les modes et quand vous pourriez assouplir les restrictions.
+
+## 4. Configurer des Politiques d'Outils
+
+**Quoi :** Les politiques d'outils contrôlent quelles actions votre assistant est autorisé à effectuer. Considérez-les comme des permissions.
+
+**Pourquoi :** Vous ne voulez probablement pas que votre assistant ait un accès complet à tout. Restreindre les outils à ce qui est réellement nécessaire limite les dégâts en cas de problème.
+
+**Comment :**
+
+```yaml
+# openclaw.config.yaml
+security:
+  tool_policies:
+    default: "deny"
+    rules:
+      - tools: ["calendar.*", "weather.*", "news.*"]
+        policy: "allow"
+      - tools: ["email.send"]
+        policy: "ask"
+      - tools: ["system.delete_*", "system.format_*"]
+        policy: "deny"
+```
+
+La politique `"ask"` signifie qu'OpenClaw vous demandera votre approbation avant d'exécuter cet outil. Voir [Politiques d'Outils](/docs/security/tool-policies) pour les configurations recommandées par cas d'usage.
+
+## 5. Configurer des Restrictions Réseau
+
+**Quoi :** Limitez avec quelles adresses externes votre instance OpenClaw peut communiquer.
+
+**Pourquoi :** Si votre assistant est compromis, les restrictions réseau l'empêchent de contacter des serveurs arbitraires.
+
+**Comment :**
+
+```yaml
+# openclaw.config.yaml
+security:
+  network:
+    outbound:
+      mode: "allowlist"
+      allowed_domains:
+        - "api.openai.com"
+        - "api.github.com"
+        - "hooks.slack.com"
+        - "api.stripe.com"
+```
+
+Voir [Sécurité Réseau](/docs/security/network-security) pour la configuration du pare-feu et la configuration VPN.
+
+## 6. Activer la Journalisation d'Audit
+
+**Quoi :** Les journaux d'audit enregistrent chaque action significative que votre assistant effectue -- chaque appel d'outil, chaque webhook reçu, chaque modification de configuration.
+
+**Pourquoi :** Si quelque chose tourne mal, les journaux d'audit permettent de comprendre ce qui s'est passé. Ils sont aussi essentiels pour la conformité.
+
+**Comment :**
+
+```yaml
+# openclaw.config.yaml
+security:
+  audit:
+    enabled: true
+    retention_days: 90
+    log_level: "standard"
+    destinations:
+      - type: "file"
+        path: "/var/log/openclaw/audit.log"
+      - type: "webhook"
+        url: "${AUDIT_WEBHOOK_URL}"
+```
+
+Afficher les entrées d'audit récentes :
+
+```bash
+openclaw audit log --last 24h
+```
+
+## 7. Configurer la Rotation des Clés
+
+**Quoi :** Remplacez régulièrement vos clés API par de nouvelles selon un calendrier défini.
+
+**Pourquoi :** Même si une clé a été silencieusement compromise, la rotation limite la durée pendant laquelle elle peut être utilisée.
+
+**Comment :**
+
+```yaml
+# openclaw.config.yaml
+security:
+  key_rotation:
+    enabled: true
+    interval_days: 90
+    notify_before_days: 14
+    auto_rotate: false
+```
+
+Avec `auto_rotate: false`, OpenClaw vous rappellera quand la rotation est due mais ne changera pas les clés automatiquement. Définissez-le à `true` seulement si vos intégrations peuvent gérer les mises à jour automatiques de clés. Voir [Clés API](/docs/security/api-keys) pour le flux de rotation.
+
+## 8. Restreindre l'Accès aux Webhooks
+
+**Quoi :** Sécurisez chaque endpoint webhook avec la vérification HMAC et, si possible, la liste blanche d'IPs.
+
+**Pourquoi :** Les webhooks non sécurisés sont une porte ouverte. Quiconque connaît l'URL peut déclencher des actions sur votre instance.
+
+**Comment :**
+
+```yaml
+webhooks:
+  - name: "github-events"
+    path: "/hooks/github"
+    secret: "${GITHUB_WEBHOOK_SECRET}"
+    signature_header: "X-Hub-Signature-256"
+    signature_algorithm: "sha256"
+    allowed_ips:
+      - "140.82.112.0/20"
+    rate_limit: "30/min"
+```
+
+Voir [Webhooks](/docs/automation/webhooks) pour le guide de configuration complet.
+
+## 9. Configurer la Limitation de Débit
+
+**Quoi :** Limitez le nombre de requêtes que votre instance traite par fenêtre de temps.
+
+**Pourquoi :** Prévient les abus, les boucles accidentelles et les automatisations incontrôlées.
+
+**Comment :**
+
+```yaml
+# openclaw.config.yaml
+security:
+  rate_limiting:
+    global:
+      requests_per_minute: 120
+    per_user:
+      requests_per_minute: 30
+    per_webhook:
+      requests_per_minute: 60
+```
+
+## 10. Revoir les Permissions Trimestriellement
+
+**Quoi :** Tous les 90 jours, révisez qui a accès à votre instance et quels outils sont activés.
+
+**Pourquoi :** Les permissions ont tendance à s'accumuler. Les gens quittent les équipes, les projets se terminent, mais l'accès reste. Les révisions régulières détectent les permissions obsolètes avant qu'elles ne deviennent un problème.
+
+**Comment :**
+
+```bash
+openclaw security review --generate-report
+```
+
+```
+Rapport de Révision des Permissions — 2026-04-22
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Utilisateurs avec accès :      7
+Clés inutilisées (>60 jours) : 2  ⚠️
+Outils avec "allow-all" :      1  ⚠️
+Webhooks sans HMAC :           0  ✓
+Dernière rotation de clés :    il y a 52 jours
+
+Recommandations :
+  • Révoquer les clés oc_sk_...4f8a et oc_sk_...2c6d (inutilisées depuis 73 et 91 jours)
+  • Revoir la politique "allow-all" sur le groupe d'outils "system.*"
+```
+
+## 11. Activer l'Authentification à Deux Facteurs
+
+**Quoi :** Exigez une deuxième étape de vérification (application d'authentification ou clé matérielle) pour accéder au tableau de bord OpenClaw.
+
+**Pourquoi :** Les mots de passe seuls ne suffisent pas. Si quelqu'un obtient votre mot de passe, l'A2F l'empêche de se connecter.
+
+**Comment :**
+
+```yaml
+# openclaw.config.yaml
+security:
+  authentication:
+    two_factor:
+      enabled: true
+      methods: ["totp", "webauthn"]
+      enforce_for: "all_users"
+```
+
+## 12. Sauvegarder Votre Configuration
+
+**Quoi :** Exportez régulièrement votre configuration, vos définitions d'automatisation et vos secrets (chiffrés) vers un emplacement sécurisé.
+
+**Pourquoi :** Si votre instance tombe en panne ou est compromise, vous devez pouvoir reconstruire rapidement.
+
+**Comment :**
+
+```bash
+openclaw backup create --include config,automations,keys --encrypt --output /backups/
+```
+
+```
+Backup created: /backups/openclaw-backup-2026-04-22.enc
+  Includes: config, automations, keys (encrypted)
+  Size: 2.4 MB
+  Encryption: AES-256-GCM
+```
+
+Planifiez des sauvegardes automatiques avec un cron job :
+
+```yaml
+schedules:
+  - name: "config-backup"
+    cron: "0 2 * * 0"
+    action: "system.backup(include: ['config', 'automations', 'keys'], encrypt: true)"
+```
+
+## Paramètres Par Défaut Recommandés
+
+Si vous configurez une nouvelle instance et souhaitez un point de départ sécurisé, voici un bloc de configuration combiné que vous pouvez coller dans votre `openclaw.config.yaml` :
+
+```yaml
+security:
+  sandbox:
+    enabled: true
+    mode: "strict"
+  tool_policies:
+    default: "deny"
+  network:
+    outbound:
+      mode: "allowlist"
+  audit:
+    enabled: true
+    retention_days: 90
+  rate_limiting:
+    global:
+      requests_per_minute: 120
+  key_rotation:
+    enabled: true
+    interval_days: 90
+  authentication:
+    two_factor:
+      enabled: true
+      enforce_for: "all_users"
+```
+
+Puis personnalisez à partir de là selon vos besoins.
+
+## Continuez
+
+La sécurité n'est pas une tâche ponctuelle. Revenez à cette liste de vérification chaque fois que vous apportez des modifications significatives à votre configuration, ajoutez de nouvelles intégrations ou intégrez de nouveaux utilisateurs.
+
+<CTACard variant="security" />

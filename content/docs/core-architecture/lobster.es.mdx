@@ -1,0 +1,511 @@
+---
+title: Lobster
+description: El constructor visual de flujos de trabajo de OpenClaw — automatiza tareas de varios pasos con la simplicidad de arrastrar y soltar.
+---
+
+# Lobster
+
+Algunas tareas no son de una sola vez. Son secuencias — "cuando pase esto, haz aquello, luego comprueba esto, luego notifícame." Hacer estas cosas manualmente cada vez es tedioso. Por eso OpenClaw incluye **Lobster**, un constructor visual de flujos de trabajo que te permite automatizar procesos de varios pasos sin escribir código.
+
+## ¿Qué Es Lobster?
+
+Lobster es un constructor de flujos de trabajo de arrastrar y soltar integrado en OpenClaw. Si alguna vez has usado herramientas como Zapier, Make o Apple Shortcuts, el concepto es similar — pero con una diferencia clave: tu agente de IA es un participante de primera clase en el flujo de trabajo. Los flujos de trabajo de Lobster no son solo automatizaciones de "si esto entonces aquello". Pueden incluir razonamiento del agente, decisiones y procesamiento de lenguaje natural en cualquier paso.
+
+Piénsalo así: las herramientas de automatización tradicionales conectan aplicaciones. Lobster conecta aplicaciones *y* tu agente de IA.
+
+## Cómo Funciona Lobster
+
+Cada flujo de trabajo de Lobster es una serie de **pasos** conectados por **flujos**. Los pasos son acciones — enviar un correo electrónico, comprobar un calendario, pedirle al agente que resuma algo. Los flujos son las líneas entre ellos — pueden ser simples (siempre ir al siguiente paso) o condicionales (ir a la izquierda si X, a la derecha si Y).
+
+```
+┌─────────┐     ┌──────────┐     ┌──────────┐
+│ Trigger │ ──→ │  Step 1   │ ──→ │  Step 2   │
+└─────────┘     └──────────┘     └──────────┘
+                                       │
+                               ┌───────┴───────┐
+                               │  Condition?    │
+                               └───────┬───────┘
+                              Yes │         │ No
+                                  ▼         ▼
+                            ┌─────────┐ ┌─────────┐
+                            │ Step 3a │ │ Step 3b │
+                            └─────────┘ └─────────┘
+```
+
+Construyes esto visualmente en el editor de Lobster — arrastras pasos al lienzo, los conectas con líneas y configuras los ajustes de cada paso.
+
+## Configuración de Flujos de Trabajo
+
+Si bien puedes construir flujos de trabajo visualmente, se almacenan como YAML por debajo. Esto significa que también puedes escribirlos a mano, controlarlos con versiones o compartirlos con otros.
+
+```yaml
+# lobster/workflows/example.yaml
+workflow:
+  name: "Morning Briefing"
+  description: "Automated morning summary delivered daily"
+  enabled: true
+
+  trigger:
+    type: "schedule"
+    cron: "0 8 * * 1-5"  # 8 AM, Monday through Friday
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_calendar"
+      skill: "calendar"
+      action: "get_today_events"
+      output: "today_events"
+
+    - id: "get_weather"
+      skill: "weather"
+      action: "get_forecast"
+      params:
+        location: "Warsaw"
+      output: "weather"
+
+    - id: "get_emails"
+      skill: "email"
+      action: "get_unread"
+      params:
+        limit: 10
+        priority: "high"
+      output: "urgent_emails"
+
+    - id: "summarize"
+      type: "agent"
+      prompt: |
+        Create a morning briefing from this data:
+        Calendar: {{today_events}}
+        Weather: {{weather}}
+        Urgent emails: {{urgent_emails}}
+
+        Keep it under 200 words. Start with the most important item.
+      output: "briefing"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "voice"
+      message: "{{briefing}}"
+      fallback: "push_notification"
+```
+
+Ese es un flujo de trabajo completo. Cada día laborable a las 8 AM, Lobster comprueba tu calendario, el clima y el correo electrónico, le pide a tu agente que cree un resumen y te lo lee en voz alta. Si la voz no está disponible (quizás tu teléfono está en silencio), recurre a una notificación push.
+
+## 5 Flujos de Trabajo de Ejemplo
+
+### 1. Clasificación de Correo Electrónico
+
+Ordena automáticamente los correos entrantes por urgencia y redacta respuestas para los rutinarios.
+
+```yaml
+workflow:
+  name: "Email Triage"
+  description: "Sort and pre-respond to incoming emails"
+
+  trigger:
+    type: "event"
+    source: "email"
+    event: "new_email"
+    filter:
+      exclude_senders: ["noreply@*", "newsletter@*"]
+
+  steps:
+    - id: "classify"
+      type: "agent"
+      prompt: |
+        Classify this email:
+        From: {{trigger.sender}}
+        Subject: {{trigger.subject}}
+        Body: {{trigger.body}}
+
+        Categories: urgent, needs_response, informational, spam
+        Also rate importance 1-5.
+      output: "classification"
+
+    - id: "route"
+      type: "condition"
+      rules:
+        - if: "classification.category == 'urgent'"
+          goto: "alert_user"
+        - if: "classification.category == 'needs_response'"
+          goto: "draft_response"
+        - if: "classification.category == 'informational'"
+          goto: "file_away"
+        - if: "classification.category == 'spam'"
+          goto: "archive"
+
+    - id: "alert_user"
+      type: "notify"
+      channel: "push"
+      priority: "high"
+      message: "Urgent email from {{trigger.sender}}: {{trigger.subject}}"
+
+    - id: "draft_response"
+      type: "agent"
+      prompt: |
+        Draft a brief, professional response to this email.
+        Match my usual tone and style.
+        From: {{trigger.sender}}
+        Subject: {{trigger.subject}}
+        Body: {{trigger.body}}
+      output: "draft"
+
+    - id: "save_draft"
+      skill: "email"
+      action: "save_draft"
+      params:
+        to: "{{trigger.sender}}"
+        subject: "Re: {{trigger.subject}}"
+        body: "{{draft}}"
+
+    - id: "file_away"
+      skill: "email"
+      action: "move_to_folder"
+      params:
+        folder: "Read Later"
+
+    - id: "archive"
+      skill: "email"
+      action: "archive"
+```
+
+Este flujo intercepta cada correo entrante (excepto boletines y direcciones noreply). El agente lo clasifica y Lobster lo enruta: los correos urgentes reciben una notificación push inmediata, los que necesitan respuesta obtienen un borrador guardado, los informativos van a una carpeta Para Leer Después y el spam se archiva. Te despiertas con una bandeja de entrada ordenada.
+
+### 2. Preparación de Reuniones
+
+Prepara automáticamente documentos de contexto antes de cada reunión.
+
+```yaml
+workflow:
+  name: "Meeting Prep"
+  description: "Prepare context before each meeting"
+
+  trigger:
+    type: "event"
+    source: "calendar"
+    event: "upcoming_event"
+    lead_time: 15          # Trigger 15 minutes before
+
+  steps:
+    - id: "get_attendees"
+      skill: "calendar"
+      action: "get_event_details"
+      params:
+        event_id: "{{trigger.event_id}}"
+      output: "event_details"
+
+    - id: "find_context"
+      type: "agent"
+      prompt: |
+        I have a meeting in 15 minutes:
+        Title: {{event_details.title}}
+        Attendees: {{event_details.attendees}}
+        Agenda: {{event_details.description}}
+
+        Search my memories for relevant context about these people
+        and this topic. Prepare a brief (under 150 words) with:
+        - Key points from last meeting with these people
+        - Any pending action items
+        - Suggested talking points
+      memory_search: true
+      output: "briefing"
+
+    - id: "check_docs"
+      skill: "file_manager"
+      action: "search"
+      params:
+        query: "{{event_details.title}}"
+        recency: "30 days"
+      output: "related_docs"
+
+    - id: "deliver"
+      type: "notify"
+      channel: "push"
+      message: |
+        Meeting in 15 min: {{event_details.title}}
+
+        {{briefing}}
+
+        Related docs: {{related_docs.names}}
+```
+
+### 3. Generador de Informe Semanal
+
+Compila un resumen semanal cada viernes por la tarde.
+
+```yaml
+workflow:
+  name: "Weekly Report"
+  description: "Generate and send weekly progress report"
+
+  trigger:
+    type: "schedule"
+    cron: "0 16 * * 5"   # 4 PM every Friday
+    timezone: "Europe/Warsaw"
+
+  steps:
+    - id: "get_completed_tasks"
+      skill: "jira"
+      action: "get_completed"
+      params:
+        period: "this_week"
+        assignee: "me"
+      output: "completed"
+
+    - id: "get_commits"
+      skill: "github"
+      action: "get_activity"
+      params:
+        period: "this_week"
+        user: "me"
+      output: "code_activity"
+
+    - id: "get_meetings"
+      skill: "calendar"
+      action: "get_events"
+      params:
+        period: "this_week"
+      output: "meetings"
+
+    - id: "generate_report"
+      type: "agent"
+      prompt: |
+        Write a weekly report based on:
+        Completed tasks: {{completed}}
+        Code activity: {{code_activity}}
+        Meetings attended: {{meetings}}
+
+        Format:
+        ## Accomplishments
+        ## In Progress
+        ## Blockers
+        ## Next Week
+      output: "report"
+
+    - id: "render_canvas"
+      type: "canvas"
+      template: "weekly_report"
+      data:
+        tasks: "{{completed}}"
+        report_text: "{{report}}"
+      output: "visual_report"
+
+    - id: "send_report"
+      skill: "email"
+      action: "send"
+      params:
+        to: "dr.chen@techcorp.com"
+        subject: "Weekly Report — {{date.format('MMM D')}}"
+        body: "{{report}}"
+        attachments: ["{{visual_report.export_pdf}}"]
+```
+
+### 4. Rutina de Domótica
+
+Automatiza tu desconexión vespertina.
+
+```yaml
+workflow:
+  name: "Evening Wind-Down"
+  description: "Gradually transition the home for sleep"
+
+  trigger:
+    type: "schedule"
+    cron: "0 21 * * *"   # 9 PM daily
+    alternative_trigger:
+      type: "voice"
+      phrase: "start wind-down"
+
+  steps:
+    - id: "dim_lights"
+      skill: "smart_home"
+      action: "set_lights"
+      params:
+        rooms: ["living_room", "bedroom"]
+        brightness: 30
+        color_temp: "warm"
+        transition: "10 minutes"
+
+    - id: "adjust_thermostat"
+      skill: "smart_home"
+      action: "set_temperature"
+      params:
+        target: 19
+        mode: "night"
+
+    - id: "check_tomorrow"
+      skill: "calendar"
+      action: "get_tomorrow_events"
+      output: "tomorrow"
+
+    - id: "prepare_summary"
+      type: "agent"
+      prompt: |
+        Give me a very brief tomorrow preview:
+        Events: {{tomorrow}}
+        Keep it to 2-3 sentences. Mention if I need to wake up
+        earlier than usual for an early meeting.
+      output: "preview"
+
+    - id: "set_alarm"
+      type: "condition"
+      rules:
+        - if: "tomorrow.earliest_event.time < '09:00'"
+          goto: "early_alarm"
+        - else:
+          goto: "normal_alarm"
+
+    - id: "early_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "{{tomorrow.earliest_event.time - 90min}}"
+        label: "Early meeting day"
+      goto: "goodnight"
+
+    - id: "normal_alarm"
+      skill: "reminders"
+      action: "set_alarm"
+      params:
+        time: "07:30"
+        label: "Good morning"
+
+    - id: "goodnight"
+      type: "notify"
+      channel: "voice"
+      message: "{{preview}} Your alarm is set. Goodnight."
+      voice_settings:
+        voice: "flint"
+        volume: 0.3
+```
+
+### 5. Pipeline de Investigación de Contenido
+
+Investiga un tema, compila fuentes y crea un resumen estructurado.
+
+```yaml
+workflow:
+  name: "Research Pipeline"
+  description: "Deep research on a given topic"
+
+  trigger:
+    type: "command"
+    phrase: "/research {topic}"
+
+  input:
+    topic:
+      type: "string"
+      required: true
+
+  steps:
+    - id: "web_search"
+      skill: "web_search"
+      action: "search"
+      params:
+        query: "{{input.topic}}"
+        num_results: 20
+        recency: "6 months"
+      output: "search_results"
+
+    - id: "filter_sources"
+      type: "agent"
+      prompt: |
+        Review these search results for "{{input.topic}}":
+        {{search_results}}
+
+        Select the 5 most credible and relevant sources.
+        Explain why each was selected.
+      output: "top_sources"
+
+    - id: "deep_read"
+      skill: "web_search"
+      action: "read_pages"
+      params:
+        urls: "{{top_sources.urls}}"
+      output: "full_content"
+
+    - id: "synthesize"
+      type: "agent"
+      prompt: |
+        Based on these sources about "{{input.topic}}":
+        {{full_content}}
+
+        Create a research brief with:
+        ## Key Findings (3-5 bullet points)
+        ## Detailed Analysis (500 words)
+        ## Conflicting Viewpoints (if any)
+        ## Sources (with links)
+        ## Questions for Further Research
+      output: "brief"
+
+    - id: "save"
+      skill: "notes"
+      action: "create"
+      params:
+        title: "Research: {{input.topic}}"
+        content: "{{brief}}"
+        tags: ["research", "{{input.topic}}"]
+
+    - id: "notify"
+      type: "notify"
+      channel: "push"
+      message: "Research on '{{input.topic}}' is complete. Saved to your notes."
+```
+
+Actívalo con `/research quantum computing trends` y vete. Vuelve a un resumen estructurado en tus notas.
+
+## Gestión de Flujos de Trabajo
+
+```bash
+# List all workflows
+openclaw lobster list
+
+# Run a workflow manually
+openclaw lobster run "Morning Briefing"
+
+# Pause a workflow
+openclaw lobster pause "Email Triage"
+
+# View run history
+openclaw lobster history "Weekly Report" --last 10
+
+# Debug a failed run
+openclaw lobster debug --run-id run_abc123
+
+# Import a shared workflow
+openclaw lobster import workflow.yaml
+
+# Export for sharing
+openclaw lobster export "Meeting Prep" --output meeting-prep.yaml
+```
+
+## Manejo de Errores
+
+Los flujos de trabajo pueden fallar — una API puede estar caída, una habilidad puede agotarse. Lobster lo maneja con elegancia:
+
+```yaml
+workflow:
+  error_handling:
+    default: "retry_then_skip"
+    retries: 3
+    retry_delay: 10s
+
+    on_failure:
+      notify: true
+      channel: "push"
+      message: "Workflow '{{workflow.name}}' failed at step '{{failed_step.id}}'"
+
+    per_step_overrides:
+      - step: "send_report"
+        on_failure: "halt"    # Don't skip the final send — stop and alert me
+```
+
+## Consejos para Construir Flujos de Trabajo
+
+1. **Empieza por el disparador.** ¿Qué inicia el flujo de trabajo? ¿Un horario, un evento, un comando?
+2. **Mantén los flujos de trabajo enfocados.** Un flujo de trabajo, un trabajo. "Resumen Matutino" no debería también gestionar la clasificación de correo electrónico.
+3. **Prueba con ejecuciones de prueba.** Usa `openclaw lobster run "My Workflow" --dry-run` para ver qué *ocurriría* sin que realmente ocurra.
+4. **Usa el paso de agente libremente.** Cada vez que necesites juicio, resumen o procesamiento de lenguaje natural, usa un paso de agente. Ese es el superpoder de Lobster sobre las herramientas de automatización tradicionales.
+5. **Configura notificaciones de error.** No querrás que un flujo de trabajo falle en silencio durante días. Siempre configura alertas de fallo.
+
+Lobster convierte a tu agente de reactivo (responder cuando se le pregunta) a proactivo (hacer cosas automáticamente). Los mejores flujos de trabajo son los que configuras una vez y olvidas — simplemente hacen tu vida más fácil en segundo plano.

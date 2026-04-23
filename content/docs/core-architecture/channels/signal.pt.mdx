@@ -1,0 +1,335 @@
+---
+title: Canal Signal
+description: Conecte o OpenClaw ao Signal para mensagens com foco em privacidade usando a ponte Signal CLI.
+---
+
+# Canal Signal
+
+O Signal é o aplicativo de mensagens preferido das pessoas que levam a privacidade a sério. Criptografia de ponta a ponta por padrão, sem anúncios, sem rastreamento, e um protocolo de código aberto que foi auditado por pesquisadores de segurança independentes. Se seus usuários se preocupam com privacidade — e cada vez mais, todos se preocupam — oferecer seu assistente OpenClaw no Signal envia uma mensagem forte sobre seus valores.
+
+A contrapartida é que o compromisso do Signal com a privacidade significa que não há uma API oficial de bot. O Signal não quer sistemas automatizados lendo mensagens em escala — isso prejudicaria o propósito. Em vez disso, o OpenClaw se conecta ao Signal por meio do **signal-cli**, um cliente de linha de comando que se registra como um dispositivo Signal regular. Não é tão refinado quanto a integração com Telegram ou Discord, mas funciona para implantações com foco em privacidade.
+
+## Como a Ponte Signal Funciona
+
+A arquitetura é direta:
+
+```
+Rede Signal
+     │
+     ▼
+┌──────────┐
+│signal-cli│  ← Registrado como um dispositivo Signal (vinculado ou primário)
+│ (ponte)  │  ← Recebe/envia mensagens criptografadas via protocolo Signal
+└─────┬────┘
+      │  JSON-RPC ou stdout
+      ▼
+┌──────────┐
+│ OpenClaw │  ← Processa mensagens, gera respostas
+│ (core)   │
+└──────────┘
+```
+
+O `signal-cli` lida com todo o trabalho pesado de criptografia — troca de chaves, criptografia de mensagens, descriptografia e entrega. O OpenClaw se comunica com ele através de uma interface JSON-RPC ou lendo seu fluxo stdout.
+
+## Pré-requisitos
+
+Antes de configurar o canal Signal, você precisa:
+
+1. **Um número de telefone** para o seu assistente. Pode ser um número de telefone real, um número VoIP ou um número do Google Voice. O Signal enviará um código de verificação para ele durante o registro.
+2. **Java 17 ou posterior** instalado no seu servidor. O signal-cli é uma aplicação Java.
+3. **signal-cli** instalado e registrado.
+
+### Instalando o signal-cli
+
+No macOS com Homebrew:
+
+```bash
+brew install signal-cli
+```
+
+No Linux, baixe a versão mais recente:
+
+```bash
+# Baixar a versão mais recente
+SIGNAL_CLI_VERSION=0.13.2
+wget https://github.com/AsamK/signal-cli/releases/download/v${SIGNAL_CLI_VERSION}/signal-cli-${SIGNAL_CLI_VERSION}.tar.gz
+tar xf signal-cli-${SIGNAL_CLI_VERSION}.tar.gz -C /opt
+ln -sf /opt/signal-cli-${SIGNAL_CLI_VERSION}/bin/signal-cli /usr/local/bin/signal-cli
+```
+
+Verifique a instalação:
+
+```bash
+signal-cli --version
+# signal-cli 0.13.2
+```
+
+## Passo 1: Registre uma Conta Signal
+
+Você precisa registrar o número de telefone que seu assistente usará:
+
+```bash
+# Solicitar um código de verificação via SMS
+signal-cli -a +5511999876543 register
+
+# Ou solicitar via chamada de voz
+signal-cli -a +5511999876543 register --voice
+```
+
+Você receberá um código de verificação no número de telefone. Digite-o:
+
+```bash
+signal-cli -a +5511999876543 verify 123-456
+```
+
+Uma vez verificado, sua instância do signal-cli está registrada como um dispositivo primário naquele número. O Signal trata isso como um telefone rodando o app Signal.
+
+> **Importante:** Registrar o signal-cli como dispositivo primário desvinculará o Signal do seu telefone se aquele número já estava em uso. Use um número dedicado para o bot, não o seu número pessoal.
+
+### Alternativa: Vincular como Dispositivo Secundário
+
+Se quiser continuar usando o número de telefone no seu telefone real, você pode vincular o signal-cli como dispositivo secundário:
+
+```bash
+signal-cli link -n "OpenClaw Bot"
+```
+
+Isso gera um URI `tsdevice:`. Converta-o em um QR code (usando `qrencode` ou uma ferramenta online) e escaneie-o pelo app Signal no seu telefone em **Configurações > Dispositivos Vinculados**.
+
+```bash
+# Gerar um QR code a partir do URI de link
+signal-cli link -n "OpenClaw Bot" | qrencode -t ANSIUTF8
+```
+
+O modo de dispositivo vinculado é mais conveniente, mas tem uma limitação: o signal-cli deve sincronizar com o dispositivo primário periodicamente, e se o dispositivo primário ficar offline por muito tempo, o link pode ser rompido.
+
+## Passo 2: Inicie o signal-cli em Modo Daemon
+
+Para que o OpenClaw se comunique com o signal-cli, execute-o como daemon JSON-RPC:
+
+```bash
+signal-cli -a +5511999876543 daemon --socket /tmp/signal-cli.sock
+```
+
+Ou usando TCP:
+
+```bash
+signal-cli -a +5511999876543 daemon --tcp 127.0.0.1:7583
+```
+
+Isso mantém o signal-cli rodando em segundo plano, escutando mensagens recebidas e aceitando solicitações de mensagens de saída pela conexão de socket ou TCP.
+
+Para produção, configure-o como um serviço systemd:
+
+```ini title="/etc/systemd/system/signal-cli.service"
+[Unit]
+Description=signal-cli daemon
+After=network.target
+
+[Service]
+Type=simple
+User=openclaw
+ExecStart=/usr/local/bin/signal-cli -a +5511999876543 daemon --socket /tmp/signal-cli.sock
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable signal-cli
+sudo systemctl start signal-cli
+```
+
+## Passo 3: Configure o OpenClaw
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    signal: {
+      enabled: true,
+      account: process.env.SIGNAL_PHONE_NUMBER,
+
+      // Conexão com o daemon signal-cli
+      connection: {
+        type: 'socket',                          // 'socket' | 'tcp'
+        socketPath: '/tmp/signal-cli.sock',       // Para modo socket
+        // host: '127.0.0.1', port: 7583,        // Para modo TCP
+      },
+
+      // Quem pode interagir
+      access: {
+        mode: 'allowlist',     // 'allowlist' | 'blocklist' | 'all'
+        allowlist: [
+          '+5511987654321',
+          '+351912345678',
+        ],
+      },
+    },
+  },
+});
+```
+
+```bash title=".env"
+SIGNAL_PHONE_NUMBER=+5511999876543
+```
+
+Inicie o OpenClaw:
+
+```bash
+npx openclaw dev
+```
+
+```
+[signal] Connecting to signal-cli daemon at /tmp/signal-cli.sock...
+[signal] Connected. Account: +5511999876543
+[signal] Channel ready
+```
+
+## Considerações de Privacidade
+
+Como os usuários do Signal escolhem a plataforma especificamente por privacidade, sua implantação do OpenClaw deve respeitar essa intenção:
+
+### Armazenamento de Mensagens
+
+Por padrão, o OpenClaw armazena o histórico de conversas para contexto. No canal Signal, você pode querer reduzir ou eliminar isso:
+
+```typescript
+signal: {
+  privacy: {
+    messageRetention: '24h',     // Auto-deletar mensagens armazenadas após 24 horas
+    // Ou desabilitar armazenamento completamente:
+    // messageRetention: 'none',
+
+    storeMediaLocally: false,    // Não persistir mídia recebida em disco
+    logMessageContent: false,    // Não incluir texto de mensagens nos logs
+  },
+},
+```
+
+### Mensagens com Prazo de Expiração
+
+O Signal suporta mensagens com prazo de expiração no nível da conversa. Quando um usuário habilita mensagens com prazo, o OpenClaw respeita o temporizador — ele não tenta reter mensagens além da janela escolhida pelo usuário.
+
+```typescript
+signal: {
+  disappearingMessages: {
+    respect: true,              // Honrar o temporizador de mensagens com prazo do usuário
+    defaultTimer: null,         // Não forçar um temporizador; deixar os usuários escolherem
+    // defaultTimer: 86400,     // Ou definir um padrão de 24 horas
+  },
+},
+```
+
+### Remetente Lacrado
+
+O recurso de remetente lacrado do Signal oculta a identidade do remetente dos servidores do Signal. O signal-cli suporta isso, e o OpenClaw não interfere com ele. Mensagens recebidas via remetente lacrado são processadas de forma idêntica às mensagens normais.
+
+## Suporte a Chats em Grupo
+
+Grupos do Signal funcionam, mas com algumas ressalvas:
+
+```typescript
+signal: {
+  groups: {
+    enabled: true,
+    respondTo: 'mention',      // Responder quando o nome do bot for mencionado
+    mentionNames: ['claw', 'assistente', 'bot'],
+
+    // Grupos Signal não têm @menções formais, então o OpenClaw
+    // monitora nomes de gatilho no início das mensagens
+    requirePrefix: true,       // Mensagem deve COMEÇAR com o nome de gatilho
+  },
+},
+```
+
+Ao contrário do Telegram ou Discord, o Signal não tem infraestrutura específica para bots. Em grupos, o assistente aparece como um membro regular. Sem slash commands, sem distintivos de bot e sem permissões especiais. Isso pode ser um recurso ou uma limitação dependendo da sua perspectiva — faz o assistente parecer um participante natural na conversa.
+
+## Suporte a Mídia
+
+O canal Signal suporta mídia básica:
+
+**Recebendo:**
+- Imagens (JPEG, PNG)
+- Notas de voz (auto-transcritas se a transcrição estiver habilitada)
+- Arquivos e documentos
+- Contatos e localizações (como dados estruturados)
+
+**Enviando:**
+- Imagens com legendas opcionais
+- Arquivos como anexos
+- Mensagens de texto com a formatação do Signal (negrito, itálico, monoespaço, spoiler)
+
+```typescript
+signal: {
+  media: {
+    receive: {
+      images: true,
+      voiceNotes: true,
+      documents: true,
+    },
+    voiceTranscription: {
+      enabled: true,
+      provider: 'whisper',
+    },
+    send: {
+      maxAttachmentSizeMB: 100,  // Limite de anexo do Signal
+    },
+  },
+},
+```
+
+O Signal não suporta stickers, GIFs ou cartões ricos de bots. A experiência é intencionalmente simples.
+
+## Formatação de Mensagens
+
+O Signal suporta formatação básica em mensagens:
+
+```
+*negrito*
+_itálico_
+~tachado~
+||spoiler||
+`monoespaço`
+```
+
+O OpenClaw converte respostas em Markdown para a formatação do Signal:
+
+```typescript
+signal: {
+  formatting: {
+    convertMarkdown: true,
+    maxMessageLength: 10000,    // O limite do Signal é generoso
+    splitLongMessages: true,
+  },
+},
+```
+
+## Solução de Problemas
+
+| Problema | Causa Provável | Solução |
+|---------|-------------|-----|
+| "Connection refused" | O daemon signal-cli não está rodando | Inicie o daemon: `signal-cli daemon --socket ...` |
+| Nenhuma mensagem recebida | Conta não registrada ou vinculada | Re-registrar ou re-vincular o signal-cli |
+| Erros "Untrusted identity" | Contato mudou o número de segurança do Signal | Execute `signal-cli trust -a +55... <identity>` |
+| Mensagens atrasadas | Backlog de sincronização do signal-cli após ficar offline | Aguarde a sincronização concluir; verifique logs do daemon |
+| QR code expirado | Demorou muito para escanear | Re-execute `signal-cli link` para um novo código |
+
+## Mantendo o signal-cli Saudável
+
+O signal-cli é confiável, mas precisa de atenção ocasional:
+
+1. **Atualize regularmente.** O Signal atualiza seu protocolo, e versões antigas do signal-cli podem parar de funcionar. Verifique atualizações mensalmente.
+2. **Monitore o daemon.** Use o serviço systemd com `Restart=always` para que ele volte após falhas.
+3. **Observe o espaço em disco.** O signal-cli armazena chaves de criptografia e dados de sessão em `~/.local/share/signal-cli/`. Este diretório pode crescer se você receber muita mídia.
+4. **Faça backup das suas chaves.** As chaves de registro no diretório de dados do signal-cli são insubstituíveis. Se você as perder, precisará re-registrar o número.
+
+```bash
+# Fazer backup dos dados do signal-cli
+tar czf signal-cli-backup-$(date +%F).tar.gz ~/.local/share/signal-cli/
+```
+
+O canal Signal não é o mais vistoso — sem teclados inline, sem embeds ricos, sem slash commands. Mas para usuários que valorizam a privacidade acima de tudo, é o único canal que importa. E ao oferecê-lo, você mostra que seu assistente respeita a escolha deles.

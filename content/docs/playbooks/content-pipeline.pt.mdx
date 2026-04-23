@@ -1,0 +1,213 @@
+---
+title: Pipeline de Criação de Conteúdo
+description: Construa um pipeline de conteúdo automatizado que cuida de ideação, rascunho, agendamento e publicação com o OpenClaw.
+---
+
+# Pipeline de Criação de Conteúdo
+
+Criar conteúdo de forma consistente é uma das partes mais difíceis de administrar um negócio ou construir uma marca pessoal. Não é que você não tenha ideias. É que o processo de uma ideia até a publicação envolve tantas etapas que as coisas param no meio do caminho. Você tem um pensamento brilhante no chuveiro, anota, e então ele fica num aplicativo de notas por seis meses.
+
+O playbook de Pipeline de Conteúdo transforma o OpenClaw em seu assistente editorial. Ele ajuda você a capturar ideias, desenvolvê-las em esquemas, rascunhar conteúdo e manter tudo avançando rumo à publicação. Pense nisso como ter um gerente de conteúdo júnior que nunca esquece, nunca tira um dia de folga e nunca deixa um rascunho sem tocar por mais de alguns dias.
+
+## Os Estágios do Pipeline
+
+Este playbook organiza seu fluxo de trabalho de conteúdo em cinco estágios:
+
+1. **Captura** — Coletar ideias de qualquer lugar (mensagens, notas de voz, favoritos, pensamentos aleatórios)
+2. **Desenvolvimento** — Transformar ideias brutas em esquemas estruturados com pontos-chave e ângulos
+3. **Rascunho** — Gerar primeiros rascunhos baseados nos seus esquemas aprovados
+4. **Revisão** — Sinalizar rascunhos que estão prontos para sua revisão e edição
+5. **Agendamento** — Enfileirar peças concluídas para publicação nas plataformas certas
+
+O OpenClaw move o conteúdo por esses estágios automaticamente, cutucando você quando seu input é necessário e lidando com as partes mecânicas por conta própria. Você mantém o controle criativo enquanto a logística roda sozinha.
+
+## Para Quem É Este Playbook
+
+Este playbook funciona muito bem para solopreneurs, pequenas equipes de marketing, consultores e qualquer pessoa que publica conteúdo regularmente. Seja escrevendo posts de blog, atualizações no LinkedIn, edições de newsletter ou threads no Twitter, o pipeline se adapta aos seus tipos de conteúdo e cadência de publicação.
+
+Você não precisa ser um escritor profissional. Na verdade, muitos usuários descobrem que o pipeline os ajuda a se tornarem escritores mais consistentes porque remove a fricção que normalmente os impede de publicar.
+
+## Configurando Sua Voz de Conteúdo
+
+O passo mais importante neste playbook é ensinar o OpenClaw como você escreve. Sua configuração SOUL.md é onde você define seu tom, estilo e preferências. Dedique um tempo a esta seção. Quanto melhor você descrever sua voz, menos edição você precisará fazer nos rascunhos.
+
+Uma boa abordagem é apontar o OpenClaw para três a cinco peças que você já publicou que representam seu melhor trabalho. Ele analisará seus padrões de escrita e os usará como referência.
+
+## Adições ao SOUL.md
+
+```markdown
+## Behaviors
+
+### Content Pipeline
+- Maintain a running content backlog organized by stage: Capture, Develop, Draft, Review, Schedule
+- When I share an idea (prefixed with "content idea:" or sent to the ideas channel), add it to the Capture stage
+- Every Monday, present the top 5 ideas from Capture and suggest which to develop this week
+- When developing an outline, include: working title, target audience, 3-5 key points, estimated word count, and suggested platform
+- Draft content in my voice — conversational, clear, avoid buzzwords, use concrete examples
+- Reference style samples from my published work (linked in my profile)
+- First drafts should be 80% ready — good enough structure and flow that I only need to add personal anecdotes and polish
+- Never publish anything without my explicit approval
+- Track publishing cadence and warn me if I am falling behind my target of 2 posts per week
+- Suggest content ideas based on trending topics in my industry, repurposing opportunities from past content, and gaps in my existing library
+```
+
+## Habilidades Recomendadas
+
+```yaml
+skills:
+  - name: content-manager
+    provider: openclaw-native
+    description: Manages content stages, tracks progress, and handles pipeline logic
+
+  - name: writing-assistant
+    provider: openclaw-native
+    config:
+      style_reference: "profile-writing-samples"
+      max_draft_length: 2000
+    description: Generates outlines and drafts based on your writing style
+
+  - name: social-publisher
+    provider: buffer  # or hootsuite, later
+    permissions: read-write
+    description: Schedules and publishes content to connected social platforms
+
+  - name: blog-publisher
+    provider: wordpress  # or ghost, webflow, notion
+    permissions: read-write
+    description: Publishes blog posts and articles
+
+  - name: trend-scanner
+    provider: openclaw-native
+    config:
+      industries: ["sua-industria"]
+      sources: ["twitter", "reddit", "industry-blogs"]
+    description: Identifies trending topics and content opportunities
+```
+
+<PremiumContent title="Configuração Completa do Playbook">
+
+## Configuração de Cron
+
+O pipeline de conteúdo usa vários jobs agendados para manter tudo em movimento:
+
+```yaml
+cron:
+  content-weekly-planning:
+    schedule: "0 9 * * 1"  # Segunda-feira às 9:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: content-weekly-planning
+    config:
+      suggest_count: 5  # sugerir 5 ideias para desenvolver esta semana
+      include_repurpose: true  # sugerir reutilização de conteúdo antigo
+    retry:
+      attempts: 2
+      delay: 15m
+
+  content-draft-nudge:
+    schedule: "0 10 * * 3,5"  # Quarta e sexta às 10:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: content-draft-check
+    config:
+      notify_stale: true  # sinalizar rascunhos que estão parados há 3+ dias
+      auto_develop: false  # não criar rascunho automaticamente sem aprovação
+
+  content-publish-check:
+    schedule: "0 8 * * *"  # Diariamente às 8:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: content-publish-queue
+    config:
+      preview_before_publish: true  # sempre mostrar prévia antes de publicar
+```
+
+## Configuração de Canal
+
+```yaml
+channels:
+  content-ideas:
+    type: slack-channel
+    config:
+      workspace: "seu-workspace"
+      channel: "#ideias-de-conteudo"
+      description: "Jogue ideias de conteúdo aqui a qualquer momento — o OpenClaw as captura"
+      format: rich
+      capture_all: true  # tratar cada mensagem neste canal como uma ideia de conteúdo
+
+  content-pipeline-updates:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: rich
+      notify: false  # sem notificações push, apenas atualizações por DM
+
+  content-review:
+    type: slack-channel
+    config:
+      workspace: "seu-workspace"
+      channel: "#revisao-conteudo"
+      format: rich
+      thread: true  # cada peça de conteúdo tem seu próprio hilo
+```
+
+## Exemplo de Saída
+
+Aqui está como fica sua mensagem de planejamento da segunda-feira:
+
+```
+PIPELINE DE CONTEÚDO — Planejamento Semanal (Segunda, 13 de Abril)
+
+STATUS DO PIPELINE
+  Captura: 12 ideias aguardando
+  Desenvolvimento: 2 esquemas em andamento
+  Rascunho: 1 rascunho pronto para revisão
+  Revisão: 0
+  Agendado: 3 posts na fila (Ter, Qui, Sáb)
+
+TOP 5 IDEIAS PARA DESENVOLVER ESTA SEMANA
+
+1. "Por Que a Maioria dos Fluxos de Integração Falha nas Primeiras 48 Horas"
+   Ângulo: Erros comuns + o que os dados dizem sobre churn inicial
+   Plataforma: Post de blog (1200 palavras) + resumo LinkedIn
+   Por que agora: Você mencionou métricas de churn na reunião de equipe da semana passada
+
+2. "A Sequência de 3 E-mails de Boas-vindas Que Realmente Funciona"
+   Ângulo: Análise tática com exemplos reais
+   Plataforma: Newsletter + thread no Twitter
+   Por que agora: Combina bem com a peça de integração acima
+
+3. "Substituí 4 Ferramentas SaaS por Uma Automação"
+   Ângulo: História pessoal sobre simplificar seu stack
+   Plataforma: Post LinkedIn (600 palavras)
+   Por que agora: Sua ideia de "fadiga de ferramentas" de 2 semanas atrás — boa timing com revisões de orçamento do Q2
+
+4. "Lista de Leitura: 5 Livros Que Mudaram Como Penso Sobre Crescimento"
+   Ângulo: Resenhas rápidas com uma lição principal cada
+   Plataforma: Newsletter
+   Por que agora: Conteúdo leve para variedade — você tem publicado posts táticos pesados ultimamente
+
+5. "Lições de Perder Nosso Maior Cliente"
+   Ângulo: Reflexão honesta, o que você aprendeu, o que mudou
+   Plataforma: Post de blog (1500 palavras) + LinkedIn
+   Por que agora: Você capturou essa ideia mês passado — ficou marinando tempo suficiente
+
+Responda com os números que você quer desenvolver, ou sugira mudanças.
+
+RASCUNHO PRONTO PARA REVISÃO
+  "Como Auditar Seu Funil de Vendas em 30 Minutos"
+  Contagem de palavras: 1.340 | Plataforma: Blog
+  Aguardando em #revisao-conteudo — 2 dias de espera
+```
+
+## Dicas Avançadas
+
+- **Motor de reutilização**: Uma vez que um post de blog é publicado, o OpenClaw pode automaticamente criar um resumo para LinkedIn, um thread no Twitter e um trecho para newsletter do mesmo conteúdo. Adicione `repurpose_on_publish: true` à sua configuração de cron content-publish-check.
+- **Visão de calendário de conteúdo**: Pergunte ao OpenClaw "mostre o calendário de conteúdo deste mês" para obter uma visão geral do que está agendado, o que está em progresso e onde estão as lacunas.
+- **Modo colaboração**: Se você trabalha com um editor ou parceiro de escrita, adicione-os ao canal `#revisao-conteudo`. O OpenClaw rastreará o feedback deles e o incorporará nas revisões.
+- **Loop de feedback de analytics**: Conecte sua habilidade de analytics para que o OpenClaw possa te dizer quais tópicos e formatos têm melhor desempenho, e use esses dados para informar sugestões futuras de conteúdo.
+
+</PremiumContent>
+
+<CTACard variant="community" />

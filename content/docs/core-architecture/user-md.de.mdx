@@ -1,0 +1,237 @@
+---
+title: USER.md
+description: Wie USER.md in OpenClaw deine Präferenzen, deinen Kontext und persönliche Details speichert, um jede Interaktion zu personalisieren.
+---
+
+# USER.md
+
+Während `SOUL.md` definiert, wer dein Agent *ist*, definiert `USER.md`, wer *du* bist. Es ist dein Profil — ein lebendiges Dokument, das deinem Assistenten von deinen Präferenzen, Routinen, Beziehungen und dem Kontext erzählt, den er braucht, um dir gut zu dienen. Je besser deine USER.md, desto weniger musst du dich wiederholen.
+
+## Warum USER.md existiert
+
+Stell dir vor, du stellst einen persönlichen Assistenten am ersten Tag ein. Du würdest Stunden damit verbringen zu erklären: "Ich trinke meinen Kaffee schwarz. Ich hasse Morgenmeetings vor 9 Uhr. Mein Partner heißt Jamie. Ich verwende metrische Maße, kein imperiales System. Mein Chef ist Dr. Chen und sie bevorzugt E-Mail gegenüber Slack." Stell dir nun vor, das *jeden einzelnen Tag* zu tun.
+
+USER.md ist, wie du es einmal machst. Dein Agent liest diese Datei am Anfang jeder Sitzung, und plötzlich kennt er all diese Dinge, ohne nochmals darüber informiert zu werden.
+
+## Profilstruktur
+
+Eine USER.md ist in logische Abschnitte gegliedert. Hier ist ein umfassendes Beispiel:
+
+```markdown
+# Über mich
+
+- Name: Damian
+- Standort: Warschau, Polen (CET-Zeitzone)
+- Sprache: Polnisch (Muttersprache), Englisch (fließend), Deutsch (Konversation)
+- Bevorzugte Sprache für Antworten: Englisch
+
+# Arbeit
+
+- Rolle: Produktmanager bei TechCorp
+- Team: 8 direkte Mitarbeiter
+- Wichtige Stakeholder: Sarah (Design-Lead), Mike (Engineering-Lead), Dr. Chen (VP)
+- Arbeitszeiten: 9:00 - 17:30, Montag bis Freitag
+- Tools: Jira, Figma, Slack, Google Workspace
+
+# Kommunikationspräferenzen
+
+- Ich bevorzuge prägnante Antworten — kein Füllmaterial
+- Aufzählungspunkte für Listen verwenden
+- Beim Vergleich von Optionen eine Tabelle verwenden
+- Erkläre mir keine grundlegenden Tech-Konzepte — ich kenne sie
+- Wenn ich in meinen Nachrichten kurz bin, bin ich nicht verärgert — nur beschäftigt
+
+# Tagesroutine
+
+- Morgenliche E-Mail-Überprüfung um 9:00 Uhr
+- Team-Standup um 10:00 Uhr (Montag, Mittwoch, Freitag)
+- Fokuszeit: 14:00 - 16:00 (hier keine Meetings vorschlagen)
+- Wöchentliches 1:1 mit Dr. Chen donnerstags um 11:00 Uhr
+
+# Persönlich
+
+- Partner: Jamie (Geburtstag: 15. März)
+- Hund: Luna (Golden Retriever)
+- Hobbys: Klettern, Kochen, Science-Fiction-Romane
+- Ernährung: vegetarisch
+
+# Präferenzen
+
+- Einheiten: metrisch
+- Datumsformat: TT.MM.JJJJ
+- Währung: PLN (Polnischer Zloty), aber mit EUR und USD vertraut
+- Temperatur: Celsius
+- Vertrauenswürdige Nachrichtenquellen: Reuters, Ars Technica, The Economist
+```
+
+## Lernen im Laufe der Zeit
+
+Deine USER.md muss vom ersten Tag an nicht vollständig sein. OpenClaw kann sie basierend auf deinen Gesprächen aktualisieren — mit deiner Erlaubnis.
+
+```yaml
+# user-learning.yaml
+learning:
+  enabled: true
+  confirmation: "ask"   # Optionen: ask, auto, never
+  categories:
+    preferences: true     # "Ich bevorzuge den dunklen Modus"
+    contacts: true        # "Mein Zahnarzt ist Dr. Park"
+    routines: true        # "Ich gehe immer dienstags ins Fitnessstudio"
+    opinions: false       # Meine Meinungen nicht speichern
+    sensitive: false      # Sensible Informationen nie automatisch speichern
+```
+
+Wenn `confirmation` auf `"ask"` gesetzt ist, sieht die Interaktion so aus:
+
+```
+Du: Übrigens, meine neue Projektmanagerin ist Alicia Torres.
+
+OpenClaw: Verstanden. Soll ich Alicia Torres als deine Projektmanagerin
+zu deinem Profil hinzufügen?
+
+Du: Ja, mach das.
+
+OpenClaw: Erledigt. Ich habe Alicia Torres (Projektmanagerin) zu deinen
+Arbeitskontakten hinzugefügt.
+```
+
+Bei `"auto"` aktualisiert OpenClaw das Profil still. Bei `"never"` verwendet es die Information in der Sitzung, aber speichert sie nicht.
+
+## Datenschutzüberlegungen
+
+USER.md ist eine der sensibelsten Dateien in deiner OpenClaw-Einrichtung. Sie enthält persönliche Informationen, und OpenClaw nimmt das ernst.
+
+### Was wo gespeichert wird
+
+```yaml
+privacy:
+  storage:
+    location: "local_only"     # Optionen: local_only, encrypted_cloud, hybrid
+    encryption: "AES-256"
+    key_management: "user_held"  # Du hältst den Verschlüsselungsschlüssel
+
+  data_classification:
+    public:
+      - preferred_units
+      - date_format
+      - language_preferences
+    private:
+      - daily_routine
+      - work_details
+      - contacts
+    sensitive:
+      - financial_info
+      - health_info
+      - relationship_details
+
+  model_exposure:
+    # Was an das KI-Modell gesendet wird
+    send_to_model: ["public", "private"]
+    never_send: ["sensitive"]
+    redact_fields: ["phone_numbers", "addresses", "account_numbers"]
+```
+
+Das ist eine wichtige Unterscheidung. Die Einstellung `never_send` bedeutet, dass sensible Informationen, obwohl sie in deiner USER.md existieren, nicht in Prompts einbezogen werden, die an das KI-Modell gesendet werden. Dein Agent weiß, dass du Vegetarier bist (sodass er Restaurants vorschlagen kann), aber deine Finanzdaten bleiben lokal.
+
+### Anonymisierung in der Praxis
+
+Wenn OpenClaw Kontext für das KI-Modell vorbereitet, erfolgt die Anonymisierung automatisch:
+
+```
+# Was in deiner USER.md steht:
+Heimadresse: Marszałkowska 42/7, 00-024 Warschau
+
+# Was das KI-Modell sieht:
+Heimadresse: [ANONYMISIERT - Warschauer Gebiet]
+```
+
+Der Agent weiß, dass du in Warschau bist (nützlich für standortbezogene Antworten), kennt aber nicht deine genaue Adresse.
+
+### Datenportabilität
+
+Deine Daten gehören dir. Du kannst sie jederzeit exportieren, übertragen oder löschen:
+
+```bash
+# Deine USER.md und alle erlernten Präferenzen exportieren
+openclaw user export --format json --output my_profile.json
+
+# In eine neue OpenClaw-Installation importieren
+openclaw user import --file my_profile.json
+
+# Nuklear-Option — alles löschen
+openclaw user delete --confirm
+
+# Sehen, welche Daten existieren
+openclaw user audit
+```
+
+Der `audit`-Befehl ist für regelmäßige Überprüfungen nützlich. Er zeigt dir genau, was gespeichert ist, wann es hinzugefügt wurde und wie es erlernt wurde (manuell eingegeben vs. aus Gesprächen gelernt).
+
+## Multi-User-Profile
+
+Wenn mehrere Personen dieselbe OpenClaw-Instanz verwenden (z. B. ein Familiensetup), bekommt jede Person ihre eigene USER.md:
+
+```yaml
+# users/config.yaml
+multi_user:
+  enabled: true
+  identification: "voice_or_name"  # Wie OpenClaw Benutzer unterscheidet
+
+  users:
+    - name: "Damian"
+      profile: "./users/damian/USER.md"
+      voice_id: "voice_damian_01"
+
+    - name: "Jamie"
+      profile: "./users/jamie/USER.md"
+      voice_id: "voice_jamie_01"
+
+  isolation:
+    share_calendar: true       # Beide können den gemeinsamen Kalender sehen
+    share_preferences: false   # Präferenzen sind individuell
+    share_memories: false      # Gesprächserinnerungen sind privat
+```
+
+OpenClaw identifiziert, wer spricht (durch Stimme oder weil du deinen Namen sagst) und lädt das entsprechende Profil. Jamies Präferenzen fließen nicht in Damians Sitzungen ein und umgekehrt.
+
+## Praktische Beispiele
+
+### Empfehlungen verbessern
+
+Ohne USER.md:
+```
+Du: Schlage ein Restaurant für heute Abend vor.
+OpenClaw: Hier sind einige beliebte Restaurants in deiner Gegend...
+(generische Ergebnisse, enthält möglicherweise Steakhouses)
+```
+
+Mit USER.md:
+```
+Du: Schlage ein Restaurant für heute Abend vor.
+OpenClaw: Hier sind vegetarierfreundliche Restaurants in Warschau,
+die heute Abend geöffnet sind. Da Jamies Geburtstag nächsten Monat ansteht,
+soll ich Restaurants kennzeichnen, die auch für ein Geburtstagsdinner geeignet wären?
+```
+
+Tag und Nacht. Der Assistent beantwortet nicht nur die Frage — er bringt relevanten Kontext ein.
+
+### Arbeitskontextbewusstsein
+
+```
+Du: Entwirf eine Nachricht an Dr. Chen über die Projektverzögerung.
+
+OpenClaw: Hier ist ein Entwurf. Ich habe ihn kurz gehalten, da sie E-Mails bevorzugt,
+und ich habe die Verzögerung in Bezug auf den Q2-Zeitplan formuliert, um den sie sich
+sorgt. Ich habe auch erwähnt, dass Mikes Team einen Minderungsplan hat, da sie wissen
+möchte, dass das Engineering dabei ist.
+```
+
+Dein Agent weiß, dass Dr. Chen deine VP ist, weiß, dass sie E-Mails bevorzugt, und weiß, dass Mike der Engineering-Lead ist — alles aus der USER.md.
+
+## Tipps für eine gute USER.md
+
+1. **Beginne mit dem, was du wiederholst.** Wenn du dir dabei ertappst, deinem Agenten etwas erneut zu erklären, füge es zur USER.md hinzu.
+2. **Sei ehrlich über Präferenzen.** "Ich mag lange, detaillierte Antworten" oder "Halte es kurz" — beides ist in Ordnung, aber sage welches.
+3. **Aktualisiere sie regelmäßig.** Job gewechselt? Neue Telefonnummer? Eine Katze bekommen? Halte sie aktuell.
+4. **Verwende den audit-Befehl.** Überprüfe etwa einmal im Monat, was automatisch gelernt wurde.
+5. **Teile nicht zu viel.** Schließe nur Informationen ein, die deinen Agenten tatsächlich nützlicher machen. Dein Agent braucht nicht deine Lebensgeschichte — nur die Teile, die ihm helfen, dir zu helfen.

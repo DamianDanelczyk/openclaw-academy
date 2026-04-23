@@ -1,0 +1,335 @@
+---
+title: Umiejętności i ClawHub
+description: Rozszerz OpenClaw o umiejętności z ClawHub lub zbuduj własne — przewodnik po najpopularniejszych umiejętnościach, instalacji i własnym rozwoju.
+---
+
+# Umiejętności i ClawHub
+
+Fabrycznie OpenClaw potrafi rozmawiać. Dzięki **umiejętnościom** potrafi *działać*. Umiejętności to modułowe możliwości, które pozwalają Twojemu agentowi wchodzić w interakcje ze światem zewnętrznym — sprawdzać kalendarz, wysyłać e-maile, przeszukiwać internet, sterować urządzeniami inteligentnego domu, uruchamiać kod i setki innych rzeczy. **ClawHub** to marketplace, gdzie je znajdziesz, zainstalujujesz i udostępnisz.
+
+## Czym Jest Umiejętność?
+
+Umiejętność to samodzielny pakiet, który daje Twojemu agentowi nową zdolność. Definiuje:
+
+- **Co potrafi robić** — działania, które obsługuje
+- **Czego potrzebuje** — wszelkie klucze API, uprawnienia lub konfiguracje
+- **Kiedy jej używać** — warunki wyzwalania i dopasowywanie intencji
+
+Gdy mówisz „Co mam dzisiaj w kalendarzu?", Twój agent nie zna magicznie Twojego harmonogramu. Umiejętność `calendar` łączy się z Google Calendar (lub Outlook, albo Apple Calendar), pobiera Twoje wydarzenia i zwraca je w formacie, który Twój agent może Ci przedstawić.
+
+## Top 20 Umiejętności na ClawHub
+
+Oto najpopularniejsze umiejętności według liczby instalacji:
+
+| # | Umiejętność | Co robi | Instalacje |
+|---|-------|-------------|----------|
+| 1 | `calendar` | Zarządzaj wydarzeniami w Google, Outlook, Apple | 284K |
+| 2 | `email` | Czytaj, pisz, wysyłaj i organizuj e-maile | 261K |
+| 3 | `web_search` | Przeszukuj internet z atrybucją źródeł | 249K |
+| 4 | `notes` | Twórz i zarządzaj notatkami (Notion, Obsidian, Apple Notes) | 198K |
+| 5 | `reminders` | Ustawiaj, zarządzaj i dostarczaj przypomnienia | 187K |
+| 6 | `weather` | Aktualna pogoda i prognoza | 176K |
+| 7 | `smart_home` | Steruj światłami, termostatami, zamkami (HomeKit, Hue itd.) | 164K |
+| 8 | `music` | Odtwarzaj, wstrzymuj, kolejkuj muzykę (Spotify, Apple Music) | 152K |
+| 9 | `code_exec` | Uruchamiaj kod w izolowanych środowiskach | 143K |
+| 10 | `file_manager` | Czytaj, zapisuj, organizuj pliki na swoich urządzeniach | 138K |
+| 11 | `translator` | Tłumaczenie w czasie rzeczywistym w 95 językach | 127K |
+| 12 | `finance` | Śledź wydatki, budżety i inwestycje | 119K |
+| 13 | `github` | Zarządzaj repozytoriami, PR-ami, zgłoszeniami | 112K |
+| 14 | `shopping` | Porównywanie cen i listy zakupów | 104K |
+| 15 | `recipes` | Planowanie posiłków i zarządzanie przepisami | 97K |
+| 16 | `travel` | Wyszukiwanie lotów, rezerwacja hoteli, planowanie tras | 89K |
+| 17 | `fitness` | Śledzenie treningów i integracja danych zdrowotnych | 82K |
+| 18 | `news` | Wyselekcjonowane wiadomości z preferowanych źródeł | 78K |
+| 19 | `slack` | Czytaj i wysyłaj wiadomości Slack | 71K |
+| 20 | `pdf` | Czytaj, podsumowuj i wyodrębniaj dane z PDF | 65K |
+
+## Instalowanie Umiejętności z ClawHub
+
+Instalacja umiejętności to jedna linijka:
+
+```bash
+# Zainstaluj jedną umiejętność
+openclaw skill install calendar
+
+# Zainstaluj wiele umiejętności naraz
+openclaw skill install calendar email web_search notes
+
+# Zainstaluj konkretną wersję
+openclaw skill install github@2.4.1
+
+# Przeglądaj dostępne umiejętności
+openclaw skill search "project management"
+
+# Sprawdź, co jest zainstalowane
+openclaw skill list
+```
+
+Po instalacji większość umiejętności wymaga konfiguracji — zazwyczaj klucza API lub połączenia z kontem:
+
+```bash
+# Skonfiguruj umiejętność interaktywnie
+openclaw skill setup calendar
+```
+
+Uruchamia to przewodnika, który przeprowadzi Cię przez połączenie konta, ustawienie uprawnień i przetestowanie połączenia.
+
+### Plik Konfiguracyjny Umiejętności
+
+Pod spodem konfiguracje umiejętności żyją w pliku YAML:
+
+```yaml
+# skills/calendar.yaml
+skill: calendar
+version: "3.2.0"
+source: "clawhub/official"
+
+auth:
+  provider: "google"
+  credentials: "${GOOGLE_OAUTH_TOKEN}"
+  scopes:
+    - "calendar.readonly"
+    - "calendar.events"
+
+settings:
+  default_calendar: "Work"
+  time_format: "24h"
+  timezone: "Europe/Warsaw"
+  reminder_default: 15  # minuty przed wydarzeniem
+
+permissions:
+  can_create_events: true
+  can_delete_events: false  # Bezpieczeństwo: wymagaj potwierdzenia
+  can_invite_others: true
+  can_access_other_calendars: false
+
+triggers:
+  - intent: "check_schedule"
+    examples: ["what's on my calendar", "any meetings today", "am I free at 3"]
+  - intent: "create_event"
+    examples: ["schedule a meeting", "add to my calendar", "book time for"]
+```
+
+Zwróć uwagę na ustawienie `can_delete_events: false`. Możesz kontrolować dokładnie to, co umiejętność może robić, nawet jeśli umiejętność *obsługuje* więcej. Tak właśnie zapobiegasz przypadkowemu usunięciu przez agenta spotkania o 15:00.
+
+## Budowanie Własnych Umiejętności
+
+ClawHub ma setki umiejętności, ale czasem potrzebujesz czegoś specyficznego dla swojego przepływu pracy. Budowanie własnej umiejętności jest proste.
+
+### Struktura Umiejętności
+
+```
+my-custom-skill/
+├── manifest.yaml      # Metadane i konfiguracja
+├── handler.py         # Główna logika
+├── triggers.yaml      # Kiedy umiejętność się aktywuje
+├── test/
+│   └── test_handler.py
+└── README.md
+```
+
+### Manifest
+
+```yaml
+# manifest.yaml
+name: "jira-standup"
+version: "1.0.0"
+author: "damian"
+description: "Generates daily standup summaries from Jira"
+runtime: "python3.11"
+
+dependencies:
+  - jira-client>=3.0
+  - markdown2>=2.4
+
+auth:
+  required:
+    - name: "JIRA_API_TOKEN"
+      description: "Your Jira API token"
+    - name: "JIRA_URL"
+      description: "Your Jira instance URL"
+
+permissions:
+  network: true        # Musi wywoływać Jira API
+  filesystem: false    # Nie potrzebuje dostępu do plików
+  execute: false       # Brak wykonywania powłoki
+```
+
+### Handler
+
+```python
+# handler.py
+from openclaw_sdk import Skill, SkillResponse
+from jira import JIRA
+
+class JiraStandupSkill(Skill):
+    def setup(self):
+        self.jira = JIRA(
+            server=self.config["JIRA_URL"],
+            token_auth=self.config["JIRA_API_TOKEN"]
+        )
+
+    def handle(self, intent: str, params: dict) -> SkillResponse:
+        if intent == "generate_standup":
+            return self.generate_standup(params.get("user", "currentUser()"))
+
+    def generate_standup(self, user: str) -> SkillResponse:
+        # Pobierz zgłoszenia zaktualizowane wczoraj
+        yesterday_issues = self.jira.search_issues(
+            f'assignee = {user} AND updated >= -1d ORDER BY updated DESC'
+        )
+
+        # Pobierz zgłoszenia bieżącego sprintu
+        in_progress = self.jira.search_issues(
+            f'assignee = {user} AND status = "In Progress"'
+        )
+
+        standup = {
+            "completed_yesterday": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in yesterday_issues
+                if i.fields.status.name == "Done"
+            ],
+            "working_on_today": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+            ],
+            "blockers": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+                if hasattr(i.fields, 'flagged') and i.fields.flagged
+            ]
+        }
+
+        return SkillResponse(
+            data=standup,
+            display="standup_template",
+            summary=f"Found {len(standup['completed_yesterday'])} completed, "
+                    f"{len(standup['working_on_today'])} in progress"
+        )
+```
+
+### Wyzwalacze
+
+```yaml
+# triggers.yaml
+triggers:
+  - intent: "generate_standup"
+    examples:
+      - "generate my standup"
+      - "what did I work on yesterday"
+      - "standup report"
+      - "daily update from Jira"
+    params:
+      user:
+        type: "string"
+        default: "currentUser()"
+        description: "Jira username"
+```
+
+### Testowanie i Publikowanie
+
+```bash
+# Testuj lokalnie
+openclaw skill test ./my-custom-skill
+
+# Uruchom zestaw testów
+openclaw skill test ./my-custom-skill --run-tests
+
+# Opublikuj na ClawHub
+openclaw skill publish ./my-custom-skill
+
+# Opublikuj prywatnie (tylko Ty możesz ją zainstalować)
+openclaw skill publish ./my-custom-skill --private
+```
+
+## Zagadnienia Bezpieczeństwa
+
+Umiejętności mogą być potężne, co oznacza, że potrzebują zabezpieczeń.
+
+### Model Uprawnień
+
+Każda umiejętność deklaruje, czego potrzebuje, a Ty zatwierdzasz lub odrzucasz:
+
+```yaml
+# Czego umiejętność żąda vs. co przyznasz
+skill: smart_home
+requested_permissions:
+  network: true        # Musi rozmawiać z centrum inteligentnego domu
+  filesystem: false
+  execute: false
+  location: true       # Chce lokalizacji do geofencingu
+
+granted_permissions:
+  network: true        # Zatwierdzone
+  location: false      # Odrzucone — nie chcę geofencingu
+```
+
+### Piaskownica
+
+Umiejętności działają w izolowanych piaskownicach. Nieprawidłowo działająca umiejętność nie może:
+
+- Uzyskiwać dostępu do danych innych umiejętności
+- Bezpośrednio odczytywać Twojego USER.md lub SOUL.md
+- Wykonywać wywołań sieciowych poza zadeklarowanymi punktami końcowymi
+- Wykonywać poleceń systemowych (chyba że wyraźnie dozwolone)
+- Utrwalać danych poza przydzielonym jej magazynem
+
+```yaml
+# Polityka bezpieczeństwa dla umiejętności
+security:
+  sandbox:
+    enabled: true
+    network_allowlist:
+      calendar: ["*.googleapis.com"]
+      email: ["*.gmail.com", "*.outlook.com"]
+      smart_home: ["192.168.1.0/24"]  # Tylko sieć lokalna
+    resource_limits:
+      max_memory: "256MB"
+      max_cpu_time: "10s"
+      max_storage: "100MB"
+  audit:
+    log_all_actions: true
+    alert_on_permission_escalation: true
+  review:
+    require_review_for: ["filesystem", "execute"]
+    auto_approve: ["network"]  # Jeśli na liście dozwolonych
+```
+
+### Weryfikacja na ClawHub
+
+Umiejętności na ClawHub przechodzą przez proces recenzji:
+
+- **Oficjalne umiejętności** (od zespołu OpenClaw) są w pełni audytowane.
+- **Zweryfikowane umiejętności** (od znanych deweloperów) są poddane recenzji kodu.
+- **Umiejętności społeczności** są poddane wzajemnej recenzji i oznaczane, gdy pojawią się problemy.
+- **Prywatne umiejętności** pomijają recenzję (tylko Ty ich używasz).
+
+Zawsze sprawdzaj uprawnienia umiejętności przed instalacją. Jeśli umiejętność pogodowa prosi o dostęp do systemu plików, to czerwona flaga.
+
+## Zarządzanie Zainstalowanymi Umiejętnościami
+
+```bash
+# Zaktualizuj wszystkie umiejętności
+openclaw skill update
+
+# Zaktualizuj konkretną umiejętność
+openclaw skill update calendar
+
+# Wyłącz umiejętność bez odinstalowywania
+openclaw skill disable music
+
+# Usuń umiejętność całkowicie
+openclaw skill uninstall shopping
+
+# Sprawdź doradztwa bezpieczeństwa
+openclaw skill audit
+```
+
+## Wskazówki dla Maksymalnego Wykorzystania Umiejętności
+
+1. **Zacznij od czterech podstawowych:** calendar, email, web_search i notes pokrywają 80% potrzeb większości ludzi.
+2. **Konfiguruj uprawnienia ściśle.** Jeśli umiejętność może usuwać rzeczy, rozważ wyłączenie tego, dopóki jej nie zaufasz.
+3. **Sprawdzaj aktualizacje co miesiąc.** Umiejętności się poprawiają, błędy są naprawiane, a łatki bezpieczeństwa są wydawane.
+4. **Buduj zanim przeglądasz.** Jeśli Twój przepływ pracy jest unikalny, własna umiejętność dopasowana do perfekcji bije ogólną, która jakoś tam działa.
+5. **Czytaj uprawnienia.** Pięć sekund czytania może zapobiec dostępowi umiejętności do rzeczy, do których nie powinna mieć dostępu.

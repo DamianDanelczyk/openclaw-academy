@@ -1,0 +1,413 @@
+---
+title: Sécurité Réseau
+description: Configurez des restrictions réseau, des connexions VPN et des règles de pare-feu pour protéger votre instance OpenClaw des accès non autorisés.
+---
+
+# Sécurité Réseau
+
+Votre instance OpenClaw communique constamment sur le réseau -- récupérant des données depuis des APIs, recevant des webhooks, se synchronisant avec des services cloud. La sécurité réseau consiste à contrôler ces connexions : qui peut parler à votre instance, et à qui votre instance peut parler.
+
+Cette page couvre trois domaines principaux : restreindre les connexions sortantes pour que votre assistant ne contacte que des services approuvés, sécuriser l'accès entrant pour que seul le trafic légitime passe, et configurer des connexions VPN pour les réseaux privés. Rien de tout cela ne nécessite un diplôme en réseaux.
+
+## Restrictions de Réseau Sortantes
+
+Les restrictions sortantes contrôlent quels services externes votre instance OpenClaw est autorisée à contacter. Sans restrictions, votre assistant pourrait théoriquement envoyer des données n'importe où sur internet. Avec une liste blanche, il ne peut communiquer qu'avec les services que vous avez explicitement approuvés.
+
+### Configurer une Liste Blanche
+
+```yaml
+# openclaw.config.yaml
+security:
+  network:
+    outbound:
+      mode: "allowlist"
+      allowed_domains:
+        - "api.openai.com"
+        - "api.github.com"
+        - "hooks.slack.com"
+        - "api.stripe.com"
+        - "api.weather.gov"
+        - "newsapi.org"
+      allowed_ports: [443, 80]
+      block_private_ranges: true
+```
+
+Analysons ça :
+
+- **`mode: "allowlist"`** signifie que seuls les domaines listés sont accessibles. Tout le reste est bloqué.
+- **`allowed_domains`** est la liste des services approuvés.
+- **`allowed_ports`** restreint quels ports peuvent être utilisés. Le port 443 est HTTPS, le port 80 est HTTP. Se limiter à ceux-ci empêche les connexions sur des ports inhabituels.
+- **`block_private_ranges`** empêche votre assistant d'accéder aux ressources réseau internes (comme les adresses `192.168.x.x` ou `10.x.x.x`). C'est une défense contre les attaques SSRF (Server-Side Request Forgery).
+
+### Liste Blanche vs. Liste Noire
+
+Vous pouvez aussi utiliser une approche de liste noire, où tout est autorisé sauf des domaines spécifiques :
+
+```yaml
+security:
+  network:
+    outbound:
+      mode: "blocklist"
+      blocked_domains:
+        - "malicious-site.example.com"
+        - "*.torrent.example.net"
+```
+
+Cependant, **le mode liste blanche est fortement recommandé**. Avec une liste noire, vous essayez d'anticiper chaque destination malveillante. Avec une liste blanche, vous n'avez besoin de connaître que les bonnes. Il est beaucoup plus facile de maintenir une courte liste de services approuvés que de prévoir chaque menace possible.
+
+### Tester les Restrictions Sortantes
+
+Vérifiez que vos règles fonctionnent :
+
+```bash
+openclaw network test outbound "api.github.com"
+```
+
+```
+Testing outbound connection to api.github.com:443...
+  ✓ Domain is on allowlist
+  ✓ Port 443 is allowed
+  ✓ Connection successful (HTTP 200)
+```
+
+```bash
+openclaw network test outbound "random-api.example.com"
+```
+
+```
+Testing outbound connection to random-api.example.com:443...
+  ✗ Domain is NOT on allowlist
+  Connection blocked by network policy.
+```
+
+## Restrictions de Réseau Entrant
+
+Les restrictions entrantes contrôlent qui peut envoyer des requêtes à votre instance OpenClaw. C'est particulièrement important pour les endpoints webhook et l'API de gestion.
+
+### Liste Blanche d'IPs
+
+Restreignez l'accès aux adresses IP ou plages connues :
+
+```yaml
+security:
+  network:
+    inbound:
+      management_api:
+        allowed_ips:
+          - "203.0.113.10"          # L'IP de votre bureau
+          - "198.51.100.0/24"       # La plage de votre VPN
+        allow_localhost: true
+
+      webhooks:
+        # Les restrictions IP par webhook peuvent aussi être définies
+        # dans la section de config des webhooks
+        global_allowed_ips: []       # Vide = aucune restriction globale
+        require_https: true
+```
+
+### Limitation de Débit au Niveau Réseau
+
+En plus de la limitation de débit au niveau application couverte dans la [Liste de Vérification de Sécurité](/docs/security/checklist), vous pouvez définir des limites de débit au niveau réseau :
+
+```yaml
+security:
+  network:
+    inbound:
+      rate_limiting:
+        global:
+          requests_per_second: 50
+          burst: 100
+        per_ip:
+          requests_per_second: 10
+          burst: 20
+        webhook_endpoints:
+          requests_per_second: 30
+          burst: 50
+```
+
+La valeur `burst` permet de courtes pointes au-dessus du débit normal. Par exemple, `requests_per_second: 10` avec `burst: 20` signifie qu'un client peut envoyer jusqu'à 20 requêtes en une rapide rafale, mais le trafic soutenu doit rester à 10 par seconde ou en dessous.
+
+### Configuration TLS
+
+Utilisez toujours HTTPS. OpenClaw prend en charge TLS 1.2 et 1.3 par défaut :
+
+```yaml
+security:
+  network:
+    tls:
+      min_version: "1.2"
+      certificate: "/etc/openclaw/certs/server.crt"
+      private_key: "/etc/openclaw/certs/server.key"
+      cipher_suites:
+        - "TLS_AES_256_GCM_SHA384"
+        - "TLS_CHACHA20_POLY1305_SHA256"
+        - "TLS_AES_128_GCM_SHA256"
+```
+
+Si vous êtes derrière un reverse proxy (nginx, Caddy, Cloudflare), le proxy gère généralement la terminaison TLS. Dans ce cas, assurez-vous que la connexion entre le proxy et OpenClaw est également chiffrée ou sur un réseau interne de confiance.
+
+## Configuration VPN
+
+Si votre instance OpenClaw a besoin d'accéder à des services sur un réseau privé (APIs internes, bases de données, outils internes), vous pouvez configurer une connexion VPN.
+
+### Configuration WireGuard
+
+WireGuard est le protocole VPN recommandé pour sa simplicité et ses performances :
+
+```yaml
+security:
+  network:
+    vpn:
+      enabled: true
+      provider: "wireguard"
+      config:
+        interface:
+          address: "10.0.0.2/24"
+          private_key: "${WIREGUARD_PRIVATE_KEY}"
+          dns: "10.0.0.1"
+        peer:
+          public_key: "${WIREGUARD_PEER_PUBLIC_KEY}"
+          endpoint: "vpn.internal.example.com:51820"
+          allowed_ips: "10.0.0.0/24"
+          persistent_keepalive: 25
+```
+
+Stockez les clés dans votre fichier `.env` :
+
+```bash
+# .env
+WIREGUARD_PRIVATE_KEY=uPn3xV7b+Q4K8mN2pL9sR1tY6wA5dF8hJ0kO3cX7gI=
+WIREGUARD_PEER_PUBLIC_KEY=aB2cD4eF6gH8iJ0kL2mN4oP6qR8sT0uV2wX4yZ6aB=
+```
+
+### Vérifier la Connexion VPN
+
+```bash
+openclaw network vpn status
+```
+
+```
+Statut VPN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Provider:      WireGuard
+Statut:        connecté
+Interface:     10.0.0.2
+Endpoint:      vpn.internal.example.com:51820
+Durée:         4j 12h 33m
+Transfert:     ↑ 234 Mo  ↓ 1,2 Go
+Dernière poignée de main : il y a 42 secondes
+```
+
+Testez que vous pouvez atteindre les services internes via le VPN :
+
+```bash
+openclaw network test outbound "internal-api.example.com" --via vpn
+```
+
+```
+Testing outbound connection to internal-api.example.com:443 via VPN...
+  ✓ VPN tunnel active
+  ✓ Route to 10.0.0.0/24 via VPN interface
+  ✓ Connection successful (HTTP 200)
+```
+
+### Split Tunneling
+
+Par défaut, seul le trafic destiné à la plage `allowed_ips` du VPN passe par le tunnel. Tout autre trafic utilise la connexion internet normale. C'est ce qu'on appelle le split tunneling et c'est la configuration recommandée :
+
+```yaml
+vpn:
+  split_tunnel: true    # par défaut
+  routes:
+    - "10.0.0.0/24"     # Seul le trafic interne passe par le VPN
+```
+
+Si vous avez besoin que *tout* le trafic passe par le VPN (pour des raisons de conformité ou d'audit) :
+
+```yaml
+vpn:
+  split_tunnel: false   # Tout le trafic est routé via VPN
+```
+
+Sachez que router tout le trafic via un VPN augmente la latence pour les appels API externes.
+
+## Configuration du Pare-feu
+
+OpenClaw inclut un pare-feu intégré au niveau application. Pour une défense en profondeur, vous devriez également configurer le pare-feu de votre système d'exploitation.
+
+### Pare-feu Application OpenClaw
+
+```yaml
+security:
+  network:
+    firewall:
+      enabled: true
+      default_inbound: "deny"
+      default_outbound: "deny"
+      rules:
+        # Autoriser le HTTPS entrant
+        - direction: "inbound"
+          port: 443
+          protocol: "tcp"
+          action: "allow"
+
+        # Autoriser le trafic entrant sur le port de gestion depuis les IPs de confiance
+        - direction: "inbound"
+          port: 8443
+          protocol: "tcp"
+          source: ["203.0.113.10", "198.51.100.0/24"]
+          action: "allow"
+
+        # Autoriser le HTTPS sortant vers les domaines approuvés
+        - direction: "outbound"
+          port: 443
+          protocol: "tcp"
+          destination: ["api.openai.com", "api.github.com", "hooks.slack.com"]
+          action: "allow"
+
+        # Autoriser les DNS sortants
+        - direction: "outbound"
+          port: 53
+          protocol: "udp"
+          action: "allow"
+
+        # Autoriser le trafic VPN
+        - direction: "outbound"
+          port: 51820
+          protocol: "udp"
+          destination: ["vpn.internal.example.com"]
+          action: "allow"
+```
+
+### Pare-feu OS (Exemple iptables)
+
+Pour les serveurs Linux, voici une configuration iptables complémentaire :
+
+```bash
+# Autoriser les connexions établies
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Autoriser SSH depuis votre IP de gestion
+iptables -A INPUT -p tcp --dport 22 -s 203.0.113.10 -j ACCEPT
+
+# Autoriser HTTPS (application OpenClaw)
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Autoriser l'API de gestion depuis la plage de confiance
+iptables -A INPUT -p tcp --dport 8443 -s 198.51.100.0/24 -j ACCEPT
+
+# Autoriser le loopback
+iptables -A INPUT -i lo -j ACCEPT
+
+# Tout rejeter pour le reste
+iptables -A INPUT -j DROP
+
+# Sauvegarder les règles
+iptables-save > /etc/iptables/rules.v4
+```
+
+## Liste de Vérification du Renforcement Réseau
+
+Parcourez cette liste pour vous assurer que votre configuration réseau est solide :
+
+```bash
+openclaw network audit
+```
+
+```
+Audit de Sécurité Réseau
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[PASS] Le mode sortant est "allowlist"
+[PASS] La version TLS minimale est 1.2
+[PASS] Les plages IP privées sont bloquées
+[PASS] La limitation de débit est activée
+[PASS] L'API de gestion est restreinte par IP
+[WARN] L'endpoint webhook "/hooks/zapier" n'a aucune restriction IP
+[PASS] Le pare-feu application est activé
+[PASS] Les requêtes DNS sont restreintes aux résolveurs de confiance
+[PASS] La connexion VPN est saine
+[WARN] Aucune règle de pare-feu OS détectée
+
+Score : 8/10
+```
+
+Voici la liste de vérification complète comme référence :
+
+| # | Élément | Statut |
+|---|------|--------|
+| 1 | Mode réseau sortant défini sur `allowlist` | |
+| 2 | Seuls les domaines nécessaires sur la liste blanche | |
+| 3 | Ports sortants limités à 443 et 80 | |
+| 4 | Plages IP privées bloquées (`block_private_ranges: true`) | |
+| 5 | Version TLS minimale définie sur 1.2 ou plus | |
+| 6 | API de gestion restreinte aux IPs connues | |
+| 7 | Limitation de débit configurée (global, par-IP, par-endpoint) | |
+| 8 | Les endpoints webhook ont des restrictions IP si possible | |
+| 9 | Pare-feu application activé avec refus par défaut | |
+| 10 | VPN configuré pour l'accès aux services internes | |
+| 11 | Pare-feu OS configuré comme deuxième couche | |
+| 12 | DNS restreint aux résolveurs de confiance | |
+
+## Surveiller l'Activité Réseau
+
+Gardez un œil sur ce qui se passe sur le réseau :
+
+```bash
+# Voir toutes les connexions sortantes dans la dernière heure
+openclaw network log --direction outbound --last 1h
+```
+
+```
+HORODATAGE            DIRECTION  DESTINATION              PORT  STATUT
+2026-04-22 14:01:03   outbound   api.openai.com           443   allowed
+2026-04-22 14:01:05   outbound   api.github.com           443   allowed
+2026-04-22 14:02:11   outbound   unknown-host.example.com 443   BLOCKED
+2026-04-22 14:03:44   outbound   hooks.slack.com          443   allowed
+```
+
+```bash
+# Voir les connexions bloquées (indicateurs potentiels de compromission)
+openclaw network log --filter blocked --last 24h
+```
+
+Les connexions sortantes bloquées méritent une investigation. Elles peuvent être bénignes (un outil qui essaie d'atteindre une API non listée) ou elles peuvent indiquer que quelque chose tente d'exfiltrer des données. Dans tous les cas, comprendre pourquoi une connexion a été tentée vous aide à prendre de meilleures décisions de politique.
+
+## Tout Assembler
+
+Voici une configuration de sécurité réseau complète qui combine tout ce qui est couvert sur cette page :
+
+```yaml
+security:
+  network:
+    outbound:
+      mode: "allowlist"
+      allowed_domains:
+        - "api.openai.com"
+        - "api.github.com"
+        - "hooks.slack.com"
+        - "api.stripe.com"
+      allowed_ports: [443]
+      block_private_ranges: true
+
+    inbound:
+      management_api:
+        allowed_ips: ["203.0.113.10", "198.51.100.0/24"]
+      rate_limiting:
+        per_ip:
+          requests_per_second: 10
+          burst: 20
+
+    tls:
+      min_version: "1.2"
+
+    firewall:
+      enabled: true
+      default_inbound: "deny"
+      default_outbound: "deny"
+
+    vpn:
+      enabled: true
+      provider: "wireguard"
+```
+
+Commencez avec ce template et ajoutez ou supprimez des entrées au fur et à mesure que vos besoins d'intégration changent. Chaque fois que vous ajoutez un nouveau service externe, ajoutez son domaine à la liste blanche. Chaque fois que vous décommissionnez un service, retirez-le. Gardez la liste courte et votre réseau reste sécurisé.

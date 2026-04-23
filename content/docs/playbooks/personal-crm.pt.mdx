@@ -1,0 +1,250 @@
+---
+title: Sistema de CRM Pessoal
+description: Construa e mantenha relacionamentos profissionais significativos com um CRM pessoal alimentado por IA que nunca deixa conexões importantes esfriarem.
+---
+
+# Sistema de CRM Pessoal
+
+Sua rede é um dos seus ativos profissionais mais valiosos, mas mantê-la é difícil. Você conhece alguém interessante em uma conferência, trocam cartões, talvez se conectem no LinkedIn, e então a vida toma conta. Três meses depois, você não lembra sobre o que conversaram ou por que queria manter contato. Essa conexão, que poderia ter se transformado em uma parceria, indicação ou amizade, se dissolve no nada.
+
+O playbook de CRM Pessoal transforma o OpenClaw em seu gerenciador de relacionamentos. Ele lembra cada interação, rastreia quando você entrou em contato pela última vez e te cutuca quando um relacionamento está esfriando. Não se trata de transformar pessoas em leads ou contatos em transações. Trata-se de ser o tipo de pessoa que realmente cumpre o "vamos manter contato."
+
+## Como Funciona
+
+Seu CRM pessoal opera com alguns princípios simples:
+
+- **Todo mundo que você conhece é registrado** — Quando você diz ao OpenClaw sobre um novo contato, ele cria um perfil com qualquer contexto que você fornecer
+- **Interações são rastreadas** — E-mails, reuniões, mensagens, cafés e qualquer ponto de contato que você reportar são registrados contra cada contato
+- **Relacionamentos têm ritmos** — Você define com que frequência quer manter contato com diferentes pessoas (semanal, mensal, trimestral)
+- **Lembretes são proativos** — O OpenClaw te cutuca antes que um relacionamento esfrie, não depois
+- **O contexto é preservado** — Quando for hora de entrar em contato, o OpenClaw lembra sobre o que vocês conversaram, o que a pessoa se importa e quaisquer compromissos que você assumiu
+
+Pense nisso como ter memória perfeita para cada relacionamento profissional em sua vida.
+
+## Por Que um CRM Pessoal
+
+CRMs empresariais como Salesforce e HubSpot são construídos para equipes de vendas gerenciando milhares de contas. São excessivos para o gerenciamento de relacionamentos pessoais e sua interface assume que você está rastreando negócios, não amizades.
+
+Um CRM pessoal é diferente. É leve, conversacional e focado nas coisas que realmente importam em um relacionamento: interesses compartilhados, ajuda mútua, conexão genuína. Você interage com ele dizendo coisas em linguagem natural, não preenchendo formulários.
+
+## Começando
+
+A maneira mais fácil de começar é importando seus contatos mais importantes. Você não precisa jogar toda sua agenda de endereços dentro. Comece com 20 a 30 pessoas com quem genuinamente quer manter contato. Para cada pessoa, adicione:
+
+- Nome delas e como você as conhece
+- Sobre o que vocês conversaram mais recentemente
+- Com que frequência você quer entrar em contato
+- Quaisquer detalhes notáveis (interesses, família, projetos em que estão trabalhando)
+
+Você pode adicionar pessoas com o tempo conforme as conhece. Após uma conferência, um jantar ou uma conversa interessante no LinkedIn, basta contar ao OpenClaw sobre o novo contato e ele cuida do resto.
+
+## Adições ao SOUL.md
+
+```markdown
+## Behaviors
+
+### Personal CRM
+- Maintain a contact database with profiles for everyone I add
+- For each contact, track: name, relationship context, last interaction, interaction frequency target, notes, and tags
+- Proactively remind me to reach out to contacts who are approaching their "due" date
+- When reminding me to reach out, include: who they are, what we discussed last, any commitments I made, and a suggested conversation starter
+- Group contacts by tags: Inner Circle, Professional, Industry, Potential Collaborator, Friend, Mentor
+- Allow me to log interactions by saying things like "had coffee with Sarah today, we talked about her new startup"
+- Weekly relationship digest: who I should reach out to this week, sorted by priority
+- If someone has a birthday, work anniversary, or notable life event that I have recorded, remind me a day before
+- Never reach out to anyone on my behalf — just remind me and suggest talking points
+- Monthly stats: how many people I stayed in touch with, who I have been neglecting, and any relationships that need attention
+- When I meet someone new, suggest an appropriate follow-up cadence based on the relationship type
+```
+
+## Habilidades Recomendadas
+
+```yaml
+skills:
+  - name: contact-manager
+    provider: openclaw-native
+    description: Stores and manages contact profiles and interaction history
+
+  - name: calendar-reader
+    provider: google-calendar  # or outlook-calendar
+    permissions: read-only
+    description: Detects meetings with contacts and logs them as interactions
+
+  - name: email-scanner
+    provider: gmail
+    permissions: read-only
+    description: Detects email exchanges with contacts and logs them
+
+  - name: linkedin-connector
+    provider: openclaw-native
+    config:
+      mode: passive  # only reads, never posts or messages
+    description: Monitors LinkedIn for contact updates and life events
+
+  - name: reminder-engine
+    provider: openclaw-native
+    description: Schedules and delivers relationship reminders
+```
+
+## Configuração de Cron
+
+```yaml
+cron:
+  crm-daily-reminders:
+    schedule: "0 8 * * 1-5"  # Dias úteis às 8:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: crm-daily-check
+    config:
+      remind_approaching: true  # contatos com vencimento em 3 dias
+      remind_overdue: true  # contatos além da cadência
+      include_events: true  # aniversários, datas comemorativas
+    retry:
+      attempts: 1
+      delay: 10m
+
+  crm-weekly-digest:
+    schedule: "0 9 * * 1"  # Segunda-feira às 9:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: crm-weekly-digest
+    config:
+      top_priority: 10  # mostrar os 10 principais contatos para entrar em contato
+      include_recent: true  # também mostrar interações recentes para contexto
+
+  crm-monthly-review:
+    schedule: "0 10 1 * *"  # 1º de cada mês às 10:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: crm-monthly-stats
+    config:
+      include_neglected: true  # contatos sem interação há 60+ dias
+      include_network_growth: true
+
+  crm-interaction-sync:
+    schedule: "0 20 * * *"  # 20:00 diariamente
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: crm-auto-log
+    config:
+      scan_calendar: true  # registrar reuniões automaticamente como interações
+      scan_email: true  # registrar trocas de e-mail automaticamente
+      require_confirmation: false  # registrar silenciosamente, não perguntar sobre cada uma
+```
+
+## Configuração de Canal
+
+```yaml
+channels:
+  crm-reminders:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: rich
+      notify: false  # sem notificações push — verifique no seu próprio ritmo
+      description: "Lembretes diários de relacionamentos e sugestões"
+
+  crm-digest:
+    type: email
+    config:
+      recipient: "voce@email.com"
+      subject_prefix: "[CRM]"
+      format: html
+      description: "Resumos semanais e mensais de relacionamentos"
+
+  crm-events:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: compact
+      notify: true  # push para aniversários e eventos especiais
+```
+
+## Exemplo de Saída
+
+Aqui está seu digest semanal de segunda-feira:
+
+```
+DIGEST DE RELACIONAMENTOS — Semana de 13 de Abril
+
+ENTRE EM CONTATO ESTA SEMANA (ordenado por prioridade)
+
+1. Sarah Chen — Último contato: há 28 dias (alvo: mensal)
+   Contexto: Vocês almoçaram em 16 de Março. Ela estava animada com
+   o lançamento do novo produto em Abril. Ela mencionou querer
+   seu feedback sobre precificação.
+   Sugestão de abertura: "Oi Sarah! Como foi o lançamento do produto?
+   Estava pensando na nossa conversa sobre precificação — feliz em
+   aprofundar isso se você ainda tiver interesse."
+
+2. David Park — Último contato: há 35 dias (alvo: mensal) EM ATRASO
+   Contexto: Troca rápida de e-mails em 9 de Março sobre uma potencial
+   oportunidade de palestra na conferência da empresa dele. Você disse
+   que enviaria seu bio de palestrante.
+   Sugestão de abertura: "David, desculpe o atraso no meu bio de
+   palestrante — anexando agora. A conferência ainda está prevista para
+   Junho? Adoraria conversar de qualquer forma."
+   Nota: Você se comprometeu a enviar seu bio. Está em atraso.
+
+3. Maria Gonzalez — Último contato: há 12 dias (alvo: quinzenal)
+   Contexto: Ela compartilhou um ótimo artigo sobre automação de ops no LinkedIn.
+   Você comentou nele.
+   Sugestão de abertura: Compartilhe um artigo relevante de volta, ou pergunte como
+   o projeto de automação da equipe dela está indo.
+
+4. James Wilson (Acme Corp) — Último contato: há 6 dias (alvo: semanal)
+   Contexto: Chamada de cliente em 9 de Abril. Implementação da Fase 2 está
+   no prazo. Ele mencionou o torneio de futebol da filha neste fim de semana.
+   Sugestão de abertura: "Ei James, como foi o torneio de futebol?"
+
+5. Priya Sharma — Aniversário em 17 de Abril (quinta-feira)
+   Sugestão: Envie uma mensagem de aniversário. Ela prefere mensagens no LinkedIn
+   a e-mails para notas pessoais.
+
+... (5 contatos mais esta semana)
+
+INTERAÇÕES RECENTES (registradas automaticamente)
+  10 de Abril: Reunião com Alex Rivera (1:1, 30 min)
+  11 de Abril: Troca de e-mails com Lisa Park (3 mensagens)
+  11 de Abril: Comentário no post do LinkedIn de Maria Gonzalez
+  12 de Abril: Café com Tom Bradley (você registrou isso manualmente)
+
+ESTATÍSTICAS DE REDE
+  Total de contatos: 127
+  Interações este mês: 18
+  Contatos no prazo: 89 (70%)
+  Aproximando do vencimento: 23 (18%)
+  Em atraso: 15 (12%)
+```
+
+Aqui está um lembrete de aniversário:
+
+```
+LEMBRETE DE RELACIONAMENTO — Aniversário Amanhã
+
+Priya Sharma faz aniversário amanhã (17 de Abril).
+
+Como você a conhece: Conheceu na SaaS Connect 2025. Ela lidera produto
+na NovaTech. Vocês tiveram 4 interações desde o encontro.
+
+Última interação: 22 de Março — Ela pediu sua opinião sobre uma decisão de
+contratação. Você sugeriu entrevistar candidatos com experiência em ops.
+
+Canal preferido para mensagens pessoais: LinkedIn
+
+Mensagem sugerida: "Feliz aniversário, Priya! Espero que você tenha um
+ótimo dia. Vamos tomar um café de novo em breve — adoraria saber
+como a contratação foi."
+```
+
+## Construindo Seu CRM ao Longo do Tempo
+
+- **Registro rápido**: Após qualquer interação, basta mandar uma mensagem ao OpenClaw como "me encontrei com Maria na conferência, ela está pivotando para healthtech, quer uma apresentação ao nosso CTO." O OpenClaw registra tudo.
+- **Cadência de follow-up inteligente**: Nem todo mundo precisa da mesma frequência. Seus cinco relacionamentos profissionais mais próximos podem ser semanais. Conhecidos do setor podem ser trimestrais. O OpenClaw ajuda você a definir e ajustar esses com base em padrões reais de interação.
+- **Contatos baseados em eventos**: Quando o OpenClaw detecta que um contato mudou de emprego, publicou um artigo ou teve um marco na empresa, sugere entrar em contato com algo relevante em vez de um genérico "como vai você?".
+- **Pontuação de relacionamento**: Com o tempo, o OpenClaw pode mostrar quais relacionamentos são mais fortes (interações frequentes e mútuas) e quais são unilaterais (você sempre inicia). Isso ajuda você a investir sua energia sabiamente.
+- **Outreach em grupo**: Planejando um jantar ou evento? Peça ao OpenClaw para sugerir uma lista de convidados com base em contatos com uma tag específica que moram na sua cidade e com quem você não se encontra há um tempo.
+
+<CTACard variant="community" />

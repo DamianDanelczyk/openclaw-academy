@@ -1,0 +1,279 @@
+---
+title: Canal de Slack
+description: Crea una aplicación de Slack para OpenClaw con los ámbitos OAuth correctos, suscripciones a eventos y manejo de conversaciones con conciencia de hilos.
+---
+
+# Canal de Slack
+
+Slack es donde muchos equipos ya viven, lo que lo convierte en un hogar natural para un asistente de IA. En lugar de pedirle a la gente que abra una aplicación separada, tu asistente de OpenClaw aparece directamente en el espacio de trabajo de Slack — en DMs, en canales o en hilos. La gente puede hacer preguntas de la misma manera que le preguntaría a un colega.
+
+Configurar el canal de Slack requiere un poco más de trabajo que Telegram o Discord porque la plataforma de aplicaciones de Slack involucra OAuth, suscripciones a eventos y un modelo de permisos más complejo. Pero una vez que está conectado, la integración es muy sólida.
+
+## Paso 1: Crear una Aplicación de Slack
+
+Ve a [api.slack.com/apps](https://api.slack.com/apps) y haz clic en **Create New App**. Elige **From scratch** (no desde un manifiesto — manejaremos la configuración nosotros mismos).
+
+Dale un nombre a tu aplicación (por ejemplo, "OpenClaw Assistant") y selecciona el espacio de trabajo donde quieres desarrollar. Puedes distribuirla a otros espacios de trabajo más adelante.
+
+### Credenciales de la Aplicación
+
+Una vez creada, ve a **Basic Information** y anota:
+
+- **App ID** — No lo usarás directamente, pero es bueno tenerlo.
+- **Signing Secret** — OpenClaw lo usa para verificar que las solicitudes entrantes realmente provienen de Slack.
+
+Luego ve a **OAuth & Permissions** e instala la aplicación en tu espacio de trabajo. Después de la instalación, obtendrás un **Bot User OAuth Token** que comienza con `xoxb-`.
+
+Finalmente, ve a **App-Level Tokens** (en Basic Information) y genera un token con el ámbito `connections:write`. Esto te da un token que comienza con `xapp-` que se usa para el Modo Socket.
+
+## Paso 2: Configurar los Ámbitos OAuth
+
+Todavía en la página **OAuth & Permissions**, desplázate hacia abajo hasta **Scopes** y agrega estos Bot Token Scopes:
+
+```
+app_mentions:read    — See when your bot is @mentioned
+channels:history     — Read messages in public channels the bot is in
+channels:read        — View basic channel info
+chat:write           — Send messages as the bot
+groups:history       — Read messages in private channels the bot is added to
+groups:read          — View basic info about private channels
+im:history           — Read DM messages with the bot
+im:read              — View basic DM info
+im:write             — Start DMs with users
+reactions:read       — See emoji reactions on messages
+reactions:write      — Add emoji reactions to messages
+users:read           — View user profiles (for display names)
+files:read           — Access files shared in conversations
+files:write          — Upload files
+```
+
+Después de cambiar los ámbitos, Slack te pedirá que reinstales la aplicación — adelante, hazlo.
+
+> **¿Por qué tantos ámbitos?** Cada ámbito está definido de forma estrecha. `channels:history` permite al bot leer mensajes pero no modificarlos. `chat:write` le permite publicar pero no leer. Esta granularidad es una función de seguridad de Slack, y OpenClaw necesita estos permisos específicos para funcionar correctamente.
+
+## Paso 3: Habilitar las Suscripciones a Eventos
+
+Ve a **Event Subscriptions** y actívalo. Tienes dos opciones de entrega:
+
+### Opción A: Modo Socket (Recomendado para la Mayoría de Configuraciones)
+
+El Modo Socket usa una conexión WebSocket en lugar de webhooks HTTP. Es más sencillo de configurar porque tu servidor no necesita una URL pública.
+
+Ve a **Settings > Socket Mode** y habilítalo. Ya creaste el token a nivel de aplicación (`xapp-`) en el Paso 1, así que estás listo.
+
+### Opción B: Webhooks HTTP
+
+Si prefieres webhooks tradicionales (por ejemplo, estás detrás de un balanceador de carga que maneja TLS), ingresa tu URL de solicitud:
+
+```
+https://your-server.com/hooks/slack/events
+```
+
+Slack enviará inmediatamente un desafío de verificación a esta URL. OpenClaw lo maneja automáticamente si el servidor está ejecutándose.
+
+### Suscribirse a Eventos
+
+Independientemente del método de entrega, suscríbete a estos eventos del bot:
+
+```
+app_mention           — Someone @mentions your bot
+message.channels      — A message is posted in a public channel
+message.groups        — A message is posted in a private channel
+message.im            — A DM is sent to your bot
+reaction_added        — Someone reacts to a message
+```
+
+## Paso 4: Configurar OpenClaw
+
+Ahora reúne todo:
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    slack: {
+      enabled: true,
+      botToken: process.env.SLACK_BOT_TOKEN,       // xoxb-...
+      appToken: process.env.SLACK_APP_TOKEN,        // xapp-... (for Socket Mode)
+      signingSecret: process.env.SLACK_SIGNING_SECRET,
+
+      // Connection mode
+      mode: 'socket', // 'socket' | 'http'
+
+      // If using HTTP mode:
+      // http: {
+      //   port: 3200,
+      //   path: '/hooks/slack/events',
+      // },
+    },
+  },
+});
+```
+
+Variables de entorno:
+
+```bash title=".env"
+SLACK_BOT_TOKEN=xoxb-YOUR-BOT-TOKEN-HERE
+SLACK_APP_TOKEN=xapp-YOUR-APP-TOKEN-HERE
+SLACK_SIGNING_SECRET=abc123def456ghi789
+```
+
+## Manejo de Hilos
+
+Los hilos son fundamentales para la experiencia de usuario de Slack, y OpenClaw los trata como límites de conversación de primera clase. Así es como funciona:
+
+- **DMs** — Cada DM con un usuario es una conversación única. No se necesitan hilos.
+- **Menciones en canales** — Cuando alguien menciona al bot con `@` en un canal, OpenClaw responde **en un hilo** de forma predeterminada. Esto mantiene el canal limpio.
+- **Respuestas en hilos** — Si alguien responde en un hilo existente del que el bot es parte, el bot continúa la conversación en ese hilo sin necesitar otra mención con `@`.
+
+Puedes personalizar este comportamiento:
+
+```typescript
+slack: {
+  threads: {
+    replyInThread: true,       // Always reply in a thread (recommended)
+    followThread: true,        // Continue responding in threads the bot is part of
+    threadContextWindow: 50,   // How many thread messages to include as context
+    broadcastReply: false,     // Also post the reply to the main channel
+  },
+},
+```
+
+La configuración `threadContextWindow` es importante. Los hilos de Slack pueden ser largos, y probablemente no quieras enviar 200 mensajes al LLM como contexto. Establecerlo en 50 significa que el bot ve los 50 mensajes más recientes del hilo, lo que generalmente es más que suficiente.
+
+## Configuración de Canales
+
+Puedes controlar en qué canales de Slack participa el bot:
+
+```typescript
+slack: {
+  channelRules: {
+    // Default behavior for all channels
+    default: {
+      respondTo: 'mention',  // Only respond when @mentioned
+    },
+
+    // Override for specific channels
+    overrides: {
+      'C01ASKQUESTIONS': {
+        respondTo: 'all',      // Respond to every message in #ask-questions
+        persona: 'helpful',    // Use a specific persona
+      },
+      'C02ENGINEERING': {
+        respondTo: 'mention',
+        persona: 'technical',
+        systemPromptAppend: 'You are helping software engineers. Be concise and precise.',
+      },
+      'C03RANDOM': {
+        enabled: false,        // Completely ignore #random
+      },
+    },
+  },
+},
+```
+
+Esto te permite que el bot se comporte de manera diferente en distintos canales — informal y conversador en un canal general, preciso y conciso en un canal de ingeniería, silencioso en otros.
+
+## Formato Enriquecido de Mensajes
+
+Slack usa su propio sabor de formato de mensajes llamado **Block Kit**. OpenClaw convierte automáticamente las respuestas del asistente al formato compatible con Slack, pero también puedes enviar mensajes enriquecidos de Block Kit para contenido estructurado:
+
+```typescript
+slack: {
+  formatting: {
+    useBlockKit: true,         // Enable rich formatting
+    codeBlockStyle: 'snippet', // 'snippet' | 'inline' — snippets are collapsible
+    unfurlLinks: false,        // Disable link preview cards
+    maxLength: 4000,           // Slack's message limit; longer messages are split
+  },
+},
+```
+
+Cuando el asistente genera una respuesta con bloques de código, encabezados y listas, OpenClaw los traduce en bloques de Slack con resaltado de sintaxis, divisores y formato adecuados. El resultado se ve nativo en Slack.
+
+## Reacciones como Retroalimentación
+
+OpenClaw puede interpretar las reacciones con emojis como señales de retroalimentación:
+
+```typescript
+slack: {
+  reactions: {
+    enabled: true,
+    processingEmoji: 'eyes',        // React with :eyes: when processing
+    completeEmoji: 'white_check_mark', // React with :check: when done
+    feedbackMapping: {
+      '+1': 'positive',
+      '-1': 'negative',
+      'thinking_face': 'unclear',
+    },
+  },
+},
+```
+
+Cuando alguien reacciona a un mensaje del bot con un pulgar hacia abajo, OpenClaw lo registra como retroalimentación negativa. Con el tiempo, estos datos te ayudan a entender dónde tiene dificultades tu asistente.
+
+El indicador de procesamiento es especialmente útil en Slack. Cuando alguien hace una pregunta compleja, el bot reacciona inmediatamente con un emoji de ojos para que el usuario sepa que el mensaje fue recibido. Una vez publicada la respuesta, la reacción de ojos se elimina y se reemplaza con una marca de verificación.
+
+## Comandos de Barra Diagonal (Opcional)
+
+Puedes registrar comandos de barra diagonal personalizados a través de la configuración de la aplicación de Slack. Ve a **Slash Commands** en la configuración de tu aplicación y crea comandos como:
+
+```
+/ask     — Ask the AI assistant a question
+/reset   — Clear conversation history
+/status  — Check the assistant status
+```
+
+Apunta la URL de solicitud de cada comando a tu servidor de OpenClaw (o usa el Modo Socket, que maneja los comandos automáticamente).
+
+Luego configura cómo los maneja OpenClaw:
+
+```typescript
+slack: {
+  slashCommands: {
+    '/ask': {
+      ephemeral: false,  // Post the response publicly
+      channelOverride: null,
+    },
+    '/reset': {
+      ephemeral: true,   // Only visible to the user who ran it
+      handler: async (ctx) => {
+        await ctx.clearHistory();
+        return 'Your conversation history has been cleared.';
+      },
+    },
+  },
+},
+```
+
+Los mensajes efímeros son visibles solo para el usuario que ejecutó el comando — útil para acciones administrativas que no deberían saturar el canal.
+
+## Manejo de Archivos Subidos
+
+Cuando los usuarios comparten archivos en una conversación con el bot, OpenClaw puede procesarlos:
+
+- **Archivos de texto, CSVs y código** — El contenido se extrae y se incluye en el prompt.
+- **PDFs** — Se extrae el texto (se usa OCR para documentos escaneados).
+- **Imágenes** — Se pasan al modelo de visión si tu LLM lo admite.
+- **Otros archivos** — Se almacenan y se referencian, pero el contenido no se extrae de forma predeterminada.
+
+```typescript
+slack: {
+  files: {
+    enabled: true,
+    maxSizeMB: 25,           // Slack's upload limit
+    allowedTypes: ['pdf', 'txt', 'csv', 'png', 'jpg', 'py', 'js', 'ts'],
+    extractContent: true,     // Parse file contents for context
+  },
+},
+```
+
+## Consideraciones de Implementación
+
+- El **Modo Socket** no requiere una URL pública y funciona detrás de firewalls corporativos. Es la ruta más sencilla hacia producción para la mayoría de los equipos.
+- Si usas el **modo HTTP**, asegúrate de que tu endpoint sea accesible desde los servidores de Slack y tenga un certificado TLS válido. Slack no enviará eventos a URLs HTTP sin cifrar.
+- Slack envía un **reintento** si tu servidor no confirma un evento en 3 segundos. OpenClaw envía confirmaciones inmediatamente y procesa de forma asíncrona, por lo que no deberías ver reintentos en condiciones normales.
+- Para espacios de trabajo grandes (miles de usuarios), considera establecer `rateLimit.maxConcurrent` para controlar cuántos mensajes se procesan en paralelo.
+
+El canal de Slack transforma a OpenClaw de una herramienta independiente en un miembro colaborativo del equipo. Las personas pueden hacerle preguntas en el flujo de su trabajo, en el mismo lugar donde ya están teniendo conversaciones. Esa riqueza de contexto es lo que hace que Slack sea uno de los canales más poderosos disponibles.

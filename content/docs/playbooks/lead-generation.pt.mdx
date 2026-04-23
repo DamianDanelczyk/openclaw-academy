@@ -1,0 +1,228 @@
+---
+title: Automação de Geração de Leads
+description: Automatize a descoberta, qualificação e rastreamento de outreach de leads com o playbook de geração de leads do OpenClaw.
+---
+
+# Automação de Geração de Leads
+
+Encontrar novos leads é essencial para qualquer negócio, mas o processo muitas vezes é dolorosamente manual. Você vasculha o LinkedIn, monitora fóruns do setor, verifica quem visitou seu site, faz referência cruzada com seu CRM e então tenta criar uma mensagem de outreach personalizada antes que o momento de relevância passe. Quando você chega à parte do outreach, o lead já esfriou.
+
+O playbook de Geração de Leads coloca o OpenClaw para trabalhar como seu assistente de prospecção sempre ativo. Ele monitora as fontes que você se importa, identifica leads potenciais com base em seus critérios, os pontua e mantém tudo organizado para que você possa se concentrar na parte humana — realmente ter a conversa.
+
+## O Que Este Playbook Faz
+
+O pipeline de geração de leads tem quatro funções principais:
+
+- **Descoberta** — Encontra leads potenciais de fontes que você configura (engajamento em redes sociais, visitantes do site, participantes de eventos, menções de referência)
+- **Qualificação** — Pontua leads com base em critérios que você define (tamanho da empresa, setor, sinais de engajamento, indicadores de orçamento)
+- **Enriquecimento** — Reúne contexto adicional sobre leads qualificados (informações da empresa, notícias recentes, conexões mútuas)
+- **Rastreamento** — Mantém um registro contínuo de todos os leads com seu status, última atividade e próximas etapas
+
+Note que "outreach" não está nesta lista. O OpenClaw pode criar rascunhos de mensagens de outreach para você, mas deliberadamente não as envia automaticamente. O outreach deve parecer pessoal e genuíno, então você sempre tem a palavra final sobre o que é enviado e quando.
+
+## Quem Deve Usar Isso
+
+Este playbook é projetado para vendedores, fundadores, freelancers e qualquer pessoa que precisa de um fluxo constante de novas oportunidades de negócios. Funciona especialmente bem se você:
+
+- Tem uma imagem clara do seu cliente ideal mas não tem tempo para prospectar consistentemente
+- Recebe leads de múltiplos canais e luta para acompanhar todos eles
+- Quer responder a sinais inbound (como alguém se engajando com seu conteúdo) rapidamente
+
+Se você é uma equipe de vendas maior, cada membro pode executar sua própria instância deste playbook com diferentes critérios de qualificação e filtros de território.
+
+## Definindo Seu Lead Ideal
+
+Antes de configurar o playbook, esclareça o que faz um bom lead para você. Pense em:
+
+- **Setor**: Em quais setores estão seus melhores clientes?
+- **Tamanho da empresa**: Você está mirando startups, mid-market ou enterprise?
+- **Cargo/título**: Quem é o tomador de decisão que você quer alcançar?
+- **Sinais**: Que ações sugerem que alguém pode estar interessado? (visitar sua página de preços, se engajar com seus posts, participar de um webinar relevante)
+- **Desqualificadores**: O que automaticamente torna alguém inadequado?
+
+Quanto mais específico você for aqui, melhor o OpenClaw será em filtrar o ruído e destacar oportunidades reais.
+
+## Adições ao SOUL.md
+
+```markdown
+## Behaviors
+
+### Lead Generation
+- Monitor configured lead sources continuously during business hours
+- Score each potential lead on a 1-10 scale based on my Ideal Customer Profile
+- Only surface leads that score 6 or higher
+- For each qualified lead, provide: name, company, role, score, source, and one-sentence context
+- Enrich qualified leads with: company size, industry, recent news, and any mutual connections
+- Track all leads in a simple pipeline: New, Contacted, Replied, Meeting Booked, Disqualified
+- When I say "contacted [name]" or "meeting booked with [name]," update their status
+- Draft personalized outreach messages when asked, but never send anything automatically
+- Surface warm leads (people who have engaged with my content multiple times) separately — these are higher priority
+- Weekly summary every Friday: new leads discovered, pipeline changes, and conversion metrics
+```
+
+## Habilidades Recomendadas
+
+```yaml
+skills:
+  - name: social-listener
+    provider: openclaw-native
+    config:
+      platforms: ["linkedin", "twitter"]
+      track: ["mentions", "engagement", "profile-views"]
+    description: Monitors social platforms for lead signals
+
+  - name: website-tracker
+    provider: openclaw-native
+    config:
+      track_pages: ["/pricing", "/demo", "/case-studies"]
+    description: Identifies and enriches website visitors on key pages
+
+  - name: company-enrichment
+    provider: clearbit  # or apollo, zoominfo
+    permissions: read-only
+    description: Enriches lead profiles with company data
+
+  - name: crm-connector
+    provider: hubspot  # or salesforce, pipedrive
+    permissions: read-write
+    description: Syncs leads and pipeline updates with your CRM
+```
+
+<PremiumContent title="Configuração Completa do Playbook">
+
+## Configuração de Cron
+
+```yaml
+cron:
+  lead-discovery:
+    schedule: "0 */2 8-18 * * 1-5"  # A cada 2 horas, 8h às 18h, dias úteis
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: lead-discovery-scan
+    config:
+      min_score: 6  # pontuação mínima de qualificação para destacar
+      enrich: true  # auto-enriquecer leads qualificados
+      dedup: true  # pular leads já no pipeline
+    retry:
+      attempts: 1
+      delay: 10m
+
+  lead-weekly-report:
+    schedule: "0 16 * * 5"  # Sexta-feira às 16:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: lead-weekly-summary
+    config:
+      include_metrics: true
+      include_stale_leads: true  # sinalizar leads sem atividade há 7+ dias
+
+  lead-followup-reminder:
+    schedule: "0 9 * * 1-5"  # Todo dia útil às 9:00
+    timezone: "America/Sao_Paulo"
+    action: run-playbook
+    playbook: lead-followup-check
+    config:
+      remind_after: 3d  # lembrar sobre leads não contatados em 3 dias
+```
+
+## Configuração de Canal
+
+```yaml
+channels:
+  new-leads:
+    type: slack-channel
+    config:
+      workspace: "seu-workspace"
+      channel: "#leads"
+      format: rich
+      notify: true  # notificação push para leads de alta pontuação (8+)
+      notify_threshold: 8
+
+  lead-updates:
+    type: slack-dm
+    config:
+      workspace: "seu-workspace"
+      recipient: "@seu-usuario"
+      format: compact
+      batch_window: 60m  # agrupar atualizações de menor prioridade por hora
+
+  lead-weekly-report:
+    type: email
+    config:
+      recipient: "voce@suaempresa.com"
+      subject_prefix: "[Leads]"
+      format: html
+      cc: ["gerente-vendas@suaempresa.com"]  # opcional
+```
+
+## Exemplo de Saída
+
+Aqui está como um alerta de novo lead parece no seu canal #leads:
+
+```
+NOVO LEAD — Pontuação: 9/10
+
+Nome: Rachel Torres
+Empresa: Greenfield Analytics (Série B, 85 funcionários)
+Cargo: Diretora de Operações
+Fonte: Engajou com seu post no LinkedIn sobre automação de fluxo de trabalho (curtiu + comentou)
+
+Contexto: Rachel comentou "Isso é exatamente o que estamos lutando"
+no seu post sobre redução de entrada manual de dados. A Greenfield Analytics
+é uma empresa de plataforma de dados que recentemente captou US$ 18M.
+
+Enriquecimento:
+  Setor: Dados & Análise
+  Sede: São Paulo, SP
+  Stack tecnológico: Salesforce, Slack, Notion
+  Notícias recentes: Contratou 12 pessoas no Q1, expandindo para vertical de saúde
+  Conexões mútuas: Vocês dois estão conectados a David Park (Sequoia)
+
+Ângulo sugerido de outreach: Referencie o comentário dela, vincule à
+expansão em saúde (você tem um case study nesse espaço), mencione David como
+conexão mútua.
+
+Responda "rascunhar outreach para Rachel" para obter uma mensagem personalizada.
+```
+
+E aqui está um resumo semanal de sexta-feira:
+
+```
+GERAÇÃO DE LEADS — Resumo Semanal (10-17 de Abril)
+
+Números desta Semana:
+  Descobertos: 23 leads potenciais
+  Qualificados (6+): 8 leads
+  Contatados: 5
+  Respostas recebidas: 2
+  Reuniões agendadas: 1
+
+Instantâneo do Pipeline:
+  Novos (ainda não contatados): 3
+  Contatados (aguardando resposta): 7
+  Respondeu (em conversa): 4
+  Reunião agendada: 2
+  Desqualificados esta semana: 1
+
+PRECISA DE ATENÇÃO
+  Marcus Webb (Apex Solutions) — Contatado há 5 dias, sem resposta.
+    Considere um acompanhamento ou canal diferente.
+  Priya Sharma (NovaTech) — Respondeu positivamente na segunda mas
+    você ainda não respondeu.
+
+FONTE COM MELHOR DESEMPENHO ESTA SEMANA
+  Engajamento no LinkedIn: 5 leads qualificados (63%)
+  Visitantes do site: 2 leads qualificados (25%)
+  Menções de referência: 1 lead qualificado (12%)
+```
+
+## Dicas Profissionais
+
+- **Sincronização com CRM**: Se você usa HubSpot ou Salesforce, habilite a habilidade crm-connector para automaticamente enviar leads qualificados para seu CRM. Isso evita dupla entrada e mantém seu gerente de vendas satisfeito.
+- **Templates de outreach**: Crie 3-4 templates de outreach no seu SOUL.md para diferentes tipos de leads (frio, morno, referência, follow-up de evento). O OpenClaw escolherá o template certo e o personalizará.
+- **Regras de desqualificação**: Seja agressivo em desqualificar leads que não se encaixam. Um pipeline limpo com 10 oportunidades reais é infinitamente mais útil do que um inchado com 100 talvezes.
+- **Transferências de equipe**: Se um lead precisa ser passado a um colega, basta dizer "transferir Rachel Torres para @sarah" e o OpenClaw transferirá o contexto do lead e notificará seu colega.
+
+</PremiumContent>
+
+<CTACard variant="community" />

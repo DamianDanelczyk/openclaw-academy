@@ -1,0 +1,244 @@
+---
+title: Agendamento com Cron Jobs
+description: Aprenda a sintaxe cron do zero e configure automações temporizadas para seu assistente OpenClaw com 10 exemplos prontos para usar.
+---
+
+# Agendamento com Cron Jobs
+
+Se você já desejou que seu assistente OpenClaw pudesse fazer coisas automaticamente em um horário definido — enviar um resumo matinal, limpar arquivos antigos, verificar sua caixa de entrada — os cron jobs são a forma de tornar isso possível. Pense em um cron job como um despertador para tarefas. Você diz ao OpenClaw *quando* executar algo, e ele cuida do resto.
+
+Esta página percorrerá a sintaxe cron passo a passo, fornecerá dez configurações prontas para uso e ajudará você a evitar os erros mais comuns.
+
+## O Que É um Cron Job?
+
+Um cron job é simplesmente uma tarefa agendada. O nome vem da palavra grega *chronos* (tempo). No OpenClaw, você define cron jobs dentro do arquivo `openclaw.config.yaml` na seção `schedules`. Cada entrada tem duas partes:
+
+1. **Uma expressão cron** — o padrão de temporização.
+2. **Uma ação** — o que o OpenClaw deve fazer quando o temporizador disparar.
+
+Aqui está o exemplo mais simples possível:
+
+```yaml
+schedules:
+  - name: "say-hello"
+    cron: "0 9 * * *"
+    action: "assistant.send_message('Bom dia! Pronto para começar o dia.')"
+```
+
+Essa linha diz ao OpenClaw: "Todo dia às 9h, envie uma mensagem de bom dia."
+
+## Sintaxe Cron Explicada
+
+Uma expressão cron tem cinco campos separados por espaços:
+
+```
+┌───────────── minuto (0 - 59)
+│ ┌───────────── hora (0 - 23)
+│ │ ┌───────────── dia do mês (1 - 31)
+│ │ │ ┌───────────── mês (1 - 12)
+│ │ │ │ ┌───────────── dia da semana (0 - 6, Domingo = 0)
+│ │ │ │ │
+* * * * *
+```
+
+Cada campo pode conter:
+
+| Símbolo | Significado | Exemplo |
+|---------|-------------|---------|
+| `*` | Todo valor possível | `* * * * *` = a cada minuto |
+| `,` | Múltiplos valores | `0,30 * * * *` = na hora e meia hora |
+| `-` | Intervalo | `9-17 * * *` = horas 9 a 17 |
+| `/` | Passo / intervalo | `*/15 * * * *` = a cada 15 minutos |
+
+Vamos ler alguns exemplos em voz alta:
+
+- `0 8 * * 1-5` — "Às 8h, de segunda a sexta-feira."
+- `30 22 * * *` — "Às 22h30 todos os dias."
+- `0 */2 * * *` — "A cada duas horas, na hora exata."
+- `0 0 1 * *` — "Meia-noite no primeiro dia de cada mês."
+
+Uma vez que você pega o jeito de ler da esquerda para a direita — minuto, hora, dia, mês, dia da semana — fica natural.
+
+## 10 Configurações Cron Prontas para Usar
+
+Copie qualquer uma dessas para seu `openclaw.config.yaml` e ajuste ao seu gosto.
+
+### 1. Resumo Matinal
+
+```yaml
+- name: "morning-briefing"
+  cron: "0 7 * * 1-5"
+  action: "assistant.compile_briefing(sources: ['calendar', 'weather', 'news'])"
+```
+
+### 2. Verificação de E-mail por Hora
+
+```yaml
+- name: "email-check"
+  cron: "0 * * * *"
+  action: "assistant.check_email(inbox: 'primary', summarize: true)"
+```
+
+### 3. Resumo de Fim de Dia
+
+```yaml
+- name: "eod-summary"
+  cron: "0 18 * * 1-5"
+  action: "assistant.generate_summary(scope: 'today')"
+```
+
+### 4. Relatório Semanal
+
+```yaml
+- name: "weekly-report"
+  cron: "0 9 * * 1"
+  action: "assistant.generate_report(period: 'last_7_days', send_to: 'team')"
+```
+
+### 5. Backup do Banco de Dados
+
+```yaml
+- name: "db-backup"
+  cron: "0 3 * * *"
+  action: "system.backup(target: 'database', retention_days: 30)"
+```
+
+### 6. Limpeza de Cache
+
+```yaml
+- name: "cache-cleanup"
+  cron: "0 4 * * 0"
+  action: "system.clear_cache(older_than: '7d')"
+```
+
+### 7. Publicação em Redes Sociais
+
+```yaml
+- name: "social-post"
+  cron: "0 12 * * 2,4"
+  action: "assistant.publish_draft(platform: 'twitter', queue: 'scheduled')"
+```
+
+### 8. Verificação de Saúde
+
+```yaml
+- name: "health-check"
+  cron: "*/30 * * * *"
+  action: "system.health_check(notify_on_failure: true)"
+```
+
+### 9. Lembrete Mensal de Fatura
+
+```yaml
+- name: "invoice-reminder"
+  cron: "0 10 28 * *"
+  action: "assistant.send_message('As faturas vencem em 3 dias. Revise os rascunhos agora.')"
+```
+
+### 10. Auditoria Trimestral
+
+```yaml
+- name: "quarterly-audit"
+  cron: "0 9 1 1,4,7,10 *"
+  action: "system.run_audit(scope: 'full', export: 'pdf')"
+```
+
+## Testando Seus Cron Jobs
+
+Antes de esperar horas para ver se seu agendamento funciona, use o comando de dry-run integrado:
+
+```bash
+openclaw schedule test "morning-briefing"
+```
+
+Isso dispara o job imediatamente para que você possa confirmar que a ação funciona. Você também pode listar todos os agendamentos ativos:
+
+```bash
+openclaw schedule list
+```
+
+```
+NAME               CRON            NEXT RUN
+morning-briefing   0 7 * * 1-5     Mon Apr 27 07:00
+email-check        0 * * * *       Today 15:00
+eod-summary        0 18 * * 1-5    Today 18:00
+```
+
+## Depurando Cron Jobs
+
+Quando uma tarefa agendada não dispara ou produz resultados inesperados, verifique estas áreas:
+
+### Verifique os Logs
+
+```bash
+openclaw logs --filter schedules --last 24h
+```
+
+Os logs indicarão se o job foi acionado, qual ação foi executada e se teve sucesso ou falha.
+
+### Valide Sua Expressão
+
+Uma verificação rápida de sanidade:
+
+```bash
+openclaw cron validate "0 9 * * 1-5"
+```
+
+```
+✓ Valid expression
+  Next 3 runs:
+    Mon Apr 27 09:00
+    Tue Apr 28 09:00
+    Wed Apr 29 09:00
+```
+
+### Erros Comuns
+
+**1. Esquecer que as horas usam formato de 24 horas.**
+Se você quer 15h, escreva `15`, não `3`. Escrever `0 3 * * *` resulta em 3h da manhã.
+
+**2. Confundir dia do mês com dia da semana.**
+`0 9 5 * *` significa o 5º de cada mês. `0 9 * * 5` significa toda sexta-feira. A posição importa.
+
+**3. Executar jobs com muita frequência.**
+`* * * * *` dispara a cada minuto. Isso é 1.440 vezes por dia. A menos que você genuinamente precise dessa frequência, use um intervalo maior como `*/15 * * * *`.
+
+**4. Não considerar fusos horários.**
+O OpenClaw usa seu fuso horário configurado por padrão. Se seu servidor está em UTC mas você está em São Paulo, defina o fuso explicitamente:
+
+```yaml
+schedules:
+  - name: "morning-briefing"
+    cron: "0 7 * * 1-5"
+    timezone: "America/Sao_Paulo"
+    action: "assistant.compile_briefing(sources: ['calendar'])"
+```
+
+**5. Nomes de jobs duplicados.**
+Cada agendamento deve ter um `name` único. Se duas entradas compartilham o mesmo nome, a segunda sobrescreve silenciosamente a primeira.
+
+**6. Esquecer de recarregar após editar.**
+Após alterar seu arquivo de configuração, aplique os novos agendamentos:
+
+```bash
+openclaw schedule reload
+```
+
+## Combinando Cron com Outros Recursos
+
+Os cron jobs se tornam muito poderosos quando você os encadeia com outros recursos do OpenClaw. Por exemplo, você pode acionar um webhook após a conclusão de uma tarefa agendada, ou ter um cron job que inicia uma automação de múltiplas etapas. Veja as páginas [Webhooks](/docs/automation/webhooks) e [Sua Primeira Automação](/docs/automation/first-automation) para mais informações sobre isso.
+
+## Cartão de Referência Rápida
+
+| Você quer... | Expressão cron |
+|---|---|
+| A cada minuto | `* * * * *` |
+| A cada hora | `0 * * * *` |
+| Todo dia à meia-noite | `0 0 * * *` |
+| Dias úteis às 9h | `0 9 * * 1-5` |
+| Todo domingo às 18h | `0 18 * * 0` |
+| Primeiro do mês ao meio-dia | `0 12 1 * *` |
+| A cada 15 minutos | `*/15 * * * *` |
+| Duas vezes ao dia (8h e 20h) | `0 8,20 * * *` |
+
+Mantenha esta página nos favoritos. Uma vez que seus agendamentos estiverem funcionando, você vai se perguntar como já viveu sem eles.

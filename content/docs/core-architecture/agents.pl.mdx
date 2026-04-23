@@ -1,0 +1,226 @@
+---
+title: Agenty i Środowisko Uruchomieniowe Pi
+description: Zrozumienie systemu agentów OpenClaw, środowiska uruchomieniowego Pi oraz koordynacji jedno- i wieloagentowych konfiguracji.
+---
+
+# Agenty i Środowisko Uruchomieniowe Pi
+
+Kiedy rozmawiasz z OpenClaw, nie wysyłasz tylko tekstu do modelu AI i nie odbierasz tekstu w zamian. Wchodzisz w interakcję z **agentem** — trwałą jednostką posiadającą osobowość, pamięć, umiejętności i cele. Silnikiem napędzającym agentów jest **środowisko uruchomieniowe Pi**.
+
+## Czym Jest Środowisko Uruchomieniowe Pi?
+
+Środowisko uruchomieniowe Pi to środowisko wykonawcze, w którym żyją Twoje agenty. Pomyśl o nim jak o systemie operacyjnym dla Twojego asystenta AI. Tak jak system operacyjny Twojego telefonu zarządza aplikacjami, powiadomieniami i zadaniami w tle, środowisko Pi zarządza myśleniem agenta, dostępem do pamięci, wykonywaniem umiejętności i generowaniem odpowiedzi.
+
+Za każdym razem, gdy wysyłasz wiadomość, środowisko uruchomieniowe Pi:
+
+1. Wczytuje osobowość agenta z `SOUL.md`
+2. Pobiera Twój profil z `USER.md`
+3. Odzyskuje odpowiednie wspomnienia
+4. Sprawdza dostępne umiejętności
+5. Wysyła wszystko — Twoją wiadomość plus cały ten kontekst — do modelu AI
+6. Przetwarza odpowiedź (uruchamiając wszelkie wywołania umiejętności, zapisując wspomnienia)
+7. Zwraca ostateczną odpowiedź do Ciebie
+
+Wszystko to dzieje się w milisekundach. Środowisko uruchomieniowe Pi jest szybkie, ponieważ przechowuje często używane dane w pamięci i pobiera tylko to, czego potrzebuje.
+
+## Konfiguracja Jednego Agenta
+
+Większość ludzi zaczyna od jednego agenta i szczerze mówiąc, wielu nigdy nie potrzebuje więcej. Jeden agent to jedna osobowość AI, która obsługuje wszystko, co do niej rzucisz.
+
+Oto jak wygląda podstawowa konfiguracja jednego agenta:
+
+```yaml
+# agents/assistant.yaml
+agent:
+  name: "Atlas"
+  runtime: "pi-v3"
+  soul: "./SOUL.md"
+  user: "./USER.md"
+
+  model:
+    default: "gpt-4o"
+    fallback: "gpt-4o-mini"
+
+  skills:
+    - calendar
+    - email
+    - web_search
+    - notes
+
+  memory:
+    session: true
+    long_term: true
+    vector_search: true
+
+  behavior:
+    proactive: false
+    ask_before_acting: true
+    verbosity: "balanced"
+```
+
+Daje to agenta o imieniu Atlas, który może uzyskiwać dostęp do Twojego kalendarza, poczty e-mail, przeszukiwać internet i robić notatki. Czeka, aż zapytasz, zanim coś zrobi (bez niespodziewanych e-maili) i daje odpowiedzi o wyważonej długości.
+
+## Konfiguracje Wielu Agentów
+
+Tu sprawy stają się interesujące. Czasem jeden agent nie wystarczy. Może chcesz **agenta do pracy**, który jest skupiony na biznesie, i **agenta osobistego**, który jest luźny i zabawny. A może chcesz wyspecjalizowanych agentów będących ekspertami w konkretnych dziedzinach.
+
+OpenClaw obsługuje konfiguracje wielu agentów, w których wiele agentów może współistnieć — a nawet współpracować.
+
+```yaml
+# agents/config.yaml
+multi_agent:
+  enabled: true
+  coordinator: "primary"
+
+  agents:
+    - name: "Primary"
+      role: "coordinator"
+      soul: "./souls/primary.md"
+      description: "Main assistant, delegates to specialists"
+
+    - name: "Researcher"
+      role: "specialist"
+      soul: "./souls/researcher.md"
+      skills: [web_search, arxiv, wikipedia]
+      description: "Deep research and fact-checking"
+
+    - name: "Writer"
+      role: "specialist"
+      soul: "./souls/writer.md"
+      skills: [notes, documents, grammar]
+      description: "Writing, editing, and content creation"
+
+    - name: "Coder"
+      role: "specialist"
+      soul: "./souls/coder.md"
+      skills: [code_exec, github, terminal]
+      description: "Programming and technical tasks"
+```
+
+W tej konfiguracji agent Primary jest tym, z którym rozmawiasz. Gdy zadasz pytanie badawcze, Primary je rozpoznaje i przekazuje do agenta Researcher. Gdy mówisz „napisz mi wpis na bloga", Primary deleguje zadanie do agenta Writer. Widzisz jedną rozmowę, ale za kulisami pracuje wielu specjalistów.
+
+## Wzorce Koordynacji Agentów Podrzędnych
+
+Istnieje kilka sposobów współpracy agentów. Wybór odpowiedniego wzorca zależy od tego, co chcesz osiągnąć.
+
+### Wzorzec Delegatora
+
+Jeden nadrzędny agent deleguje zadania do specjalistów. To najczęstszy wzorzec.
+
+```yaml
+coordination:
+  pattern: "delegator"
+  primary: "Primary"
+  delegation_rules:
+    - trigger: "research|find out|look up"
+      delegate_to: "Researcher"
+      return_to: "Primary"
+    - trigger: "write|draft|compose"
+      delegate_to: "Writer"
+      return_to: "Primary"
+```
+
+### Wzorzec Potoku
+
+Agenty pracują kolejno, każdy dodając do wyjścia. Świetny do przepływów pracy z treścią.
+
+```yaml
+coordination:
+  pattern: "pipeline"
+  stages:
+    - agent: "Researcher"
+      task: "Gather facts and sources"
+      output: "research_brief"
+    - agent: "Writer"
+      task: "Draft content from research"
+      input: "research_brief"
+      output: "draft"
+    - agent: "Primary"
+      task: "Review and finalize"
+      input: "draft"
+      output: "final"
+```
+
+Wyobraź sobie, że prosisz: „Napisz mi wpis na bloga o trendach w energii odnawialnej". Researcher zbiera aktualne dane, Writer zamienia je w szkic, a agent Primary dopracowuje i dostarcza. Wszystko z jednego żądania.
+
+### Wzorzec Konsensusu
+
+Wiele agentów wyraża swoje opinie, a koordynator syntezuje ich perspektywy. Przydatny przy podejmowaniu decyzji.
+
+```yaml
+coordination:
+  pattern: "consensus"
+  coordinator: "Primary"
+  participants:
+    - agent: "Optimist"
+      perspective: "Focus on opportunities and benefits"
+    - agent: "Critic"
+      perspective: "Focus on risks and downsides"
+    - agent: "Pragmatist"
+      perspective: "Focus on practical implementation"
+  synthesis:
+    method: "coordinator_summary"
+    include_dissent: true
+```
+
+Zapytaj „Czy powinienem zmienić karierę?" i otrzymasz przemyślaną odpowiedź uwzględniającą wiele punktów widzenia — nie tylko jeden.
+
+## Konfiguracja Środowiska Uruchomieniowego
+
+Samo środowisko uruchomieniowe Pi ma ustawienia wpływające na zachowanie wszystkich Twoich agentów:
+
+```yaml
+# pi-runtime.yaml
+runtime:
+  version: "pi-v3"
+  concurrency:
+    max_parallel_agents: 4
+    max_skill_threads: 8
+  timeouts:
+    agent_response: 30s
+    skill_execution: 15s
+    total_turn: 60s
+  context:
+    max_tokens: 128000
+    reserve_for_response: 4096
+  logging:
+    level: "info"
+    include_agent_reasoning: false
+```
+
+Kilka rzeczy wartych uwagi:
+
+- **max_parallel_agents** — ile agentów może myśleć jednocześnie. Więcej równoległości oznacza szybsze odpowiedzi wieloagentowe, ale wyższe koszty.
+- **max_tokens i reserve_for_response** — środowisko uruchomieniowe automatycznie zarządza oknem kontekstowym. Rezerwuje miejsce na odpowiedź, aby model nie wyczerpał zasobów.
+- **include_agent_reasoning** — ustaw na `true`, jeśli chcesz zobaczyć wewnętrzny tok myślenia agenta. Pomocne przy debugowaniu, uciążliwe przy codziennym użytku.
+
+## Tworzenie Pierwszego Agenta
+
+Gotowy do konfiguracji agenta? Oto najszybsza ścieżka:
+
+```bash
+# Utwórz nowego agenta
+openclaw agent create --name "MyAssistant"
+
+# Generuje to:
+# agents/myassistant/
+#   ├── agent.yaml       (konfiguracja)
+#   ├── SOUL.md          (osobowość)
+#   └── skills.yaml      (powiązania umiejętności)
+
+# Zacznij z nim rozmawiać
+openclaw chat --agent MyAssistant
+```
+
+CLI tworzy szkielet wszystkiego za Ciebie. Edytuj `SOUL.md`, aby nadać agentowi osobowość, dostosuj `agent.yaml`, aby zmienić zachowanie, i jesteś gotowy.
+
+## Kiedy Przejść na Wiele Agentów
+
+Większość ludzi nie potrzebuje od razu konfiguracji wielu agentów. Oto sygnały, że możesz skorzystać na takiej konfiguracji:
+
+- Często życzysz sobie, aby Twój asystent miał różne osobowości w różnych kontekstach.
+- Twoje zadania regularnie obejmują wiele odrębnych kroków (badania, potem pisanie, potem recenzja).
+- Chcesz specjalistycznej wiedzy — agenta obsługującego tylko finanse, innego zajmującego się tylko harmonogramem.
+- Budujesz narzędzie zespołowe, w którym różne agenty obsługują różne działy.
+
+Zacznij od jednego agenta. Dopracuj go. Następnie rozwijaj, gdy jeden agent zacznie być ograniczający. Środowisko uruchomieniowe Pi sprawia, że skalowanie od jednego do wielu jest bezproblemowe.

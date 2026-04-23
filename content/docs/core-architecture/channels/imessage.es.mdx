@@ -1,0 +1,231 @@
+---
+title: Canal de iMessage
+description: Conecta OpenClaw a iMessage usando BlueBubbles en macOS para que tu asistente de IA pueda enviar y recibir mensajes de texto de forma nativa.
+---
+
+# Canal de iMessage
+
+Si vives en el ecosistema de Apple, este canal se siente como magia. Le escribes a tu asistente de IA igual que le escribirías a un amigo — sin aplicación especial, sin comandos de bot, solo iMessage puro. Aparece en tu aplicación de Mensajes con burbujas azules y todo.
+
+¿El truco? Apple no ofrece una API pública de iMessage. Para que esto funcione, OpenClaw se basa en un puente basado en macOS llamado **BlueBubbles** que accede al framework de Mensajes en tu Mac. Es un poco más complicado que configurar Telegram o Discord, pero el resultado vale la pena si iMessage es donde tú y tus usuarios pasan el tiempo.
+
+## Lo Que Necesitarás
+
+Antes de empezar, asegúrate de tener:
+
+- Una **Mac** (Intel o Apple Silicon) con macOS 12 Monterey o posterior. Esta Mac debe permanecer encendida y conectada a Internet — actúa como tu servidor puente de iMessage.
+- Un **Apple ID** conectado a iMessage en esa Mac.
+- **BlueBubbles Server** instalado en la Mac (gratuito y de código abierto).
+- Una forma de exponer BlueBubbles a Internet — ya sea una IP estática, un proxy inverso o el túnel de Cloudflare integrado de BlueBubbles.
+
+> **Importante:** La Mac que ejecuta BlueBubbles es la columna vertebral de este canal. Si duerme, se apaga o pierde la red, iMessage se desconecta. Para uso en producción, considera una Mac Mini dedicada o una instancia de macOS en la nube.
+
+## Paso 1: Instalar BlueBubbles Server
+
+Descarga la última versión de BlueBubbles Server desde [bluebubbles.app](https://bluebubbles.app). Abre el `.dmg`, arrástralo a Aplicaciones y ejecútalo.
+
+En el primer inicio, BlueBubbles pedirá varios permisos:
+
+- **Acceso Completo al Disco** — necesario para leer la base de datos de iMessage en `~/Library/Messages/chat.db`.
+- **Accesibilidad** — necesario para interactuar con la aplicación Mensajes para enviar.
+- **Notificaciones** — para que BlueBubbles pueda alertarte si algo va mal.
+
+Concédelos todos. BlueBubbles no funcionará correctamente sin el Acceso Completo al Disco en particular.
+
+## Paso 2: Configurar la Red de BlueBubbles
+
+BlueBubbles necesita ser accesible desde tu instancia de OpenClaw. Tienes tres opciones:
+
+### Opción A: Túnel de Cloudflare Integrado (Más Fácil)
+
+BlueBubbles puede crear un túnel de Cloudflare automáticamente. En la configuración de BlueBubbles, habilita el proxy de Cloudflare. Obtendrás una URL como `https://abcd-1234.trycloudflare.com`. No se necesitan reglas de reenvío de puertos ni de firewall.
+
+### Opción B: Ngrok o Túnel Personalizado
+
+Si prefieres ngrok:
+
+```bash
+ngrok http 1234  # BlueBubbles default port
+```
+
+Usa la URL generada como tu dirección de servidor.
+
+### Opción C: IP Estática / Proxy Inverso
+
+Si tu Mac tiene una IP estática o estás ejecutando un proxy inverso como Caddy o nginx:
+
+```nginx title="nginx.conf"
+server {
+    listen 443 ssl;
+    server_name imessage-bridge.yourdomain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:1234;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+Independientemente del método que elijas, anota la URL externa — la necesitarás para la configuración de OpenClaw.
+
+## Paso 3: Obtener Tu Contraseña de API de BlueBubbles
+
+En la aplicación BlueBubbles Server, ve a **Settings > API/Webhooks**. Verás una contraseña de servidor. Cópiala — esta es la credencial que OpenClaw usa para autenticarse con BlueBubbles.
+
+Mientras estés allí, asegúrate de que tanto la REST API como el WebSocket estén habilitados.
+
+## Paso 4: Configurar OpenClaw
+
+Ahora conéctalo todo en tu configuración de OpenClaw:
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    imessage: {
+      enabled: true,
+      provider: 'bluebubbles',
+      server: {
+        url: process.env.BLUEBUBBLES_URL,       // e.g., https://abcd-1234.trycloudflare.com
+        password: process.env.BLUEBUBBLES_PASS,  // API password from BlueBubbles
+      },
+      polling: {
+        interval: 2000,   // Check for new messages every 2 seconds
+        batchSize: 10,    // Process up to 10 messages per poll
+      },
+      delivery: {
+        readReceipts: true,   // Send read receipts when processing
+        typingIndicator: true, // Show typing bubble while generating
+      },
+    },
+  },
+});
+```
+
+Guarda las credenciales en tu archivo `.env`:
+
+```bash title=".env"
+BLUEBUBBLES_URL=https://abcd-1234.trycloudflare.com
+BLUEBUBBLES_PASS=your-api-password-here
+```
+
+## Paso 5: Probar la Conexión
+
+Inicia OpenClaw y comprueba los registros:
+
+```bash
+npx openclaw dev
+```
+
+Deberías ver algo como:
+
+```
+[imessage] Connecting to BlueBubbles at https://abcd-1234.trycloudflare.com...
+[imessage] WebSocket connected
+[imessage] Fetched 0 unread messages
+[imessage] Channel ready
+```
+
+Ahora envía un mensaje de texto desde otro dispositivo Apple (o desde otra cuenta de iMessage) al Apple ID en tu Mac puente. Deberías ver el mensaje aparecer en los registros de OpenClaw y recibir una respuesta de vuelta en iMessage.
+
+## Peculiaridades y Consideraciones de iMessage
+
+Trabajar con iMessage es delicioso para los usuarios finales, pero tiene algunos bordes rugosos en el lado de la infraestructura. Esto es lo que debes tener en cuenta:
+
+### La Mac Debe Permanecer Despierta
+
+En serio, este es el problema número uno con el que la gente se encuentra. Ve a **Configuración del Sistema > Economizador de Energía** (o **Batería > Opciones** en portátiles) y configura la Mac para que nunca duerma. También deshabilita **Power Nap** si estás en un MacBook. Una Mac dormida significa un canal muerto.
+
+```bash
+# Prevent sleep from the command line (runs until you Ctrl+C)
+caffeinate -d -i -s
+```
+
+Para una solución permanente, usa `pmset`:
+
+```bash
+sudo pmset -a disablesleep 1
+sudo pmset -a displaysleep 0
+```
+
+### Límites de Longitud de Mensajes
+
+iMessage no tiene un límite de caracteres estricto como los SMS (160 caracteres), pero los mensajes extremadamente largos — digamos, más de 10.000 caracteres — pueden comportarse de forma extraña en dispositivos más antiguos. OpenClaw divide automáticamente las respuestas largas en múltiples mensajes si superan un umbral configurable:
+
+```typescript
+imessage: {
+  enabled: true,
+  provider: 'bluebubbles',
+  formatting: {
+    maxMessageLength: 4000,  // Split responses longer than this
+    chunkDelay: 500,         // Wait 500ms between chunks for natural pacing
+  },
+},
+```
+
+### Comportamiento en Chats Grupales
+
+OpenClaw puede participar en chats grupales de iMessage. Por defecto, solo responde cuando se le menciona por nombre o cuando un mensaje comienza con un prefijo de activación. Puedes configurar esto:
+
+```typescript
+imessage: {
+  groups: {
+    respondTo: 'mention',        // 'mention' | 'prefix' | 'all'
+    mentionNames: ['claw', 'ai', 'assistant'],
+    prefix: '!ask',
+  },
+},
+```
+
+### Tapbacks (Reacciones)
+
+Las tapbacks de iMessage (el pequeño corazón, pulgar arriba, etc.) se reenvían a OpenClaw como metadatos. Puedes usarlos en la lógica de tu asistente — por ejemplo, un pulgar hacia abajo en una respuesta podría desencadenar un seguimiento de "Déjame intentarlo de nuevo". El manejo de tapbacks se configura en el comportamiento de tu asistente, no en la configuración del canal.
+
+### Alternativa SMS
+
+Si un destinatario no tiene iMessage (territorio de burbuja verde), BlueBubbles puede enviar igualmente vía SMS a través de tu Mac. Ten en cuenta que los mensajes SMS no están encriptados y pueden incurrir en cargos del operador dependiendo de tu plan.
+
+```typescript
+imessage: {
+  sms: {
+    enabled: true,       // Allow SMS fallback
+    warnOnFallback: true, // Log a warning when falling back to SMS
+  },
+},
+```
+
+## Manejo de Medios
+
+El canal de iMessage admite el envío y la recepción de:
+
+- **Imágenes** (JPEG, PNG, HEIC) — HEIC se convierte automáticamente a JPEG para el motor central.
+- **Videos** (MP4, MOV)
+- **Mensajes de audio** — Transcritos a texto antes de pasar al asistente.
+- **Archivos** (PDF, documentos) — Almacenados y accesibles a través de la API de medios.
+- **Tarjetas de contacto y ubicaciones** — Analizados en datos estructurados.
+
+Los medios entrantes se descargan de BlueBubbles y se almacenan en el directorio de medios de OpenClaw. Los medios salientes se suben a BlueBubbles, que los envía como un adjunto nativo de iMessage.
+
+## Mejores Prácticas
+
+1. **Dedica una Mac al puente.** Una Mac Mini es perfecta para esto — pequeña, silenciosa, eficiente en energía y compatible con el modo sin cabeza.
+2. **Usa un Apple ID separado.** No uses tu Apple ID personal para el bot. Crea uno nuevo para que tus mensajes personales permanezcan privados.
+3. **Monitorea el tiempo de actividad.** Configura una verificación de salud que haga ping a la API de BlueBubbles cada pocos minutos y te alerte si se cae.
+4. **Mantén macOS y BlueBubbles actualizados.** Apple ocasionalmente cambia cómo funciona iMessage internamente, y BlueBubbles se actualiza para adaptarse.
+5. **Habilita el registro.** Al depurar, establece `LOG_LEVEL=debug` en tu `.env` para ver cada evento de mensaje en detalle.
+
+## Solución de Problemas
+
+| Problema | Causa Probable | Solución |
+|---------|-------------|-----|
+| No se reciben mensajes | La Mac está dormida o BlueBubbles no está ejecutándose | Despierta la Mac, reinicia BlueBubbles |
+| Se reciben mensajes pero no se envía respuesta | Acceso Completo al Disco no concedido | Vuelve a conceder en Configuración del Sistema > Privacidad |
+| "Connection refused" en los registros | URL de BlueBubbles incorrecta o túnel expirado | Reinicia el túnel, actualiza la URL en `.env` |
+| Mensajes duplicados | Intervalo de sondeo demasiado agresivo | Aumenta `polling.interval` a 3000+ ms |
+| Los medios no se envían | La contraseña de la API de BlueBubbles cambió | Actualiza `BLUEBUBBLES_PASS` en `.env` |
+
+El canal de iMessage es uno de los más satisfactorios de configurar. Hay algo genuinamente divertido en enviar mensajes a una IA desde la aplicación de Mensajes nativa de tu teléfono, sin ninguna aplicación de terceros a la vista. Tómate el tiempo de configurarlo bien y te recompensará con una de las experiencias de usuario más fluidas que cualquier canal puede ofrecer.

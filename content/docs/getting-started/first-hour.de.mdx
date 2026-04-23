@@ -1,0 +1,377 @@
+---
+title: Deine erste Stunde
+description: Eine praxisnahe 60-Minuten-Anleitung, die dich von null zu einem funktionierenden KI-Assistenten mit OpenClaw führt.
+---
+
+# Deine erste Stunde mit OpenClaw
+
+Du hast OpenClaw installiert, dein API-Schlüssel ist verifiziert, und du bist bereit zu bauen. Diese Anleitung begleitet dich durch deine ersten 60 Minuten — von einem leeren Verzeichnis zu einem voll funktionsfähigen KI-Assistenten mit Persönlichkeit, Wissen, einer Live-Chat-Oberfläche und einer automatisierten Aufgabe.
+
+Kein Geschwätz. Nur bauen.
+
+## Minute 0–5: Erstelle dein Projekt
+
+Öffne dein Terminal und initialisiere ein neues Projekt:
+
+```bash
+openclaw init my-assistant
+cd my-assistant
+```
+
+Damit wird folgende Struktur erstellt:
+
+```
+my-assistant/
+├── openclaw.config.yaml
+├── agents/
+│   └── assistant/
+│       ├── SOUL.md
+│       └── tools/
+├── knowledge/
+├── .env
+└── .gitignore
+```
+
+Öffne das Projekt in deinem Editor. Wenn du VS Code verwendest:
+
+```bash
+code .
+```
+
+Füge als erstes deinen API-Schlüssel in die `.env`-Datei ein:
+
+```bash
+# .env
+OPENAI_API_KEY=sk-proj-your-key-here
+```
+
+Starte nun den Entwicklungsserver:
+
+```bash
+openclaw dev
+```
+
+Du solltest folgendes sehen:
+
+```
+  ╭──────────────────────────────────────╮
+  │                                      │
+  │   OpenClaw Dev Server                │
+  │                                      │
+  │   WebChat:  http://localhost:18789   │
+  │   API:      http://localhost:18789/api│
+  │   Status:   Ready                    │
+  │                                      │
+  ╰──────────────────────────────────────╯
+```
+
+## Minute 5–10: WebChat öffnen
+
+Öffne deinen Browser und navigiere zu:
+
+```
+http://localhost:18789
+```
+
+Du siehst die WebChat-Oberfläche — ein übersichtliches Chatfenster, in dem du mit deinem Agenten kommunizieren kannst. Schick eine Testnachricht:
+
+> "Hallo, wer bist du?"
+
+Der Standard-Agent antwortet mit etwas Allgemeinem. Das ist in Ordnung — er verwendet die Platzhalter-SOUL.md, die beim `openclaw init` erstellt wurde. Das ändern wir jetzt.
+
+Lass den Entwicklungsserver laufen (er lädt Änderungen automatisch neu) und wechsle zu deinem Editor.
+
+## Minute 10–25: Schreibe deine erste SOUL.md
+
+Die SOUL.md-Datei ist das Herzstück deines Agenten. Hier legst du fest, wer dieser Assistent ist, wie er sich verhält, was er weiß und was er niemals tun soll. Sie ist in einfachem Markdown geschrieben — keine spezielle Syntax, keine Programmiersprache. Nur klare Anweisungen auf Deutsch (oder Englisch).
+
+Öffne `agents/assistant/SOUL.md` und ersetze den gesamten Inhalt durch folgendes. (Dieses Beispiel erstellt einen Kundensupport-Assistenten für ein fiktives Kaffee-Abonnement-Unternehmen — passe es an deinen eigenen Anwendungsfall an.)
+
+```markdown
+# Luna — Brewly Kundensupport
+
+## Identität
+Du bist Luna, der freundliche Kundensupport-Assistent von Brewly, einem
+Premium-Kaffee-Abonnementservice. Du bist warmherzig, kennst dich mit Kaffee aus
+und hilfst Kunden aufrichtig dabei, ihren perfekten Kaffee zu finden.
+
+## Persönlichkeit
+- Gesprächig aber effizient — kein Geschwätz, aber auch nicht roboterhaft
+- Verwende gelegentlich Kaffee-Metaphern, aber übertreibe es nicht
+- Wenn ein Kunde frustriert wirkt, erkenne seine Gefühle an, bevor du das Problem löst
+- Du kannst lockere Sprache verwenden ("Hey!", "Kein Problem!"), aber kein Slang,
+  der Nicht-Muttersprachler verwirren könnte
+
+## Wissensgrenzen
+- Du kennst alle Produkte, Pläne und Richtlinien von Brewly
+- Du kennst allgemeine Kaffee-Fakten (Herkunft, Zubereitungsmethoden, Geschmacksprofile)
+- Du kennst NICHT die Preise der Konkurrenz — rate nicht
+- Du gibst KEINE medizinischen oder diätetischen Ratschläge — empfehle einen Arztbesuch
+
+## Abonnementpläne
+- **Starter:** $14/Monat — 1 Tüte (340 g), kostenloser Versand, Wahl: hell/mittel/dunkel
+- **Explorer:** $26/Monat — 2 Tüten, kostenloser Versand, inklusive einem Single-Origin
+- **Connoisseur:** $42/Monat — 3 Tüten, kostenloser Expressversand, Frühzugang zu
+  limitierten Editionen, kostenlose Verkostungsnotiz-Karte
+
+## Häufige Aufgaben
+1. Kunden bei der Planauswahl helfen
+2. Abonnementänderungen bearbeiten (Upgrade, Downgrade, Pause, Kündigung)
+3. Sendungen verfolgen (Bestellnummer abfragen, Format: BRW-XXXXX)
+4. Produktfragen beantworten
+5. Feedback sammeln
+
+## Regeln
+- Erfinde NIEMALS Bestellstatus. Wenn du keine Tracking-Informationen hast, sag es
+  und biete an, den Kunden mit einem menschlichen Agenten zu verbinden.
+- Biete NIEMALS Rabatte oder Sonderangebote an, außer der Kunde erwähnt einen
+  gültigen Promo-Code.
+- Wenn jemand kündigen möchte, frage einmal nach dem Grund und bearbeite dann
+  die Kündigung freundlich. Kein Schuldgefühl-Trip.
+- Halte Antworten unter 150 Wörtern, außer der Kunde bittet um mehr Details.
+```
+
+Speichere die Datei. Da der Entwicklungsserver automatisch neu lädt, sind deine Änderungen sofort aktiv. Gehe zurück zu WebChat unter `localhost:18789` und versuche:
+
+> "Hallo! Ich überlege, mich anzumelden, weiß aber nicht, welcher Plan der richtige für mich ist. Ich trinke etwa 2 Tassen pro Tag."
+
+Luna sollte jetzt im Charakter antworten und die Plandetails aus der SOUL.md referenzieren. Bemerkst du, wie die Persönlichkeit durchkommt — die Wärme, das Produktwissen, das prägnante Format? Das ist die Stärke einer gut geschriebenen SOUL.md.
+
+### SOUL.md-Tipps
+
+- **Sei spezifisch.** "Sei hilfreich" ist nutzlos. "Halte Antworten unter 150 Wörtern, außer der Kunde bittet um Details" ist umsetzbar.
+- **Füge echte Daten ein.** Preise, Plannamen, Richtlinien — trage sie direkt in die SOUL.md ein. Der Agent wird sie präzise referenzieren.
+- **Definiere Grenzen.** Was der Agent *nicht* tun soll, ist genauso wichtig wie das, was er tun soll.
+- **Iteriere.** Deine erste SOUL.md wird nicht perfekt sein. Teste sie, erkenne Schwächen, und verfeinere sie.
+
+## Minute 25–40: Richte deinen ersten Kanal ein
+
+WebChat ist großartig zum Testen, aber lass uns einen echten Kanal verbinden. Wir richten Slack ein, da es am schnellsten zu konfigurieren ist.
+
+### Schritt 1: Erstelle eine Slack-App
+
+Gehe zu [api.slack.com/apps](https://api.slack.com/apps) und klicke auf "Create New App". Wähle "From scratch", gib einen Namen an (z. B. "Luna Bot") und wähle deinen Arbeitsbereich.
+
+### Schritt 2: Bot-Berechtigungen konfigurieren
+
+Füge unter **OAuth & Permissions** diese Scopes hinzu:
+
+- `chat:write`
+- `app_mentions:read`
+- `im:history`
+- `im:read`
+- `im:write`
+
+### Schritt 3: Im Arbeitsbereich installieren
+
+Klicke auf "Install to Workspace" und autorisiere. Kopiere das **Bot User OAuth Token** (beginnt mit `xoxb-`).
+
+### Schritt 4: Event-Abonnements aktivieren
+
+Aktiviere unter **Event Subscriptions** Events und setze die Request-URL auf deine Gateway-URL. Für lokale Entwicklung benötigst du einen Tunnel:
+
+```bash
+# In einem neuen Terminal-Tab (openclaw dev weiter laufen lassen)
+openclaw tunnel
+```
+
+Das startet einen sicheren Tunnel und gibt dir eine öffentliche URL wie `https://abc123.tunnel.openclaw.dev`. Verwende diese als Slack-Event-Subscription-URL:
+
+```
+https://abc123.tunnel.openclaw.dev/channels/slack/events
+```
+
+Abonniere diese Bot-Events:
+- `message.im`
+- `app_mention`
+
+### Schritt 5: Konfiguration aktualisieren
+
+Füge den Slack-Kanal zu deiner `openclaw.config.yaml` hinzu:
+
+```yaml
+project: my-assistant
+version: 1
+
+gateway:
+  port: 18789
+
+agents:
+  assistant:
+    model: openai/gpt-4o
+    soul: ./agents/assistant/SOUL.md
+    memory:
+      conversation: true
+      user: true
+      knowledge:
+        sources:
+          - ./knowledge/
+
+channels:
+  webchat:
+    enabled: true
+    agent: assistant
+  slack:
+    enabled: true
+    agent: assistant
+    bot_token: ${SLACK_BOT_TOKEN}
+    signing_secret: ${SLACK_SIGNING_SECRET}
+```
+
+Füge die Slack-Zugangsdaten zu deiner `.env` hinzu:
+
+```bash
+# .env
+OPENAI_API_KEY=sk-proj-your-key-here
+SLACK_BOT_TOKEN=xoxb-your-token-here
+SLACK_SIGNING_SECRET=your-signing-secret-here
+```
+
+Starte den Entwicklungsserver neu (oder lass Hot-Reload die Änderungen übernehmen). Sende jetzt eine Direktnachricht an deinen Bot in Slack — Luna antwortet mit derselben Persönlichkeit und demselben Wissen wie in WebChat.
+
+## Minute 40–50: Wissen hinzufügen
+
+Geben wir Luna echtes Wissen, aus dem sie schöpfen kann. Erstelle eine Datei im Verzeichnis `knowledge/`:
+
+```bash
+touch knowledge/shipping-policy.md
+```
+
+Füge folgenden Inhalt hinzu:
+
+```markdown
+# Brewly Versandrichtlinie
+
+## Inlandsversand (USA)
+- **Starter & Explorer-Pläne:** USPS First Class, 3–5 Werktage
+- **Connoisseur-Plan:** USPS Priority Express, 1–2 Werktage
+- Alle Abonnements werden am 1. und 15. jedes Monats versandt
+- Tracking-Nummern werden innerhalb von 24 Stunden nach Versand per E-Mail gesendet
+
+## Internationaler Versand
+- Verfügbar in Kanada, Großbritannien und EU-Ländern
+- Pauschalpreis: $8,99 pro Sendung
+- Lieferung: 7–14 Werktage per DHL eCommerce
+- Zollgebühren liegen in der Verantwortung des Kunden
+
+## Probleme
+- **Beschädigtes Paket:** Kontaktiere den Support mit Fotos innerhalb von 48 Stunden
+  für einen kostenlosen Ersatz
+- **Verlorenes Paket:** Wenn das Tracking seit 7+ Tagen keine Bewegung zeigt,
+  senden wir kostenlos nach
+- **Falsche Bestellung:** Kontaktiere den Support sofort — wir senden die
+  richtige Bestellung und ein vorfrankiertes Rücksendeetikett
+```
+
+Speichere die Datei. Der Entwicklungsserver erkennt die neue Datei und indiziert sie automatisch. Gehe zurück zu WebChat und frage:
+
+> "Mein Paket hat sich seit über einer Woche nicht bewegt. Was soll ich tun?"
+
+Luna sollte die Versandrichtlinie referenzieren, den 7-Tage-Schwellenwert erwähnen und eine Neusendung anbieten. Das ist Knowledge Memory in Aktion — der Agent durchsucht deine Dokumente und nutzt sie, um seine Antworten zu begründen.
+
+## Minute 50–60: Erstelle deinen ersten Cron-Job
+
+Lass uns etwas automatisieren. Wir richten eine tägliche Aufgabe ein, bei der Luna eine Zusammenfassung der Gespräche des Vortages erstellt und in einem Slack-Kanal veröffentlicht.
+
+Füge einen `crons`-Abschnitt zu deiner `openclaw.config.yaml` hinzu:
+
+```yaml
+project: my-assistant
+version: 1
+
+gateway:
+  port: 18789
+
+agents:
+  assistant:
+    model: openai/gpt-4o
+    soul: ./agents/assistant/SOUL.md
+    memory:
+      conversation: true
+      user: true
+      knowledge:
+        sources:
+          - ./knowledge/
+
+channels:
+  webchat:
+    enabled: true
+    agent: assistant
+  slack:
+    enabled: true
+    agent: assistant
+    bot_token: ${SLACK_BOT_TOKEN}
+    signing_secret: ${SLACK_SIGNING_SECRET}
+
+crons:
+  daily-summary:
+    schedule: "0 9 * * *"  # Täglich um 9:00 Uhr
+    agent: assistant
+    prompt: |
+      Überprüfe alle Gespräche der letzten 24 Stunden.
+      Erstelle eine kurze Zusammenfassung mit:
+      - Gesamtanzahl der Gespräche
+      - Häufigste Themen oder Fragen
+      - Ungelöste Probleme, die menschliche Aufmerksamkeit erfordern
+      - Bemerkenswertes Feedback (positiv oder negativ)
+      Halte es prägnant — maximal 5 Stichpunkte.
+    output:
+      channel: slack
+      target: "#daily-digest"
+```
+
+Das `schedule`-Feld verwendet die Standard-Cron-Syntax. Hier eine Kurzreferenz:
+
+```
+┌───────────── Minute (0-59)
+│ ┌───────────── Stunde (0-23)
+│ │ ┌───────────── Tag des Monats (1-31)
+│ │ │ ┌───────────── Monat (1-12)
+│ │ │ │ ┌───────────── Wochentag (0-6, Sonntag=0)
+│ │ │ │ │
+* * * * *
+```
+
+Einige nützliche Zeitpläne:
+
+```yaml
+"0 9 * * *"      # Täglich um 9:00 Uhr
+"0 9 * * 1"      # Jeden Montag um 9:00 Uhr
+"0 */4 * * *"    # Alle 4 Stunden
+"30 17 * * 1-5"  # Wochentags um 17:30 Uhr
+```
+
+Um deinen Cron-Job zu testen, ohne auf den Zeitplan warten zu müssen:
+
+```bash
+openclaw cron run daily-summary
+```
+
+Das löst den Job sofort aus. Prüfe den `#daily-digest`-Kanal in Slack (oder die Terminal-Ausgabe, wenn Slack nicht konfiguriert ist), um das Ergebnis zu sehen.
+
+## Was du gebaut hast
+
+Lass uns Bilanz ziehen. In der letzten Stunde hast du:
+
+1. **Ein Projekt aufgebaut** mit `openclaw init`
+2. **WebChat gestartet** unter `localhost:18789`
+3. **Eine SOUL.md geschrieben**, die deinem Agenten eine echte Persönlichkeit, Produktwissen und Verhaltensregeln gibt
+4. **Slack verbunden** als zweiten Kanal, sodass derselbe Agent in beiden Umgebungen funktioniert
+5. **Ein Wissensbasis-Dokument hinzugefügt**, das der Agent durchsucht und referenziert
+6. **Einen Cron-Job erstellt**, der täglich ausgeführt wird und eine Gesprächszusammenfassung veröffentlicht
+
+Das ist ein funktionaler KI-Assistent mit Multi-Kanal-Unterstützung, Langzeitgedächtnis, einer Wissensbasis und geplanter Automatisierung. Nicht schlecht für eine Stunde.
+
+## Was du als nächstes erkunden kannst
+
+Jetzt, da du die Grundlagen beherrschst, gibt es einige Richtungen, in die du weitergehen kannst:
+
+- **User Memory** — Aktiviere das Benutzergedächtnis, damit Luna wiederkehrende Kunden und ihre Präferenzen wiedererkennt.
+- **Custom Tools** — Schreibe eine TypeScript- oder Python-Funktion, die Luna aufrufen kann, z. B. um einen echten Bestellstatus aus deiner Datenbank abzurufen.
+- **Guardrails** — Füge Inhaltsfilter und Ausgabevalidierung hinzu, um Antworten markenkonform und sicher zu halten.
+- **Analytics** — Richte das Analytics-Dashboard ein, um Gesprächsvolumen, Lösungsraten und Benutzerzufriedenheit zu verfolgen.
+- **Deployment** — Wechsle von `openclaw dev` zu einem Produktions-Deployment mit `openclaw deploy`.
+
+Jedes dieser Themen hat eine eigene Anleitung in der Academy. Gehe sie in deinem eigenen Tempo durch.
+
+<CTACard variant="community" />

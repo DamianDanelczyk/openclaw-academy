@@ -1,0 +1,298 @@
+---
+title: Canal de WhatsApp
+description: Conecta OpenClaw a WhatsApp usando la biblioteca Baileys o la API Business oficial para conversaciones ricas en contenido multimedia.
+---
+
+# Canal de WhatsApp
+
+WhatsApp es la aplicación de mensajería más popular del mundo, con más de dos mil millones de usuarios. Si las personas a las que quieres llegar no están en Discord o Telegram, hay muchas probabilidades de que estén en WhatsApp. Conectar OpenClaw a WhatsApp significa que tu asistente vive en la aplicación que la gente ya consulta decenas de veces al día.
+
+Hay dos formas de conectarse: la **biblioteca Baileys** (código abierto, gratuita, usa una conexión de dispositivo vinculado) o la **API Business de WhatsApp** (oficial, de pago, adecuada para empresas a gran escala). Esta guía cubre ambas, comenzando con Baileys ya que es la opción más accesible para particulares y equipos pequeños.
+
+## Opción 1: Baileys (Código Abierto)
+
+[Baileys](https://github.com/WhiskeySockets/Baileys) es una popular biblioteca de código abierto que se conecta al protocolo multi-dispositivo de WhatsApp Web. Funciona vinculándose a tu cuenta de WhatsApp de la misma manera que lo hace WhatsApp Web — escaneando un código QR. Sin necesidad de cuenta de desarrollador de Meta, sin verificación empresarial, sin tarifas de API.
+
+### Cómo Funciona
+
+Cuando inicias por primera vez el canal de WhatsApp con Baileys, OpenClaw genera un código QR en tu terminal. Lo escaneas con WhatsApp en tu teléfono (Configuración > Dispositivos Vinculados > Vincular un Dispositivo). A partir de ese momento, OpenClaw funciona como un dispositivo vinculado en tu cuenta de WhatsApp.
+
+Los mensajes enviados a tu número de WhatsApp los reciben tanto tu teléfono como OpenClaw. El asistente puede leerlos y responderlos igual que tú.
+
+### Configuración
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    whatsapp: {
+      enabled: true,
+      provider: 'baileys',
+
+      // Session persistence — so you don't have to scan the QR code every restart
+      session: {
+        storePath: './data/whatsapp-session',
+      },
+
+      // Who can interact with the assistant
+      access: {
+        mode: 'allowlist',   // 'allowlist' | 'blocklist' | 'all'
+        allowlist: [
+          '+15551234567',    // Only these numbers can chat with the bot
+          '+44201234567',
+        ],
+      },
+    },
+  },
+});
+```
+
+```bash title=".env"
+# No API keys needed for Baileys — authentication is via QR code
+WHATSAPP_PROVIDER=baileys
+```
+
+Inicia OpenClaw:
+
+```bash
+npx openclaw dev
+```
+
+Verás una salida como esta:
+
+```
+[whatsapp] Initializing Baileys provider...
+[whatsapp] No existing session found. Please scan the QR code:
+
+█████████████████████████████████
+██ ▄▄▄▄▄ █  █▄█▀█ ██ ▄▄▄▄▄ ██
+██ █   █ █ ▀█▄▄▀▄ ██ █   █ ██
+██ █▄▄▄█ █ ▄▀ █ ▄▀██ █▄▄▄█ ██
+█████████████████████████████████
+
+[whatsapp] Waiting for scan...
+```
+
+Escanea el código QR con tu teléfono y en pocos segundos:
+
+```
+[whatsapp] Session authenticated
+[whatsapp] Session saved to ./data/whatsapp-session
+[whatsapp] Channel ready
+```
+
+La sesión se persiste en el disco, por lo que solo necesitas escanear una vez. En reinicios posteriores, OpenClaw se reconecta automáticamente.
+
+### Peculiaridades de Baileys
+
+Hay algunas cosas que debes saber cuando uses Baileys:
+
+**Expiración de sesión.** WhatsApp puede desvincular ocasionalmente los dispositivos si han estado inactivos durante un período prolongado (típicamente 14+ días). Si esto ocurre, necesitarás escanear el código QR de nuevo. OpenClaw detecta esto y registra una advertencia clara.
+
+**No es una API oficial.** Baileys realiza ingeniería inversa del protocolo de WhatsApp Web. Si bien es ampliamente utilizado y generalmente estable, Meta podría teóricamente interrumpirlo con un cambio de protocolo. Para uso empresarial de misión crítica, considera en cambio la API Business oficial.
+
+**Riesgo para la cuenta.** Los Términos de Servicio de WhatsApp técnicamente prohíben la mensajería automatizada en cuentas personales. En la práctica, el uso de asistente de bajo volumen (responder mensajes de contactos conocidos) es poco probable que desencadene una acción, pero el alcance automatizado de alto volumen hará que tu número sea bloqueado.
+
+**No hay WhatsApp Web simultáneo.** Si usas Baileys, todavía puedes usar WhatsApp Web en un navegador junto a él — el multi-dispositivo admite hasta cuatro dispositivos vinculados. Pero ten en cuenta que tanto OpenClaw como tú podrían responder al mismo mensaje si ambos están activos.
+
+## Opción 2: API Business de WhatsApp
+
+La API Business oficial de WhatsApp es la forma autorizada por Meta de crear experiencias automatizadas. Está diseñada para empresas, requiere una cuenta de Meta Business e implica precios por conversación. Pero viene con garantías: sin riesgo de bloqueos, soporte oficial y alto rendimiento.
+
+### Requisitos Previos
+
+1. Una **Cuenta de Meta Business** en [business.facebook.com](https://business.facebook.com).
+2. Una **Cuenta de WhatsApp Business** vinculada a tu cuenta de Meta Business.
+3. Un **número de teléfono** que no esté ya registrado en WhatsApp (lo registrarás como número empresarial).
+4. Un **Proveedor de Soluciones de Negocio (BSP)** o acceso directo a la API a través de la API Cloud de Meta.
+
+### Configuración
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    whatsapp: {
+      enabled: true,
+      provider: 'business-api',
+
+      businessApi: {
+        phoneNumberId: process.env.WA_PHONE_NUMBER_ID,
+        accessToken: process.env.WA_ACCESS_TOKEN,
+        verifyToken: process.env.WA_VERIFY_TOKEN,  // For webhook verification
+        webhookPath: '/hooks/whatsapp',
+        apiVersion: 'v18.0',
+      },
+    },
+  },
+});
+```
+
+```bash title=".env"
+WA_PHONE_NUMBER_ID=123456789012345
+WA_ACCESS_TOKEN=EAABcd1234...your-long-access-token
+WA_VERIFY_TOKEN=my-custom-verify-string
+```
+
+### Configuración del Webhook
+
+La API Business usa webhooks para entregar mensajes entrantes. En el Portal de Desarrolladores de Meta:
+
+1. Ve a la página **WhatsApp > Configuration** de tu aplicación.
+2. Establece la **URL de Callback** en `https://your-server.com/hooks/whatsapp`.
+3. Establece el **Token de Verificación** para que coincida con `WA_VERIFY_TOKEN` en tu configuración.
+4. Suscríbete a los campos de webhook `messages` y `message_status`.
+
+OpenClaw maneja el protocolo de verificación automáticamente.
+
+## Manejo de Medios
+
+WhatsApp es una plataforma rica en medios. La gente envía fotos, notas de voz, documentos, stickers y ubicaciones constantemente. OpenClaw maneja todo esto:
+
+### Recepción de Medios
+
+```typescript
+whatsapp: {
+  media: {
+    // Incoming media handling
+    receive: {
+      images: true,        // Process incoming photos
+      audio: true,         // Process voice notes
+      video: true,         // Process video messages
+      documents: true,     // Process PDF, DOCX, etc.
+      stickers: true,      // Convert stickers to emoji descriptions
+      locations: true,     // Parse shared locations to coordinates
+    },
+
+    // Voice note transcription
+    voiceTranscription: {
+      enabled: true,
+      provider: 'whisper', // Uses OpenAI Whisper for transcription
+      language: 'auto',    // Auto-detect language
+    },
+
+    // Storage
+    storage: {
+      path: './data/whatsapp-media',
+      maxSizeMB: 64,       // WhatsApp's file size limit
+      cleanupAfterDays: 7, // Delete downloaded media after 7 days
+    },
+  },
+},
+```
+
+Cuando alguien envía una nota de voz, OpenClaw la descarga, la transcribe a texto y pasa la transcripción al asistente como si el usuario la hubiera escrito. La respuesta de texto del asistente se envía de vuelta como un mensaje de texto normal de WhatsApp (no como nota de voz, de forma predeterminada).
+
+### Envío de Medios
+
+El asistente puede enviar imágenes, documentos y otros medios de vuelta:
+
+```typescript
+whatsapp: {
+  media: {
+    send: {
+      imageQuality: 'high',    // 'low' | 'medium' | 'high'
+      documentPreview: true,    // Generate previews for PDFs
+      captionWithMedia: true,   // Include text caption with media
+    },
+  },
+},
+```
+
+## Soporte de Chats Grupales
+
+Los grupos de WhatsApp funcionan de manera similar a otros canales — el bot puede participar, pero no debería responder a todo:
+
+```typescript
+whatsapp: {
+  groups: {
+    enabled: true,
+    respondTo: 'mention',   // Respond when someone mentions the bot by name
+    mentionNames: ['claw', 'bot', 'assistant'],
+    adminOnly: false,        // If true, only group admins can interact
+
+    // Ignore status broadcasts and community announcements
+    ignoreStatusBroadcast: true,
+    ignoreCommunityAnnouncements: true,
+  },
+},
+```
+
+En los grupos de WhatsApp, no hay un sistema formal de `@menciones` como en Discord o Slack. En cambio, OpenClaw busca sus nombres de activación al comienzo de los mensajes. Si alguien escribe "claw, ¿cuál es el clima?", el bot lo reconoce como un mensaje dirigido y responde.
+
+## Formato de Mensajes
+
+WhatsApp admite formato básico:
+
+- `*bold*` para **negrita**
+- `_italic_` para _cursiva_
+- `~strikethrough~` para ~~tachado~~
+- ``` `monospace` ``` para `monoespacio`
+- `\`\`\`code blocks\`\`\`` para código de varias líneas
+
+OpenClaw convierte automáticamente las respuestas en Markdown del asistente al formato de WhatsApp:
+
+```typescript
+whatsapp: {
+  formatting: {
+    convertMarkdown: true,   // Convert standard Markdown to WhatsApp format
+    maxMessageLength: 4096,  // WhatsApp's message limit
+    splitLongMessages: true,
+  },
+},
+```
+
+## Confirmaciones de Lectura e Indicadores de Escritura
+
+Las marcas de verificación azules de WhatsApp y los indicadores de escritura proporcionan señales sociales que hacen que las conversaciones se sientan naturales:
+
+```typescript
+whatsapp: {
+  indicators: {
+    readReceipts: true,       // Send blue checkmarks when message is processed
+    typingIndicator: true,    // Show "typing..." while generating a response
+    typingTimeout: 25000,     // Max typing indicator duration (milliseconds)
+  },
+},
+```
+
+El indicador de escritura es especialmente importante en WhatsApp. Sin él, el usuario envía un mensaje y mira una pantalla en blanco preguntándose si algo pasó. Con él, ve "escribiendo..." y sabe que el asistente está trabajando en una respuesta.
+
+## Limitación de Velocidad y Anti-Spam
+
+Para proteger tu cuenta de WhatsApp (especialmente con Baileys), OpenClaw incluye limitación de velocidad integrada:
+
+```typescript
+whatsapp: {
+  rateLimit: {
+    maxMessagesPerMinute: 20,     // Outbound message limit
+    maxMessagesPerContact: 5,     // Per-contact per-minute limit
+    cooldownOnLimit: 60000,       // Wait 60s if limits are hit
+    antiFlood: {
+      enabled: true,
+      maxInboundPerMinute: 10,    // Ignore contacts sending too fast
+      warningMessage: 'Please slow down. I can only handle a few messages per minute.',
+    },
+  },
+},
+```
+
+Esto es particularmente importante para WhatsApp porque la mensajería automatizada agresiva puede hacer que tu número sea marcado o bloqueado.
+
+## Elegir Entre Baileys y la API Business
+
+| Factor | Baileys | API Business |
+|--------|---------|-------------|
+| Costo | Gratuito | Precios por conversación |
+| Dificultad de configuración | Fácil (escaneo QR) | Media (cuenta Meta Business, verificación) |
+| Riesgo para la cuenta | Riesgo bajo para uso personal | Sin riesgo (compatible oficialmente) |
+| Rendimiento | Moderado | Alto |
+| Mejor para | Uso personal, equipos pequeños, pruebas | Empresas, atención al cliente, alto volumen |
+| Número de teléfono | Tu número existente | Número empresarial dedicado |
+| Soporte oficial | Solo comunidad | Canales de soporte de Meta |
+
+Para la mayoría de los usuarios de OpenClaw que empiezan, Baileys es el camino a seguir. No cuesta nada, tarda cinco minutos en configurarse y funciona perfectamente para asistentes personales y equipos pequeños. Actualiza a la API Business cuando necesites soporte oficial, mayor rendimiento o la tranquilidad que viene con el uso de una API autorizada.
+
+Cualquiera que sea el camino que elijas, el canal de WhatsApp abre tu asistente a una audiencia masiva en la plataforma en la que ya confían y usan todos los días.

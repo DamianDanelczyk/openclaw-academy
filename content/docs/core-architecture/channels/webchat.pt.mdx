@@ -1,0 +1,415 @@
+---
+title: Canal WebChat
+description: Use a interface WebChat integrada do OpenClaw em localhost:18789 para testes instantâneos, personalização e incorporação em sites.
+---
+
+# Canal WebChat
+
+Toda instalação do OpenClaw vem com uma interface WebChat integrada. Sem contas para criar, sem APIs para configurar, sem webhooks para configurar. Inicie o OpenClaw, abra seu navegador em `http://localhost:18789` e comece a conversar. É o caminho mais rápido de "acabei de instalar isso" para "estou conversando com meu assistente."
+
+O WebChat não é apenas uma ferramenta de desenvolvimento descartável, porém. É uma interface de chat totalmente personalizável que você pode incorporar ao seu próprio site, personalizar com suas cores e logotipo, e implantar como produto voltado ao cliente. Pense nele como seu sandbox de testes e seu canal web de produção ao mesmo tempo.
+
+## Começando
+
+Se você tem o OpenClaw instalado, o WebChat já está habilitado por padrão. Inicie o servidor:
+
+```bash
+npx openclaw dev
+```
+
+Você verá nos logs:
+
+```
+[webchat] WebChat server starting on port 18789...
+[webchat] Interface available at http://localhost:18789
+[webchat] Channel ready
+```
+
+Abra `http://localhost:18789` no seu navegador. É isso. Você está conversando com seu assistente.
+
+A interface padrão é limpa e funcional — uma entrada de mensagem na parte inferior, uma área de conversa acima e um cabeçalho mínimo. Funciona em navegadores desktop e mobile igualmente.
+
+## Configuração
+
+Mesmo que o WebChat funcione imediatamente, você pode personalizá-lo extensivamente:
+
+```typescript title="openclaw.config.ts"
+import { defineConfig } from '@openclaw/core';
+
+export default defineConfig({
+  channels: {
+    webchat: {
+      enabled: true,
+      port: 18789,
+
+      // Opções de servidor
+      server: {
+        host: '0.0.0.0',         // Escutar em todas as interfaces (padrão: localhost)
+        cors: {
+          origin: ['https://seusite.com'],  // Origens permitidas para incorporação
+          credentials: true,
+        },
+      },
+
+      // Aparência
+      ui: {
+        title: 'Assistente OpenClaw',
+        subtitle: 'Pergunte qualquer coisa',
+        placeholder: 'Digite sua mensagem...',
+        welcomeMessage: 'Olá! Sou seu assistente de IA. Como posso ajudá-lo hoje?',
+        avatarUrl: '/assets/bot-avatar.png',
+        showTimestamps: true,
+        showTypingIndicator: true,
+      },
+
+      // Comportamento
+      behavior: {
+        persistConversation: true,    // Lembrar o chat após recarregar a página
+        maxHistoryLength: 100,        // Manter as últimas 100 mensagens visíveis
+        autoScroll: true,             // Rolar para baixo em novas mensagens
+        soundNotifications: false,    // Reproduzir som em novas mensagens
+      },
+    },
+  },
+});
+```
+
+## Temas e Identidade Visual
+
+O WebChat vem com um sistema de temas que permite combinar com sua marca sem escrever CSS do zero:
+
+```typescript
+webchat: {
+  theme: {
+    // Esquema de cores
+    mode: 'light',                    // 'light' | 'dark' | 'auto' (segue o sistema)
+    colors: {
+      primary: '#6366F1',             // Cor de destaque principal (botões, links)
+      background: '#FFFFFF',          // Fundo do chat
+      surface: '#F8FAFC',            // Fundo de balão de mensagem (bot)
+      userBubble: '#6366F1',         // Balão de mensagem do usuário
+      userText: '#FFFFFF',           // Texto dentro do balão do usuário
+      botBubble: '#F1F5F9',          // Balão de mensagem do bot
+      botText: '#1E293B',           // Texto dentro do balão do bot
+      border: '#E2E8F0',            // Bordas e divisores
+      inputBackground: '#FFFFFF',    // Campo de entrada de mensagem
+    },
+
+    // Tipografia
+    fonts: {
+      body: '"Inter", -apple-system, sans-serif',
+      code: '"JetBrains Mono", "Fira Code", monospace',
+      sizeBase: '15px',
+    },
+
+    // Layout
+    layout: {
+      maxWidth: '720px',             // Largura máxima da área de chat
+      borderRadius: '12px',          // Arredondamento de balões e contêineres
+      messagePadding: '12px 16px',
+      avatarSize: '32px',
+    },
+
+    // CSS personalizado para o que o sistema de temas não cobre
+    customCss: `
+      .message-bot .content a {
+        color: #6366F1;
+        text-decoration: underline;
+      }
+      .message-bot .content code {
+        background: #F1F5F9;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    `,
+  },
+},
+```
+
+Para modo escuro, você pode definir `mode: 'dark'` ou deixar seguir a preferência do sistema do usuário com `mode: 'auto'`. Ao usar o modo automático, você pode fornecer paletas de cores para modo claro e escuro:
+
+```typescript
+webchat: {
+  theme: {
+    mode: 'auto',
+    colors: {
+      primary: '#6366F1',
+      background: '#FFFFFF',
+      // ...cores do modo claro
+    },
+    darkColors: {
+      primary: '#818CF8',
+      background: '#0F172A',
+      surface: '#1E293B',
+      userBubble: '#6366F1',
+      userText: '#FFFFFF',
+      botBubble: '#1E293B',
+      botText: '#E2E8F0',
+      border: '#334155',
+      inputBackground: '#1E293B',
+    },
+  },
+},
+```
+
+## Incorporando em Seu Site
+
+O WebChat pode ser incorporado em qualquer site como um widget de chat — a pequena bolha flutuante no canto que abre um painel de chat quando clicada. É assim que você transforma seu assistente OpenClaw em uma experiência de chat voltada ao cliente.
+
+### Incorporação por Script (Mais Simples)
+
+Adicione uma única tag de script ao seu site:
+
+```html title="seu-site.html"
+<!-- Adicionar antes de </body> -->
+<script
+  src="https://seu-servidor-openclaw.com:18789/embed.js"
+  data-server="https://seu-servidor-openclaw.com:18789"
+  data-position="bottom-right"
+  data-theme="auto"
+  data-title="Precisa de ajuda?"
+  data-welcome="Olá! Pergunte qualquer coisa sobre nosso produto."
+  defer
+></script>
+```
+
+Isso injeta um botão de chat flutuante no canto da sua página. Quando clicado, abre um painel de chat que se comunica com seu servidor OpenClaw.
+
+### Componente React
+
+Se seu site é construído com React, você pode usar o componente WebChat do OpenClaw diretamente:
+
+```tsx title="ChatWidget.tsx"
+import { OpenClawChat } from '@openclaw/webchat-react';
+
+export function ChatWidget() {
+  return (
+    <OpenClawChat
+      server="https://seu-servidor-openclaw.com:18789"
+      position="bottom-right"
+      theme="auto"
+      title="Assistente de IA"
+      welcomeMessage="Olá! Como posso ajudar?"
+      user={{
+        id: currentUser.id,        // Opcional: vincular ao seu sistema de usuários
+        name: currentUser.name,
+      }}
+      styles={{
+        primary: '#6366F1',
+        borderRadius: '16px',
+      }}
+      onMessage={(msg) => {
+        analytics.track('chat_message', { length: msg.length });
+      }}
+    />
+  );
+}
+```
+
+### Incorporação por iframe
+
+Para máximo isolamento (o chat roda em seu próprio contexto de navegação), use um iframe:
+
+```html
+<iframe
+  src="https://seu-servidor-openclaw.com:18789?embed=true&theme=light"
+  style="width: 400px; height: 600px; border: none; border-radius: 12px;"
+  allow="microphone"
+  title="Chat de IA"
+></iframe>
+```
+
+O parâmetro de consulta `?embed=true` remove o cabeçalho e renderiza o chat em um layout compacto adequado para incorporação em iframe.
+
+## Autenticação e Controle de Acesso
+
+Para implantações públicas, você provavelmente não quer que qualquer pessoa na internet tenha acesso ilimitado ao seu assistente. O WebChat suporta vários mecanismos de controle de acesso:
+
+```typescript
+webchat: {
+  auth: {
+    // Sem autenticação — qualquer um pode conversar
+    mode: 'open',
+
+    // Autenticação simples baseada em token
+    // mode: 'token',
+    // tokens: ['secret-token-1', 'secret-token-2'],
+
+    // Autenticação baseada em JWT (integre com seu sistema de autenticação)
+    // mode: 'jwt',
+    // jwtSecret: process.env.JWT_SECRET,
+    // jwtIssuer: 'seu-app',
+  },
+
+  rateLimit: {
+    maxMessagesPerMinute: 10,        // Limite de taxa por sessão
+    maxSessionsPerIP: 3,            // Limitar sessões de um único IP
+    cooldownMessage: 'Você está enviando mensagens muito rapidamente. Por favor, aguarde um momento.',
+  },
+},
+```
+
+Para autenticação JWT, seu site gera um token quando o usuário faz login, e o widget WebChat o envia com cada solicitação. Isso permite vincular sessões de chat às suas próprias contas de usuário.
+
+## Recursos de Conversa
+
+O WebChat suporta recursos que algumas plataformas de mensagens não têm:
+
+### Renderização de Markdown
+
+As respostas do assistente são renderizadas com suporte total ao Markdown — cabeçalhos, negrito, itálico, listas, tabelas, blocos de código com destaque de sintaxe e até expressões matemáticas em LaTeX:
+
+```typescript
+webchat: {
+  rendering: {
+    markdown: true,
+    syntaxHighlighting: true,    // Destacar blocos de código por linguagem
+    mathRendering: true,         // Renderizar LaTeX com KaTeX
+    linkTarget: '_blank',        // Abrir links em novas abas
+    sanitizeHtml: true,          // Prevenir XSS no conteúdo renderizado
+  },
+},
+```
+
+### Upload de Arquivos
+
+Os usuários podem arrastar e soltar arquivos ou clicar em um botão de upload para compartilhar arquivos com o assistente:
+
+```typescript
+webchat: {
+  fileUpload: {
+    enabled: true,
+    maxSizeMB: 10,
+    allowedTypes: ['image/*', 'application/pdf', '.txt', '.csv', '.json'],
+    dragAndDrop: true,
+  },
+},
+```
+
+### Respostas Sugeridas
+
+Você pode configurar o assistente para oferecer botões de sugestão clicáveis após certas respostas:
+
+```typescript
+webchat: {
+  suggestions: {
+    enabled: true,
+    position: 'below-message',   // 'below-message' | 'above-input'
+    style: 'chips',              // 'chips' | 'buttons' | 'list'
+  },
+},
+```
+
+O assistente decide quais sugestões mostrar com base no contexto. Por exemplo, após explicar um conceito, pode sugerir "Conte-me mais", "Mostre um exemplo" ou "Vá para o próximo tópico."
+
+### Exportação de Conversa
+
+Os usuários podem exportar sua conversa como arquivo de texto, arquivo Markdown ou JSON:
+
+```typescript
+webchat: {
+  export: {
+    enabled: true,
+    formats: ['markdown', 'json', 'txt'],
+    includeTimestamps: true,
+  },
+},
+```
+
+## Desenvolvimento vs. Produção
+
+### Desenvolvimento
+
+No desenvolvimento, o WebChat roda em `localhost:18789` sem autenticação e com recursos de depuração completos:
+
+```typescript
+webchat: {
+  enabled: true,
+  port: 18789,
+  debug: {
+    showTokenCount: true,       // Exibir uso de tokens por mensagem
+    showLatency: true,          // Mostrar tempo de geração de resposta
+    showRawPayload: false,      // Alternar para ver payloads brutos da API
+  },
+},
+```
+
+O painel de depuração aparece no topo da interface de chat, mostrando contagens de tokens, latência e informações do modelo para cada mensagem. Isso é inestimável para entender como seu assistente se desempenha.
+
+### Produção
+
+Para produção, restrinja as configurações:
+
+```typescript
+webchat: {
+  enabled: true,
+  port: 18789,
+  server: {
+    host: '0.0.0.0',
+    cors: {
+      origin: ['https://seusite.com', 'https://www.seusite.com'],
+    },
+    trustProxy: true,           // Se estiver atrás do nginx/Caddy
+  },
+  auth: {
+    mode: 'jwt',
+    jwtSecret: process.env.JWT_SECRET,
+  },
+  rateLimit: {
+    maxMessagesPerMinute: 10,
+    maxSessionsPerIP: 3,
+  },
+  debug: {
+    showTokenCount: false,
+    showLatency: false,
+    showRawPayload: false,
+  },
+},
+```
+
+Coloque um proxy reverso (nginx, Caddy, Cloudflare) na frente do servidor WebChat para terminação TLS. Não exponha a porta 18789 diretamente à internet.
+
+```nginx title="nginx.conf"
+server {
+    listen 443 ssl http2;
+    server_name chat.seusite.com;
+
+    ssl_certificate /etc/ssl/certs/seusite.pem;
+    ssl_certificate_key /etc/ssl/private/seusite.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:18789;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+## Atalhos de Teclado
+
+A interface WebChat inclui atalhos de teclado para usuários avançados:
+
+| Atalho | Ação |
+|--------|------|
+| `Enter` | Enviar mensagem |
+| `Shift+Enter` | Nova linha (sem enviar) |
+| `Ctrl+/` ou `Cmd+/` | Focar no campo de entrada |
+| `Escape` | Fechar o widget de chat (modo embed) |
+| `Ctrl+Shift+X` | Limpar conversa |
+| `Ctrl+Shift+E` | Exportar conversa |
+
+## Por Que Começar com o WebChat
+
+O WebChat é o canal com a menor barreira de entrada. Sem contas de terceiros, sem chaves de API, sem configurações de webhook. É o canal que está sempre lá, sempre funcionando. Use-o para:
+
+- **Testar seu assistente** antes de conectar plataformas externas.
+- **Demonstrar para stakeholders** sem exigir que instalem nada.
+- **Incorporar em seu site** como interface de chat de produção.
+- **Depurar problemas** com o painel de depuração integrado.
+
+Uma vez satisfeito com o comportamento do seu assistente no WebChat, ramifique para Telegram, Discord, Slack ou qualquer canal que seus usuários preferem. O comportamento do assistente será idêntico — apenas o mecanismo de entrega muda.

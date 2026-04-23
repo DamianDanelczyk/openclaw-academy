@@ -1,0 +1,232 @@
+---
+title: Sitzungen
+description: Wie OpenClaw-Sitzungen Kontext verfolgen, tägliche Resets verwalten und Gespräche kohärent halten.
+---
+
+# Sitzungen
+
+Jedes Mal, wenn du anfängst, mit OpenClaw zu sprechen, befindest du dich in einer **Sitzung**. Sitzungen sind die Art, wie OpenClaw nachverfolgt, worüber du gesprochen hast, was du vor fünf Minuten gefragt hast und was gerade wichtig ist. Ohne Sitzungen würde sich jede Nachricht anfühlen, als würdest du mit einem Fremden sprechen.
+
+## Was ist eine Sitzung?
+
+Eine Sitzung ist ein begrenzter Gesprächskontext. Sie beginnt, wenn du anfängst zu interagieren, und endet basierend auf von dir definierten Regeln — normalerweise am Ende des Tages oder nach einer Inaktivitätsperiode. Während einer Sitzung wird alles, was du sagst, und alles, was OpenClaw sagt, im Arbeitsgedächtnis gehalten.
+
+Stell es dir wie einen Schreibtisch vor. Wenn du dich hinsetzen, um zu arbeiten, holst du die Dokumente heraus, die du brauchst. Im Laufe des Tages fügst du Papiere hinzu, verweist auf frühere Notizen, und alles bleibt in Reichweite. Am Ende des Tages räumst du auf — manche Dinge werden abgelegt, andere werden recycelt. Das ist eine Sitzung.
+
+## Sitzungs-Lebenszyklus
+
+So läuft eine Sitzung von Anfang bis Ende ab:
+
+```
+Sitzungsstart
+    │
+    ├─ SOUL.md laden (Persönlichkeit)
+    ├─ USER.md laden (dein Profil)
+    ├─ Relevante Langzeiterinnerungen abrufen
+    ├─ Ausstehende Aufgaben aus vorherigen Sitzungen prüfen
+    │
+    ▼
+Aktive Sitzung
+    │
+    ├─ Jede Nachricht fügt zum Sitzungskontext hinzu
+    ├─ Erinnerungen werden getaggt und gewichtet
+    ├─ Skills feuern und Ergebnisse werden erfasst
+    │
+    ▼
+Sitzungsende (Tages-Reset oder Timeout)
+    │
+    ├─ Wichtiger Kontext → Langzeitgedächtnis
+    ├─ Sitzungszusammenfassung generiert
+    ├─ Temporäre Daten verworfen
+    └─ Sitzung archiviert
+```
+
+## Kontext-Verfolgung
+
+Während einer aktiven Sitzung verfolgt OpenClaw viel mehr als nur deine Nachrichten. Es pflegt einen strukturierten Kontext, der folgendes umfasst:
+
+```yaml
+# Wie ein Sitzungskontext intern aussieht
+session:
+  id: "ses_20260422_a8f3c"
+  user: "damian"
+  agent: "Atlas"
+  started_at: "2026-04-22T09:15:00Z"
+  messages: 23
+  context:
+    topics:
+      - "vierteljährliche Budgetüberprüfung"
+      - "Team-Meeting-Agenda"
+    entities:
+      people: ["Sarah", "Mike", "Dr. Chen"]
+      projects: ["Projekt Falcon", "Q2-Einführung"]
+      dates: ["nächsten Dienstag", "30. April"]
+    active_tasks:
+      - "E-Mail an Sarah über den Zeitplan entwerfen"
+      - "Umsatzzahlen des letzten Quartals finden"
+    mood_signals: "fokussiert, leicht gehetzt"
+    skills_used: ["calendar", "email", "web_search"]
+```
+
+Diese Kontext-Verfolgung ist der Grund, warum OpenClaw Folgefragen natürlich behandeln kann. Wenn du sagst "Was ist mit dem, das Mike erwähnt hat?", weiß OpenClaw, wer Mike ist und worauf sich "das" bezieht, weil es während der gesamten Sitzung Entitäten und Themen verfolgt hat.
+
+## Tages-Resets
+
+Standardmäßig werden Sitzungen alle 24 Stunden zurückgesetzt. Das ist beabsichtigt. Eine neue Sitzung bedeutet, dein Assistent beginnt frisch, ohne irrelevanten Kontext aus den Gesprächen von gestern mitzuschleppen.
+
+Aber "Reset" bedeutet nicht "vergessen". Bevor eine Sitzung endet, führt OpenClaw einen Destillationsprozess durch:
+
+```yaml
+session_management:
+  daily_reset:
+    time: "04:00"
+    timezone: "user_local"
+
+  distillation:
+    enabled: true
+    preserve:
+      - ongoing_tasks
+      - important_decisions
+      - user_preferences_learned
+      - follow_up_items
+    discard:
+      - casual_chitchat
+      - one_off_lookups
+      - superseded_information
+
+  summary:
+    generate: true
+    max_length: 500
+    store_in: "daily_memories"
+```
+
+Um 4 Uhr morgens (deine Ortszeit) wird die Sitzung beendet. OpenClaw schreibt eine Zusammenfassung, speichert wichtige Punkte im Langzeitgedächtnis und verwirft den Lärm. Wenn du am nächsten Morgen anfängst zu sprechen, bekommst du einen frischen Kontext — aber dein Agent erinnert sich immer noch daran, dass du am Dienstag ein Folgegespräch mit Sarah hast.
+
+## Geltungsbereich-Regeln
+
+Nicht alles in deiner Sitzung wird gleich behandelt. OpenClaw verwendet **Geltungsbereich-Regeln**, um zu bestimmen, welcher Kontext verfügbar ist und wie lange er bestehen bleibt.
+
+```yaml
+scope_rules:
+  levels:
+    - scope: "turn"
+      description: "Einzelnes Nachrichten-Antwort-Paar"
+      persists: "nur aktueller Turn"
+      example: "Zwischenschritte einer Berechnung"
+
+    - scope: "conversation"
+      description: "Aktueller Gesprächs-Thread"
+      persists: "bis Thema wechselt oder Sitzung endet"
+      example: "Die Budgetzahlen, die du gerade diskutierst"
+
+    - scope: "session"
+      description: "Gesamte aktuelle Sitzung"
+      persists: "bis zum Tages-Reset"
+      example: "Dass du einen harten Morgen hattest"
+
+    - scope: "persistent"
+      description: "Überschreitet Sitzungsgrenzen"
+      persists: "bis explizit entfernt"
+      example: "Deine Präferenz für metrische Einheiten"
+```
+
+Du kannst den Geltungsbereich auch manuell setzen, wenn du möchtest, dass etwas gespeichert oder vergessen wird:
+
+```
+Du: Merke dir, dass meine neue Telefonnummer 555-0142 ist
+→ Geltungsbereich: persistent (in USER.md gespeichert)
+
+Du: Nehme für dieses Gespräch an, dass alle Preise in EUR sind
+→ Geltungsbereich: conversation (vergessen, wenn das Thema wechselt)
+
+Du: Erinnere dich an nichts aus diesem Gespräch
+→ Geltungsbereich: turn (alles ist turn-begrenzt, nichts wird gespeichert)
+```
+
+## Sitzungs-Konfiguration
+
+Du hast Kontrolle darüber, wie Sitzungen sich verhalten:
+
+```json
+{
+  "sessions": {
+    "timeout": {
+      "idle_minutes": 120,
+      "action": "pause",
+      "resume_greeting": true
+    },
+    "context_window": {
+      "strategy": "sliding",
+      "max_messages": 100,
+      "summarize_after": 50,
+      "priority_retain": ["user_instructions", "task_context", "recent_messages"]
+    },
+    "multi_device": {
+      "sync": true,
+      "conflict_resolution": "latest_wins",
+      "handoff_notification": true
+    },
+    "privacy": {
+      "auto_redact": ["credit_card", "ssn", "password"],
+      "session_encryption": true,
+      "retention_days": 30
+    }
+  }
+}
+```
+
+Lass uns die interessanten Teile durchgehen:
+
+**Timeout** — nach 2 Stunden Stille wird die Sitzung pausiert (nicht beendet). Wenn du zurückkommst, begrüßt dich OpenClaw mit einer kurzen Zusammenfassung: "Willkommen zurück! Wir haben an der Budgetüberprüfung gearbeitet. Möchtest du dort weitermachen, wo wir aufgehört haben?"
+
+**Kontext-Fenster-Strategie** — "sliding" bedeutet, ältere Nachrichten fallen schrittweise heraus, wenn neue hinzukommen, aber eine Zusammenfassung wird generiert, sodass kein Kontext verloren geht. Die `priority_retain`-Einstellung stellt sicher, dass deine expliziten Anweisungen nie zusammengefasst werden.
+
+**Multi-Gerät-Synchronisation** — wenn du ein Gespräch auf deinem Telefon beginnst und zum Laptop wechselst, folgt dir die Sitzung. `handoff_notification` gibt dir eine kurze "Weiter von deinem Telefon..." Nachricht, damit du weißt, dass alles übertragen wurde.
+
+**Datenschutz** — Kreditkartennummern, Sozialversicherungsnummern und Passwörter werden automatisch aus Sitzungsprotokollen entfernt. Sitzungen sind verschlüsselt, und alte Sitzungsdaten werden nach 30 Tagen gelöscht.
+
+## Deine Sitzung inspizieren
+
+Neugierig, was in deiner aktuellen Sitzung steckt? Du kannst fragen:
+
+```
+Du: /session status
+
+OpenClaw: Aktuelle Sitzung begann vor 3 Stunden.
+  Nachrichten: 47
+  Themen: Projektplanung, Mittagsempfehlung, API-Debugging
+  Aktive Aufgaben: 2
+  Kontext-Nutzung: 34% des Fensters
+  Verwendete Skills: calendar, web_search, code_exec
+```
+
+Oder für mehr Details:
+
+```
+Du: /session context
+
+OpenClaw: Das verfolge ich gerade:
+  - Du planst die Q2-Einführung (laufend)
+  - Sarah kümmert sich um Design, Mike ist für Backend zuständig
+  - Frist ist der 30. April (noch 8 Tage)
+  - Du bevorzugst prägnante Updates
+  - Du hast mich gebeten, dich morgen an den Lieferantenanruf zu erinnern
+```
+
+## Manuelle Sitzungssteuerung
+
+Manchmal möchtest du das Steuer übernehmen:
+
+```
+/session new         — Jetzt eine neue Sitzung starten
+/session save        — Aktuelle Sitzung erzwungen im Gedächtnis speichern
+/session export      — Sitzung als JSON oder Markdown herunterladen
+/session privacy     — Sehen, welche Daten behalten werden
+/session forget      — Aktuelle Sitzung löschen ohne Speichern
+```
+
+Der Befehl `/session forget` ist es wert, zu kennen. Wenn du etwas Sensibles besprochen hast und keine Spur davon möchtest, löscht er die aktuelle Sitzung vollständig — keine Zusammenfassung, keine Gedächtnisspeicherung, nichts.
+
+## Warum Sitzungen wichtig sind
+
+Sitzungen mögen wie Infrastruktur erscheinen — etwas, das einfach im Hintergrund funktioniert. Aber gut konfigurierte Sitzungen sind der Unterschied zwischen einer KI, die sich anfühlt, als würde sie dich kennen, und einer, die sich jedes Mal wie ein Fremder anfühlt. Sie geben OpenClaw die Fähigkeit, einen Gedankengang über Dutzende von Nachrichten hinweg zu verfolgen, nahtlos zwischen Geräten zu übergeben und jeden Tag frisch zu beginnen, ohne das zu verlieren, was wichtig ist.

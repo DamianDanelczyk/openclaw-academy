@@ -1,0 +1,298 @@
+---
+title: Głos
+description: Konfiguracja słów budzących, Trybu Rozmowy i praktyczne przypadki użycia głosu w asystencie OpenClaw.
+---
+
+# Głos
+
+Pisanie jest świetne dla precyzji. Ale czasem po prostu chcesz mówić. System głosowy OpenClaw pozwala prowadzić naturalne rozmowy ustne z agentem — bez użycia rąk, na dowolnym urządzeniu. Niezależnie od tego, czy gotujesz obiad, jedziesz samochodem, czy po prostu leżysz wygodnie na kanapie i nie masz ochoty sięgać po klawiaturę, głos sprawia, że Twój asystent jest naprawdę dostępny.
+
+## Konfiguracja Słowa Budzącego
+
+Słowo budzące to sposób, w jaki przyciągasz uwagę agenta bez dotykania urządzenia. Domyślnie jest to **„Hey Claw"**, ale możesz je dostosować.
+
+```yaml
+# voice/wake-word.yaml
+wake_word:
+  phrase: "Hey Claw"
+  sensitivity: 0.7          # 0.0 (nigdy nie wyzwala) do 1.0 (wyzwala na cokolwiek)
+  processing: "on_device"   # Wykrywanie słowa budzącego nigdy nie opuszcza Twojego urządzenia
+
+  alternatives:
+    - "OK Claw"
+    - "Claw"                 # Pojedyncze słowo, działa, ale więcej fałszywych alarmów
+
+  custom:
+    enabled: true
+    phrase: "Hey Atlas"      # Użyj imienia swojego agenta jako słowa budzącego
+    training_samples: 10     # Powiedz to 10 razy, żeby wytrenować model
+
+  behavior:
+    confirmation_sound: true          # Sygnał dźwiękowy po aktywacji
+    confirmation_sound_file: "soft_chime.wav"
+    listen_timeout: 10                # Sekundy oczekiwania na mowę
+    cancel_phrase: "never mind"
+    ambient_noise_adaptation: true    # Dostosowuje się do szumu w tle
+```
+
+Kilka uwag dotyczących czułości:
+
+- **0.5–0.6** — rzadko wyzwala przypadkowo, ale może być konieczne wyraźne mówienie bezpośrednio do urządzenia.
+- **0.7** — najlepsze ustawienie dla większości ludzi. Niezawodne bez zbyt wielu fałszywych alarmów.
+- **0.8–0.9** — bardzo czułe. Dobre w cichym środowisku, ale może wyzwalać od telewizora lub pobliskich rozmów.
+
+### Trenowanie Własnego Słowa Budzącego
+
+Jeśli chcesz niestandardowego słowa budzącego (np. imienia swojego agenta), OpenClaw trenuje mały model na urządzeniu:
+
+```bash
+# Rozpocznij trening słowa budzącego
+openclaw voice train-wake-word "Hey Atlas"
+
+# CLI poprosi Cię o powiedzenie frazy 10 razy w różnych
+# warunkach (cicho, głośno, blisko, daleko).
+
+# Przetestuj nowe słowo budzące
+openclaw voice test-wake-word
+
+# Zresetuj do domyślnego
+openclaw voice reset-wake-word
+```
+
+Trening zajmuje około dwóch minut. Mów swoje słowo budzące z różnych odległości i głośności, aby uzyskać najlepsze wyniki. Model działa całkowicie na Twoim urządzeniu — Twoje próbki głosowe go nigdy nie opuszczają.
+
+## Tryb Rozmowy
+
+Tryb Rozmowy to ciągły tryb rozmowy, w którym nie potrzebujesz słowa budzącego do każdej wymiany. Aktywuj go raz i możesz prowadzić naturalną rozmowę w obie strony, jak z drugą osobą.
+
+```yaml
+# voice/talk-mode.yaml
+talk_mode:
+  activation:
+    trigger: "Hey Claw, let's talk"
+    hotkey: "hold_volume_button"     # Zależy od platformy
+    auto_activate: false
+
+  behavior:
+    continuous_listening: true
+    turn_detection: "voice_activity"  # Wykrywa, kiedy kończysz mówić
+    pause_threshold: 1.5              # Sekundy ciszy = Twoja tura skończona
+    interrupt_allowed: true           # Możesz przerywać w trakcie odpowiedzi
+
+  response:
+    voice: "ember"                    # Opcje: ember, sage, nova, flint
+    speed: 1.0                        # 0.5 (wolno) do 2.0 (szybko)
+    pitch: "natural"
+    language: "auto_detect"
+
+  deactivation:
+    phrase: "That's all, thanks"
+    auto_timeout: 300                 # Zakończ Tryb Rozmowy po 5 min ciszy
+    explicit_only: false              # Kończy się też po timeout
+```
+
+### Opcje Głosu
+
+OpenClaw jest dostarczany z kilkoma personami głosowymi:
+
+```yaml
+voices:
+  ember:
+    description: "Warm, mid-range, conversational"
+    best_for: "everyday use, personal assistant"
+    gender_presentation: "neutral"
+
+  sage:
+    description: "Calm, measured, authoritative"
+    best_for: "professional contexts, briefings"
+    gender_presentation: "neutral"
+
+  nova:
+    description: "Bright, energetic, upbeat"
+    best_for: "creative sessions, brainstorming"
+    gender_presentation: "neutral"
+
+  flint:
+    description: "Low, steady, minimal"
+    best_for: "quiet environments, nighttime use"
+    gender_presentation: "neutral"
+```
+
+Możesz zmieniać głosy na bieżąco:
+
+```
+Ty: Przełącz na głos sage.
+OpenClaw (teraz głosem sage): Gotowe. Będę używać tego głosu od teraz.
+```
+
+## Konfiguracja Zamiany Mowy na Tekst
+
+Gdy mówisz, OpenClaw konwertuje Twój głos na tekst przed przetworzeniem. Masz kontrolę nad tym, jak to działa:
+
+```yaml
+speech_to_text:
+  engine: "whisper-large-v3"
+  processing: "hybrid"       # na urządzeniu dla krótkich, chmura dla długich
+  threshold:
+    on_device_max: 30        # Sekundy — przetwarzaj na urządzeniu do 30s
+    cloud_above: 30          # Dłuższy dźwięk trafia do chmury
+
+  language:
+    primary: "en"
+    secondary: "pl"
+    auto_detect: true
+    code_switching: true     # Obsługa przełączeń języka w środku zdania
+
+  enhancements:
+    punctuation: true        # Automatycznie dodawaj interpunkcję
+    profanity_filter: false  # Nie cenzuruj
+    domain_vocabulary:
+      - "OpenClaw"
+      - "ClawHub"
+      - "SOUL.md"
+      - "Pi runtime"
+
+  privacy:
+    audio_retention: "none"  # Nie przechowuj surowego dźwięku
+    transcription_retention: "session"  # Przechowywane przez sesję, potem usuwane
+```
+
+Ustawienie `domain_vocabulary` jest ważne. Uczy silnik zamiany mowy na tekst poprawnego transkrybowania słów, których może nie znać — takich jak „OpenClaw" zamiast „open claw" lub „SOUL.md" zamiast „soul MD".
+
+## Praktyczne Przypadki Użycia Głosu
+
+### Poranny Briefing
+
+```
+Ty: Hey Claw, dzień dobry. Jak wygląda mój dzień?
+
+OpenClaw: Dzień dobry. Masz dziś trzy spotkania.
+Najpierw standup o 10 z zespołem produktu.
+Potem lunch z Sarą o 12:30 — zaproponowała to nowe miejsce
+na Nowym Świecie. Twoje spotkanie 1-na-1 z dr Chen jest o 15.
+Między spotkaniami masz około dwóch godzin czasu skupienia.
+Aha, i 12 stopni i częściowe zachmurzenie — możesz chcieć kurtkę.
+```
+
+To działa świetnie jako interakcja głosowa podczas robienia kawy. Ekran nie jest potrzebny.
+
+### Gotowanie Bez Rąk
+
+```
+Ty: Hey Claw, porozmawiajmy.
+
+OpenClaw: Tryb Rozmowy aktywny. Co słychać?
+
+Ty: Robię to risotto z grzybami. Przeprowadź mnie krok po kroku.
+
+OpenClaw: Jasne. Najpierw pokrój grzyby w plasterki i rozgrzej bulion
+na tylnym palniku. Gotowy do kroku pierwszego?
+
+Ty: Gotowy.
+
+OpenClaw: Podgrzej dwie łyżki oliwy z oliwek na patelni o szerokim dnie
+na średnim ogniu. Dodaj posiekaną cebulę i gotuj aż zmięknie, około pięciu minut.
+
+Ty: Gotowe, co dalej?
+
+OpenClaw: Dodaj ryż arborio — około półtorej filiżanki. Mieszaj przez minutę
+aż ziarenka pokryją się tłuszczem i będą lekko przezroczyste przy krawędziach.
+
+Ty: Poczekaj, czy powinienem dodać czosnek?
+
+OpenClaw: Dobry pomysł. Dodaj dwa rozgniecione ząbki zaraz po tym,
+jak cebula zmięknie, przed ryżem. Gotuj czosnek przez 30 sekund,
+żeby się nie spalił.
+```
+
+Zwróć uwagę, jak Tryb Rozmowy pozwala na naturalną wymianę bez mówienia słowa budzącego za każdym razem. Możesz też przerywać lub zadawać pytania w trakcie przepisu.
+
+### Tryb Jazdy
+
+```yaml
+# voice/driving-mode.yaml
+driving_mode:
+  activation: "Hey Claw, I'm driving"
+  behavior:
+    responses: "voice_only"      # Nigdy nie pokazuj treści wizualnych
+    length: "extra_concise"      # Utrzymuj odpowiedzi bardzo krótkie
+    confirmations: "verbal"      # "Czy mam to wysłać?" zamiast pokazywania szkicu
+    no_questions: true            # Nie zadawaj pytań wyjaśniających, zgadnij najlepiej
+    emergency_override: true     # Zawsze alertuj o pilnych wiadomościach
+
+  allowed_skills:
+    - navigation
+    - music
+    - calls
+    - messages_read_only
+  blocked_skills:
+    - email_compose
+    - code_exec
+    - file_manager
+```
+
+Tryb jazdy to funkcja bezpieczeństwa. Ogranicza to, co agent może robić, wymusza wyjście tylko głosowe i utrzymuje odpowiedzi ultra-krótkie. Twój agent nie poprosi Cię o patrzenie na ekran.
+
+### Szybkie Notatki ze Spotkania
+
+```
+Ty: Hey Claw, szybka notatka. Sara chce przesunąć deadline
+na 15 maja. Mike protestował, ale zgodził się, jeśli ograniczymy zakres
+w panelu analitycznym. Decyzja: wyślemy bez wykresów czasu rzeczywistego
+i dodamy je w v2.
+
+OpenClaw: Rozumiem. Zapisano:
+  - Sara zaproponowała zmianę deadline'u na 15 maja
+  - Mike zgodził się pod warunkiem: ograniczenie zakresu panelu analitycznego
+  - Decyzja: wysyłamy bez wykresów czasu rzeczywistego, dodajemy w v2
+  Chcesz, żebym wysłał to podsumowanie do zespołu?
+```
+
+Notatki głosowe przechwycone, ustrukturyzowane i gotowe do udostępnienia — wszystko podczas gdy wracasz z sali konferencyjnej.
+
+### Wieczorne Wyciszenie
+
+```yaml
+# voice/night-mode.yaml
+night_mode:
+  activation:
+    time: "22:00"
+    manual: "Hey Claw, nighttime mode"
+
+  behavior:
+    voice: "flint"             # Niski, cichy głos
+    volume: 0.4                # Zmniejszona głośność
+    responses: "minimal"       # Bardzo krótkie odpowiedzi
+    no_proactive: true         # Nie wychodź z informacjami z własnej inicjatywy
+
+  sleep_sounds:
+    enabled: true
+    trigger: "play sleep sounds"
+    options: ["rain", "ocean", "forest", "white_noise"]
+    timer: 30                  # Automatyczne zatrzymanie po 30 minutach
+```
+
+## Rozwiązywanie Problemów z Głosem
+
+Typowe problemy i rozwiązania:
+
+```bash
+# Przetestuj mikrofon
+openclaw voice mic-test
+
+# Sprawdź wykrywanie słowa budzącego
+openclaw voice debug-wake-word
+# Pokazuje wyniki zaufania w czasie rzeczywistym podczas mówienia
+
+# Skalibruj dla nowego środowiska
+openclaw voice calibrate
+# Dostosowuje próg szumu i czułość do Twojego aktualnego miejsca
+
+# Sprawdź opóźnienie głosu
+openclaw voice latency-test
+# Pokazuje podział czasu przetwarzania: STT → przetwarzanie → TTS
+```
+
+Jeśli Twoje słowo budzące wyzwala zbyt często, obniż czułość. Jeśli nie rozpoznaje Twojego głosu, podnieś ją. Jeśli rozpoznawanie mowy myli słowa, dodaj je do listy `domain_vocabulary`. Większość problemów z głosem sprowadza się do tych trzech korekt.
+
+Głos to jedna z tych funkcji, które wydają się gadżetem, dopóki nie użyjesz go we właściwym kontekście. Gotowanie, jazda samochodem, poranne rutyny, szybkie notatki w biegu — gdy znajdziesz swoje przypadki użycia, będziesz się zastanawiać, jak wcześniej wszystko wpisywałeś.

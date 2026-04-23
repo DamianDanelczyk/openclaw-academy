@@ -1,0 +1,316 @@
+---
+title: Węzły
+description: Jak OpenClaw działa na Twoich urządzeniach — iOS, Android, macOS — i utrzymuje synchronizację.
+---
+
+# Węzły
+
+W OpenClaw każde używane przez Ciebie urządzenie jest **węzłem**. Twój iPhone to węzeł. Twój MacBook to węzeł. Twój tablet Android to węzeł. Węzły to sposób, w jaki OpenClaw sięga do fizycznego świata — dając Twojemu agentowi dostęp do Twoich urządzeń, ich czujników i możliwości. Magia polega na tym, że wszystkie Twoje węzły współpracują jako jeden bezproblemowy system.
+
+## Czym Jest Węzeł?
+
+Węzeł to dowolne urządzenie uruchamiające klienta OpenClaw podłączone do Twojego Gateway. Każdy węzeł ma własne możliwości (telefon ma aparat i GPS; laptop ma klawiaturę i duży ekran), a Twój agent zna je wszystkie. Oznacza to, że Twój agent może robić takie rzeczy jak:
+
+- Przypominać Ci na telefonie, gdy opuszczasz dom
+- Pokazywać szczegółowy arkusz kalkulacyjny na laptopie, bo ekran jest większy
+- Odtwarzać muzykę na urządzeniu, które jest najbliżej Ciebie
+- Robić zdjęcie telefonem i wysyłać je na laptopa do edycji
+
+Węzły nie są tylko biernymi odbiorcami informacji. Aktywnie raportują swój status — poziom baterii, połączenie sieciowe, lokalizację, aktywne aplikacje — dzięki czemu Twój agent może podejmować mądre decyzje o tym, którego urządzenia użyć do czego.
+
+## Obsługa Urządzeń
+
+### iOS
+
+Węzeł iOS działa jako usługa w tle z głęboką integracją systemową:
+
+```yaml
+# nodes/ios.yaml
+node:
+  platform: "ios"
+  name: "Damian's iPhone"
+  id: "node_iphone_15_pro"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - camera
+    - gps
+    - notifications
+    - haptics
+    - health_kit
+    - shortcuts_integration
+    - focus_modes
+
+  always_listening:
+    enabled: true
+    wake_word: "Hey Claw"
+    processing: "on_device"  # Wykrywanie słowa budzącego pozostaje lokalne
+
+  notifications:
+    priority_levels: true
+    grouped: true
+    actionable: true
+
+  background:
+    location_updates: "significant_changes"
+    health_sync: "hourly"
+    battery_optimization: true
+```
+
+Na iOS OpenClaw integruje się z Skrótami, dzięki czemu możesz uruchamiać działania agenta z aplikacji Skróty lub z widżetów. Łączy się też z HealthKit dla umiejętności związanych z fitness i szanuje Twoje tryby Skupienia — nie będzie Cię pingować podczas Nie Przeszkadzać, chyba że coś jest naprawdę pilne.
+
+### Android
+
+Węzeł Android oferuje podobne możliwości z kilkoma specyficznymi dla platformy dodatkami:
+
+```yaml
+# nodes/android.yaml
+node:
+  platform: "android"
+  name: "Damian's Pixel"
+  id: "node_pixel_9"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - camera
+    - gps
+    - notifications
+    - nfc
+    - tasker_integration
+    - digital_wellbeing
+
+  permissions:
+    accessibility_service: true   # Umożliwia odczytywanie ekranu
+    notification_listener: true   # Może odczytywać powiadomienia i na nie reagować
+    overlay: true                 # Pływająca bańka asystenta
+
+  widget:
+    enabled: true
+    size: "4x2"
+    show: ["quick_actions", "next_event", "active_tasks"]
+
+  automation:
+    tasker_integration: true
+    intents:
+      - action: "com.openclaw.TRIGGER"
+        extras: ["command", "context"]
+```
+
+Otwartość Androida daje OpenClaw więcej dostępu do systemu. Usługa ułatwień dostępu pozwala Twojemu agentowi odczytywać to, co jest na ekranie (za Twoją zgodą), co umożliwia takie rzeczy jak „Na jaką aplikację patrzę?" lub „Podsumuj ten artykuł." Integracja z Taskerem umożliwia złożone łańcuchy automatyzacji.
+
+### macOS
+
+Węzeł macOS to miejsce, gdzie zaawansowani użytkownicy spędzają większość czasu:
+
+```yaml
+# nodes/macos.yaml
+node:
+  platform: "macos"
+  name: "Damian's MacBook"
+  id: "node_macbook_pro_m4"
+
+  capabilities:
+    - voice_input
+    - voice_output
+    - screen_sharing
+    - file_system
+    - terminal
+    - clipboard
+    - menu_bar
+    - spotlight_integration
+
+  interface:
+    mode: "menu_bar"  # Opcje: menu_bar, floating, dock, fullscreen
+    hotkey: "Cmd+Shift+Space"
+    quick_actions:
+      - "New note"
+      - "Check calendar"
+      - "Search files"
+
+  file_access:
+    allowed_paths:
+      - "~/Documents"
+      - "~/Desktop"
+      - "~/Downloads"
+    denied_paths:
+      - "~/Library"
+      - "/System"
+    watch_folders:
+      - path: "~/Downloads"
+        action: "notify_new_files"
+
+  terminal:
+    enabled: true
+    shell: "zsh"
+    allowed_commands: ["git", "npm", "python", "docker"]
+    require_confirmation: true
+```
+
+Na macOS OpenClaw siedzi na pasku menu dla szybkiego dostępu. Naciśnij skrót klawiszowy i zacznij mówić lub pisać. Może uzyskiwać dostęp do systemu plików (w ramach dozwolonych ścieżek), uruchamiać polecenia terminala (za Twoją zgodą), a nawet obserwować foldery pod kątem zmian.
+
+## Możliwości Wielourządzeniowe
+
+Prawdziwa moc węzłów nie tkwi w żadnym pojedynczym urządzeniu — tkwi w tym, jak współpracują.
+
+### Przekazywanie Sesji
+
+Zacznij rozmowę na jednym urządzeniu, kontynuuj na innym:
+
+```yaml
+cross_device:
+  session_sync:
+    enabled: true
+    latency: "< 500ms"
+    handoff:
+      trigger: "automatic"   # Opcje: automatic, manual, ask
+      notification: true
+
+  # Przykładowy przepływ:
+  # 1. Rozmawiasz na MacBooku przy biurku
+  # 2. Podnosisz telefon i odchodzisz
+  # 3. OpenClaw wykrywa zmianę urządzenia
+  # 4. Telefon pokazuje: "Kontynuowanie z Twojego MacBooka..."
+  # 5. Pełny kontekst rozmowy jest dostępny
+```
+
+### Odpowiedzi Dostosowane do Urządzenia
+
+Twój agent dostosowuje wyjście do używanego urządzenia:
+
+```yaml
+adaptive_output:
+  rules:
+    - device: "phone"
+      formatting:
+        max_length: "concise"
+        prefer: "bullet_points"
+        tables: "simplified"
+        code_blocks: "collapsible"
+
+    - device: "laptop"
+      formatting:
+        max_length: "full"
+        prefer: "mixed"
+        tables: "full_width"
+        code_blocks: "expanded"
+
+    - device: "tablet"
+      formatting:
+        max_length: "moderate"
+        prefer: "visual"
+        tables: "full_width"
+        code_blocks: "expanded"
+```
+
+Zadaj to samo pytanie na telefonie i laptopie, a otrzymasz różne prezentacje tych samych informacji. Telefon dostanie zwięzłe podsumowanie. Laptop dostanie pełne zestawienie z tabelami i blokami kodu.
+
+### Działania Wielourządzeniowe
+
+Twój agent może koordynować działania na różnych urządzeniach:
+
+```
+Ty (na telefonie): Weź ten raport, który pobrałem na laptopie,
+i wyślij go do Sary.
+
+OpenClaw:
+  1. Sięga do węzła MacBooka → znajduje "Q2_Report.pdf" w Pobranych
+  2. Uzyskuje dostęp do umiejętności e-mail → pisze e-mail do Sary
+  3. Dołącza plik
+  4. Wraca do telefonu → "Gotowe. Wysłano Q2_Report.pdf do Sary. Chcesz zobaczyć e-mail?"
+```
+
+Działa to, ponieważ wszystkie Twoje węzły są połączone z tym samym Gateway, a Twój agent ma widoczność na wszystkich z nich.
+
+## Zarządzanie Węzłami
+
+```bash
+# Lista wszystkich zarejestrowanych węzłów
+openclaw node list
+
+# Wyjście:
+# NAME                PLATFORM   STATUS    LAST SEEN
+# Damian's iPhone     ios        online    just now
+# Damian's MacBook    macos      online    just now
+# Damian's Pixel      android    offline   2 hours ago
+
+# Zarejestruj nowe urządzenie
+openclaw node add
+
+# Usuń urządzenie
+openclaw node remove node_pixel_9
+
+# Sprawdź stan węzła
+openclaw node health --all
+
+# Ustaw główne urządzenie
+openclaw node set-primary node_macbook_pro_m4
+```
+
+### Priorytet Węzłów
+
+Gdy Twój agent musi wybrać urządzenie do czegoś, stosuje reguły priorytetów:
+
+```yaml
+node_priority:
+  notification_delivery:
+    - rule: "active_device"       # Wysyłaj do urządzenia, którego używasz
+      fallback: "primary_device"  # Jeśli żadne nie jest aktywne, użyj głównego
+
+  file_operations:
+    - rule: "device_with_file"    # Użyj urządzenia z plikiem
+      fallback: "primary_device"
+
+  voice_interactions:
+    - rule: "device_with_wake"    # Urządzenie, które usłyszało słowo budzące
+      fallback: "nearest_device"  # Na podstawie bliskości lokalizacji
+
+  heavy_processing:
+    - rule: "most_capable"        # Kieruj do urządzenia z największymi zasobami
+      prefer: "macos"
+```
+
+## Bezpieczeństwo i Prywatność
+
+Węzły mają dostęp do Twoich fizycznych urządzeń, więc bezpieczeństwo jest kluczowe:
+
+```yaml
+node_security:
+  authentication:
+    method: "device_certificate"
+    biometric_required: true
+    session_token_expiry: "24h"
+
+  encryption:
+    in_transit: "TLS 1.3"
+    at_rest: "AES-256"
+
+  remote_actions:
+    require_confirmation: true
+    confirmation_timeout: 30  # sekundy
+    allowed_remote_actions:
+      - read_files
+      - send_notifications
+    denied_remote_actions:
+      - delete_files
+      - install_apps
+      - access_camera_without_prompt
+
+  lost_device:
+    action: "revoke_access"
+    wipe_local_data: true
+    notify_other_nodes: true
+```
+
+Jeśli urządzenie zostanie zgubione, OpenClaw natychmiast odwołuje jego dostęp, usuwa wszelkie lokalne dane OpenClaw i powiadamia Twoje inne urządzenia. Zdalne odczyty plików wymagają uwierzytelnienia biometrycznego, a zdalny dostęp do aparatu zawsze wyświetla monit na ekranie.
+
+## Pierwsze Kroki z Węzłami
+
+1. **Zainstaluj OpenClaw na swoim głównym urządzeniu** i zakończ konfigurację.
+2. **Dodaj drugie urządzenie** — `openclaw node add` generuje kod QR, który skanujesz nowym urządzeniem.
+3. **Skonfiguruj możliwości** — zdecyduj, co każde urządzenie może, a czego nie może robić.
+4. **Ustaw główne urządzenie** — tam domyślnie trafiają powiadomienia.
+5. **Przetestuj przekazywanie** — zacznij rozmowę na jednym urządzeniu, przełącz się na inne i potwierdź, że kontekst podąża za Tobą.
+
+Większość ludzi zaczyna od dwóch węzłów (telefon i laptop) i dodaje więcej, gdy widzą wartość. Nawet przy zaledwie dwóch urządzeniach funkcje przekazywania i działań wielourządzeniowych sprawiają, że OpenClaw czuje się jak jeden asystent, który żyje wszędzie, a nie osobne aplikacje na osobnych urządzeniach.

@@ -1,0 +1,335 @@
+---
+title: Habilidades & ClawHub
+description: Estenda o OpenClaw com habilidades do ClawHub ou construa as suas próprias — um guia para as principais habilidades, instalação e desenvolvimento personalizado.
+---
+
+# Habilidades & ClawHub
+
+Do jeito que vem, o OpenClaw pode conversar. Com **habilidades**, ele pode *agir*. Habilidades são capacidades modulares que permitem ao seu agente interagir com o mundo exterior — verificar seu calendário, enviar e-mails, pesquisar na web, controlar dispositivos de casa inteligente, executar código e centenas mais. O **ClawHub** é o marketplace onde você encontra, instala e compartilha habilidades.
+
+## O Que É uma Habilidade?
+
+Uma habilidade é um pacote autossuficiente que dá ao seu agente uma nova capacidade. Ela define:
+
+- **O que pode fazer** — as ações que suporta
+- **O que precisa** — quaisquer chaves de API, permissões ou configurações
+- **Quando usar** — condições de gatilho e correspondência de intenção
+
+Quando você diz "O que tenho na agenda hoje?", seu agente não sabe magicamente sua programação. A habilidade `calendar` se conecta ao Google Calendar (ou Outlook, ou Apple Calendar), busca seus eventos e os retorna em um formato que seu agente pode apresentar a você.
+
+## Top 20 Habilidades no ClawHub
+
+Aqui estão as habilidades mais populares, classificadas por instalações:
+
+| # | Habilidade | O Que Faz | Instalações |
+|---|-----------|-----------|-------------|
+| 1 | `calendar` | Gerenciar eventos no Google, Outlook, Apple | 284K |
+| 2 | `email` | Ler, rascunhar, enviar e organizar e-mail | 261K |
+| 3 | `web_search` | Pesquisar na web com atribuição de fonte | 249K |
+| 4 | `notes` | Criar e gerenciar notas (Notion, Obsidian, Apple Notes) | 198K |
+| 5 | `reminders` | Definir, gerenciar e entregar lembretes | 187K |
+| 6 | `weather` | Dados de clima atual e previsão | 176K |
+| 7 | `smart_home` | Controlar luzes, termostatos, fechaduras (HomeKit, Hue, etc.) | 164K |
+| 8 | `music` | Reproduzir, pausar, enfileirar músicas (Spotify, Apple Music) | 152K |
+| 9 | `code_exec` | Executar código em ambientes isolados | 143K |
+| 10 | `file_manager` | Ler, escrever, organizar arquivos nos seus dispositivos | 138K |
+| 11 | `translator` | Tradução em tempo real em 95 idiomas | 127K |
+| 12 | `finance` | Rastrear despesas, orçamentos e investimentos | 119K |
+| 13 | `github` | Gerenciar repositórios, PRs, issues | 112K |
+| 14 | `shopping` | Comparação de preços e listas de compras | 104K |
+| 15 | `recipes` | Planejamento de refeições e gerenciamento de receitas | 97K |
+| 16 | `travel` | Busca de voos, reserva de hotéis, planejamento de itinerário | 89K |
+| 17 | `fitness` | Rastreamento de treinos e integração de dados de saúde | 82K |
+| 18 | `news` | Notícias selecionadas de fontes preferidas | 78K |
+| 19 | `slack` | Ler e enviar mensagens do Slack | 71K |
+| 20 | `pdf` | Ler, resumir e extrair dados de PDFs | 65K |
+
+## Instalando Habilidades do ClawHub
+
+Instalar uma habilidade é um único comando:
+
+```bash
+# Instalar uma única habilidade
+openclaw skill install calendar
+
+# Instalar várias habilidades de uma vez
+openclaw skill install calendar email web_search notes
+
+# Instalar uma versão específica
+openclaw skill install github@2.4.1
+
+# Navegar pelas habilidades disponíveis
+openclaw skill search "gerenciamento de projetos"
+
+# Ver o que está instalado
+openclaw skill list
+```
+
+Após a instalação, a maioria das habilidades precisa de configuração — geralmente uma chave de API ou conexão de conta:
+
+```bash
+# Configurar uma habilidade de forma interativa
+openclaw skill setup calendar
+```
+
+Isso lança uma configuração guiada que te orienta pela conexão da sua conta, configuração de permissões e teste da conexão.
+
+### Arquivo de Configuração de Habilidade
+
+Internamente, as configurações de habilidades ficam em um arquivo YAML:
+
+```yaml
+# skills/calendar.yaml
+skill: calendar
+version: "3.2.0"
+source: "clawhub/official"
+
+auth:
+  provider: "google"
+  credentials: "${GOOGLE_OAUTH_TOKEN}"
+  scopes:
+    - "calendar.readonly"
+    - "calendar.events"
+
+settings:
+  default_calendar: "Trabalho"
+  time_format: "24h"
+  timezone: "America/Sao_Paulo"
+  reminder_default: 15  # minutos antes do evento
+
+permissions:
+  can_create_events: true
+  can_delete_events: false  # Segurança: requer confirmação
+  can_invite_others: true
+  can_access_other_calendars: false
+
+triggers:
+  - intent: "check_schedule"
+    examples: ["o que tenho na agenda", "alguma reunião hoje", "estou livre às 3"]
+  - intent: "create_event"
+    examples: ["agendar uma reunião", "adicionar ao meu calendário", "reservar tempo para"]
+```
+
+Observe a configuração `can_delete_events: false`. Você pode controlar exatamente o que uma habilidade tem permissão para fazer, mesmo que ela *suporte* mais. É assim que você impede que seu agente exclua acidentalmente sua reunião das 15h.
+
+## Construindo Habilidades Personalizadas
+
+O ClawHub tem centenas de habilidades, mas às vezes você precisa de algo específico para seu fluxo de trabalho. Construir uma habilidade personalizada é simples.
+
+### Estrutura de Habilidade
+
+```
+my-custom-skill/
+├── manifest.yaml      # Metadados e configuração
+├── handler.py         # Lógica principal
+├── triggers.yaml      # Quando a habilidade ativa
+├── test/
+│   └── test_handler.py
+└── README.md
+```
+
+### O Manifesto
+
+```yaml
+# manifest.yaml
+name: "jira-standup"
+version: "1.0.0"
+author: "damian"
+description: "Gera resumos de standup diário a partir do Jira"
+runtime: "python3.11"
+
+dependencies:
+  - jira-client>=3.0
+  - markdown2>=2.4
+
+auth:
+  required:
+    - name: "JIRA_API_TOKEN"
+      description: "Seu token de API do Jira"
+    - name: "JIRA_URL"
+      description: "A URL da sua instância do Jira"
+
+permissions:
+  network: true        # Precisa chamar a API do Jira
+  filesystem: false    # Sem acesso a arquivos necessário
+  execute: false       # Sem execução de shell
+```
+
+### O Handler
+
+```python
+# handler.py
+from openclaw_sdk import Skill, SkillResponse
+from jira import JIRA
+
+class JiraStandupSkill(Skill):
+    def setup(self):
+        self.jira = JIRA(
+            server=self.config["JIRA_URL"],
+            token_auth=self.config["JIRA_API_TOKEN"]
+        )
+
+    def handle(self, intent: str, params: dict) -> SkillResponse:
+        if intent == "generate_standup":
+            return self.generate_standup(params.get("user", "currentUser()"))
+
+    def generate_standup(self, user: str) -> SkillResponse:
+        # Obter issues atualizadas ontem
+        yesterday_issues = self.jira.search_issues(
+            f'assignee = {user} AND updated >= -1d ORDER BY updated DESC'
+        )
+
+        # Obter issues do sprint atual
+        in_progress = self.jira.search_issues(
+            f'assignee = {user} AND status = "In Progress"'
+        )
+
+        standup = {
+            "completed_yesterday": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in yesterday_issues
+                if i.fields.status.name == "Done"
+            ],
+            "working_on_today": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+            ],
+            "blockers": [
+                {"key": i.key, "summary": i.fields.summary}
+                for i in in_progress
+                if hasattr(i.fields, 'flagged') and i.fields.flagged
+            ]
+        }
+
+        return SkillResponse(
+            data=standup,
+            display="standup_template",
+            summary=f"Encontrado {len(standup['completed_yesterday'])} concluído, "
+                    f"{len(standup['working_on_today'])} em andamento"
+        )
+```
+
+### Gatilhos
+
+```yaml
+# triggers.yaml
+triggers:
+  - intent: "generate_standup"
+    examples:
+      - "gere meu standup"
+      - "no que trabalhei ontem"
+      - "relatório de standup"
+      - "atualização diária do Jira"
+    params:
+      user:
+        type: "string"
+        default: "currentUser()"
+        description: "Nome de usuário do Jira"
+```
+
+### Testando e Publicando
+
+```bash
+# Testar localmente
+openclaw skill test ./my-custom-skill
+
+# Executar o conjunto de testes
+openclaw skill test ./my-custom-skill --run-tests
+
+# Publicar no ClawHub
+openclaw skill publish ./my-custom-skill
+
+# Publicar de forma privada (somente você pode instalar)
+openclaw skill publish ./my-custom-skill --private
+```
+
+## Considerações de Segurança
+
+Habilidades podem ser poderosas, o que significa que precisam de proteções.
+
+### Modelo de Permissões
+
+Cada habilidade declara o que precisa, e você aprova ou nega:
+
+```yaml
+# O que uma habilidade solicita vs. o que você concede
+skill: smart_home
+requested_permissions:
+  network: true        # Precisa falar com o hub de casa inteligente
+  filesystem: false
+  execute: false
+  location: true       # Quer localização para geofencing
+
+granted_permissions:
+  network: true        # Aprovado
+  location: false      # Negado — não quero geofencing
+```
+
+### Isolamento
+
+As habilidades rodam em sandboxes isolados. Uma habilidade com mau comportamento não pode:
+
+- Acessar dados de outras habilidades
+- Ler seu USER.md ou SOUL.md diretamente
+- Fazer chamadas de rede além de seus endpoints declarados
+- Executar comandos do sistema (a menos que explicitamente permitido)
+- Persistir dados fora do seu armazenamento alocado
+
+```yaml
+# Política de segurança para habilidades
+security:
+  sandbox:
+    enabled: true
+    network_allowlist:
+      calendar: ["*.googleapis.com"]
+      email: ["*.gmail.com", "*.outlook.com"]
+      smart_home: ["192.168.1.0/24"]  # Somente rede local
+    resource_limits:
+      max_memory: "256MB"
+      max_cpu_time: "10s"
+      max_storage: "100MB"
+  audit:
+    log_all_actions: true
+    alert_on_permission_escalation: true
+  review:
+    require_review_for: ["filesystem", "execute"]
+    auto_approve: ["network"]  # Se estiver na lista de permissões
+```
+
+### Verificação no ClawHub
+
+As habilidades no ClawHub passam por um processo de revisão:
+
+- **Habilidades oficiais** (pela equipe do OpenClaw) são totalmente auditadas.
+- **Habilidades verificadas** (por desenvolvedores conhecidos) têm o código revisado.
+- **Habilidades da comunidade** são revisadas pelos pares e sinalizadas se surgirem problemas.
+- **Habilidades privadas** pulam a revisão (somente você as usa).
+
+Sempre verifique as permissões de uma habilidade antes de instalar. Se uma habilidade de clima solicitar acesso ao sistema de arquivos, isso é um sinal de alerta.
+
+## Gerenciando Habilidades Instaladas
+
+```bash
+# Atualizar todas as habilidades
+openclaw skill update
+
+# Atualizar uma habilidade específica
+openclaw skill update calendar
+
+# Desabilitar uma habilidade sem desinstalar
+openclaw skill disable music
+
+# Remover uma habilidade completamente
+openclaw skill uninstall shopping
+
+# Verificar avisos de segurança
+openclaw skill audit
+```
+
+## Dicas para Aproveitar ao Máximo as Habilidades
+
+1. **Comece com as quatro essenciais:** calendar, email, web_search e notes cobrem 80% do que a maioria das pessoas precisa.
+2. **Configure permissões com rigor.** Se uma habilidade pode deletar coisas, considere desabilitar isso até ter confiança nela.
+3. **Verifique atualizações mensalmente.** Habilidades melhoram, bugs são corrigidos e patches de segurança são lançados.
+4. **Construa antes de procurar.** Se seu fluxo de trabalho é único, uma habilidade personalizada que se encaixa perfeitamente supera uma geral que funciona mais ou menos.
+5. **Leia as permissões.** Cinco segundos de leitura podem impedir que uma habilidade acesse coisas que não deveria.
