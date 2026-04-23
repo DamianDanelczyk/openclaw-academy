@@ -49,9 +49,14 @@ export default async function Layout({
       ]}
       sidebar={{
         footer: (
-          <p className="px-2 text-xs leading-relaxed text-fd-muted-foreground opacity-50">
-            Independent community resource. Not affiliated with or endorsed by OpenClaw.
-          </p>
+          <div className="space-y-2 px-2">
+            <p className="text-xs leading-relaxed text-fd-muted-foreground opacity-50">
+              Independent community resource. Not affiliated with or endorsed by OpenClaw.
+            </p>
+            <p className="text-xs leading-relaxed text-fd-muted-foreground opacity-40">
+              For educational use only. Not for commercial use. All content is provided as-is with no warranty. Use at your own risk.
+            </p>
+          </div>
         ),
       }}
     >

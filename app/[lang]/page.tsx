@@ -76,7 +76,7 @@ const t: Record<Lang, {
     beginnerCta: 'Start the Beginner Path',
     footerRights: 'All rights reserved.',
     footerPoweredBy: 'Powered by',
-    footerDisclaimer: 'OpenClaw Academy is an independent, community-built resource and is not affiliated with, endorsed by, or officially connected to OpenClaw or its creators. All content is written independently for educational purposes.',
+    footerDisclaimer: 'OpenClaw Academy is an independent, community-built resource and is not affiliated with, endorsed by, or officially connected to OpenClaw or its creators. All content is written independently for educational purposes only and is not for commercial use. Information is provided as-is with no warranty of any kind. Use at your own risk.',
   },
   es: {
     docs: 'Docs',
@@ -113,7 +113,7 @@ const t: Record<Lang, {
     beginnerCta: 'Empezar el Camino para Principiantes',
     footerRights: 'Todos los derechos reservados.',
     footerPoweredBy: 'Desarrollado por',
-    footerDisclaimer: 'OpenClaw Academy es un recurso independiente creado por la comunidad y no está afiliado, respaldado ni conectado oficialmente a OpenClaw o sus creadores. Todo el contenido es escrito de forma independiente con fines educativos.',
+    footerDisclaimer: 'OpenClaw Academy es un recurso independiente creado por la comunidad y no está afiliado, respaldado ni conectado oficialmente a OpenClaw o sus creadores. Todo el contenido es escrito de forma independiente con fines exclusivamente educativos y no para uso comercial. La información se proporciona tal cual, sin garantía de ningún tipo. Úsalo bajo tu propia responsabilidad.',
   },
   pt: {
     docs: 'Docs',
@@ -150,7 +150,7 @@ const t: Record<Lang, {
     beginnerCta: 'Começar o Caminho para Iniciantes',
     footerRights: 'Todos os direitos reservados.',
     footerPoweredBy: 'Desenvolvido por',
-    footerDisclaimer: 'OpenClaw Academy é um recurso independente criado pela comunidade e não é afiliado, endossado nem oficialmente conectado ao OpenClaw ou seus criadores. Todo o conteúdo é escrito de forma independente para fins educacionais.',
+    footerDisclaimer: 'OpenClaw Academy é um recurso independente criado pela comunidade e não é afiliado, endossado nem oficialmente conectado ao OpenClaw ou seus criadores. Todo o conteúdo é escrito de forma independente para fins exclusivamente educacionais e não para uso comercial. As informações são fornecidas sem garantias de qualquer tipo. Use por sua conta e risco.',
   },
   fr: {
     docs: 'Docs',
@@ -187,7 +187,7 @@ const t: Record<Lang, {
     beginnerCta: 'Commencer le Parcours Débutant',
     footerRights: 'Tous droits réservés.',
     footerPoweredBy: 'Propulsé par',
-    footerDisclaimer: 'OpenClaw Academy est une ressource indépendante créée par la communauté et n\'est pas affiliée, approuvée ni officiellement connectée à OpenClaw ou ses créateurs. Tout le contenu est rédigé de manière indépendante à des fins éducatives.',
+    footerDisclaimer: 'OpenClaw Academy est une ressource indépendante créée par la communauté et n\'est pas affiliée, approuvée ni officiellement connectée à OpenClaw ou ses créateurs. Tout le contenu est rédigé de manière indépendante à des fins exclusivement éducatives et non commerciales. Les informations sont fournies telles quelles, sans garantie d\'aucune sorte. Utilisation à vos propres risques.',
   },
   de: {
     docs: 'Docs',
@@ -224,7 +224,7 @@ const t: Record<Lang, {
     beginnerCta: 'Einsteiger-Pfad starten',
     footerRights: 'Alle Rechte vorbehalten.',
     footerPoweredBy: 'Unterstützt von',
-    footerDisclaimer: 'OpenClaw Academy ist eine unabhängige, community-erstellte Ressource und ist nicht mit OpenClaw oder seinen Erstellern verbunden, wird nicht von ihnen unterstützt oder ist offiziell mit ihnen verbunden. Alle Inhalte wurden unabhängig für Bildungszwecke verfasst.',
+    footerDisclaimer: 'OpenClaw Academy ist eine unabhängige, community-erstellte Ressource und ist nicht mit OpenClaw oder seinen Erstellern verbunden. Alle Inhalte wurden unabhängig ausschließlich zu Bildungszwecken verfasst und sind nicht für kommerzielle Nutzung bestimmt. Die Informationen werden ohne jegliche Gewährleistung bereitgestellt. Nutzung auf eigene Gefahr.',
   },
   pl: {
     docs: 'Dokumenty',
@@ -261,7 +261,7 @@ const t: Record<Lang, {
     beginnerCta: 'Zacznij Ścieżkę dla Początkujących',
     footerRights: 'Wszelkie prawa zastrzeżone.',
     footerPoweredBy: 'Napędzane przez',
-    footerDisclaimer: 'OpenClaw Academy to niezależny zasób stworzony przez społeczność. Nie jest powiązany, wspierany ani oficjalnie połączony z OpenClaw ani jego twórcami. Wszystkie treści są napisane niezależnie w celach edukacyjnych.',
+    footerDisclaimer: 'OpenClaw Academy to niezależny zasób stworzony przez społeczność. Nie jest powiązany, wspierany ani oficjalnie połączony z OpenClaw ani jego twórcami. Wszystkie treści są napisane niezależnie wyłącznie w celach edukacyjnych i nie mogą być wykorzystywane komercyjnie. Informacje są udostępniane bez żadnych gwarancji. Korzystasz na własne ryzyko.',
   },
 };
 
