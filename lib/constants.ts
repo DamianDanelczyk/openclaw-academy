@@ -1,4 +1,5 @@
 export const SKOOL_URL = 'https://www.skool.com/ai-agents-accelerator';
+export const HOSTINGER_URL = 'https://hostinger.com/damianopenclaw';
 
 export const CTA_COPY = {
   banner: {

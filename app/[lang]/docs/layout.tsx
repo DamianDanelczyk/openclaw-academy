@@ -2,7 +2,20 @@ import { source } from '@/lib/source';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import type { ReactNode } from 'react';
 import Image from 'next/image';
-import { SKOOL_URL } from '@/lib/constants';
+import { SKOOL_URL, HOSTINGER_URL } from '@/lib/constants';
+
+function SidebarFooterContent() {
+  return (
+    <div key="sidebar-footer" className="space-y-2 px-2">
+      <p className="text-xs leading-relaxed text-fd-muted-foreground opacity-50">
+        Independent community resource. Not affiliated with or endorsed by OpenClaw.
+      </p>
+      <p className="text-xs leading-relaxed text-fd-muted-foreground opacity-40">
+        For educational use only. Not for commercial use. All content is provided as-is with no warranty. Use at your own risk.
+      </p>
+    </div>
+  );
+}
 
 function PoweredByBadge() {
   return (
@@ -44,20 +57,28 @@ export default async function Layout({
       links={[
         {
           type: 'custom',
+          children: (
+            <a
+              href={HOSTINGER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-fd-border bg-fd-card px-2.5 py-1 text-[10px] text-fd-muted-foreground transition-colors hover:border-[hsl(0,65%,50%)]/40 hover:text-fd-foreground"
+            >
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" className="shrink-0 opacity-50">
+                <path d="M6.5 1H11V5.5M11 1L5 7M4.5 2H2C1.45 2 1 2.45 1 3V10C1 10.55 1.45 11 2 11H9C9.55 11 10 10.55 10 10V7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span>Install on VPS · 10% OFF Code: </span>
+              <span className="font-semibold text-[hsl(0,65%,50%)]">DAMIAN</span>
+            </a>
+          ),
+        },
+        {
+          type: 'custom',
           children: <PoweredByBadge />,
         },
       ]}
       sidebar={{
-        footer: (
-          <div className="space-y-2 px-2">
-            <p className="text-xs leading-relaxed text-fd-muted-foreground opacity-50">
-              Independent community resource. Not affiliated with or endorsed by OpenClaw.
-            </p>
-            <p className="text-xs leading-relaxed text-fd-muted-foreground opacity-40">
-              For educational use only. Not for commercial use. All content is provided as-is with no warranty. Use at your own risk.
-            </p>
-          </div>
-        ),
+        footer: <SidebarFooterContent />,
       }}
     >
       {children}

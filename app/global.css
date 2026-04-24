@@ -28,6 +28,15 @@
   --color-fd-ring: 0 65% 50%;
 }
 
+/* Remove the empty bordered container next to theme icons in sidebar */
+#nd-sidebar .rounded-lg.border {
+  width: fit-content;
+  align-self: flex-end;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
 html {
   scrollbar-gutter: stable;
 }

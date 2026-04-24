@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
-import { SKOOL_URL } from '@/lib/constants';
+import { SKOOL_URL, HOSTINGER_URL } from '@/lib/constants';
 
 const languages = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -403,7 +403,7 @@ export default function HomePage() {
 
       {/* Beginner Path CTA */}
       <section className="border-t border-fd-border px-6 py-16">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-5xl space-y-4">
           <div className="flex flex-col items-center gap-6 rounded-2xl border border-[hsl(0,65%,50%)]/20 bg-[hsl(0,65%,50%)]/5 px-8 py-12 text-center md:flex-row md:text-left">
             <div className="flex-1">
               <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[hsl(0,65%,50%)]">
@@ -423,6 +423,35 @@ export default function HomePage() {
               >
                 {tr.beginnerCta}
               </Link>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-6 rounded-2xl border border-[hsl(0,65%,50%)]/20 bg-[hsl(0,65%,50%)]/5 px-8 py-12 text-center md:flex-row md:text-left">
+            <div className="flex-1">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[hsl(0,65%,50%)]">
+                Ready to go 24/7?
+              </p>
+              <h2 className="mb-3 text-2xl font-bold text-fd-foreground md:text-3xl">
+                Install OpenClaw on a VPS
+              </h2>
+              <p className="text-fd-muted-foreground">
+                Run your AI Agents around the clock. Use code{' '}
+                <span className="font-bold text-[hsl(0,65%,50%)]">DAMIAN</span>{' '}
+                for 10% off VPS.
+              </p>
+            </div>
+            <div className="flex flex-shrink-0 flex-col items-center gap-2">
+              <a
+                href={HOSTINGER_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded-lg bg-[hsl(0,65%,50%)] px-8 py-3 font-semibold text-white transition-all hover:bg-[hsl(0,65%,45%)]"
+              >
+                Get VPS Hosting →
+              </a>
+              <p className="text-xs italic text-fd-muted-foreground opacity-60">
+                Affiliate link — supports this site at no extra cost to you.
+              </p>
             </div>
           </div>
         </div>
@@ -457,6 +486,38 @@ export default function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Run OpenClaw 24/7 */}
+      <section className="border-t border-fd-border px-6 py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="flex flex-col items-center gap-6 text-center md:flex-row md:items-center md:text-left">
+            <div className="flex-1">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[hsl(0,65%,50%)]">
+                Self-Hosting
+              </p>
+              <h2 className="mb-3 text-2xl font-bold text-fd-foreground md:text-3xl">
+                Run OpenClaw 24/7
+              </h2>
+              <p className="max-w-lg text-fd-muted-foreground">
+                Deploy your always-on AI assistant on a VPS — no laptop required, no downtime. Use code{' '}
+                <span className="font-semibold text-fd-foreground">DAMIAN</span>{' '}
+                for 10% off Hostinger.
+              </p>
+            </div>
+            <div className="flex flex-shrink-0 flex-col items-center gap-2">
+              <a
+                href={HOSTINGER_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-fd-border bg-fd-card px-6 py-2.5 text-sm font-semibold text-fd-foreground transition-colors hover:border-[hsl(0,65%,50%)]/40 hover:text-[hsl(0,65%,50%)]"
+              >
+                Get Started →
+              </a>
+              <p className="text-xs text-fd-muted-foreground opacity-50">Partner link</p>
+            </div>
           </div>
         </div>
       </section>
